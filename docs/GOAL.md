@@ -2,10 +2,10 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.2
+> Document version: 0.3
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-24
-> Initial state: **planned / bootstrap**
+> Current state: **active / Phase 01**
 > Home Assistant display timezone: `Europe/Madrid`
 > Internal operational timezone: UTC
 

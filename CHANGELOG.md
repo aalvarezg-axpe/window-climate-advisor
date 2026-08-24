@@ -31,3 +31,6 @@ Semantic Versioning after the first distributable integration release.
   scoring, explicit movement/uncertainty costs, and stable tie-breaking.
 - Negative migration gate preventing `terraza_caliente` from becoming a new
   thermal-policy input while retaining measured radiation and real geometry.
+- Typed recommendation-only weather policy with fail-closed degraded inputs,
+  absolute rain/gust priority, continuous façade wind limits, and protected
+  tilt geometry.
