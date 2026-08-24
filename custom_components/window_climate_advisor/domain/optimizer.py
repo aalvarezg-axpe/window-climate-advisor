@@ -66,6 +66,7 @@ class OptimizationRequest:
     forecast_conditions: ThermalConditions | None
     current_action: CandidateAction
     supports_tilt: bool
+    has_blind: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -206,10 +207,13 @@ def optimize_opening(
         and request.current_action.window_state is WindowState.TILT
     ):
         raise ValueError("current tilt state requires supports_tilt")
+    if not request.has_blind and request.current_action.blind.percent != 100:
+        raise ValueError("current blind state requires has_blind")
 
     evaluations = tuple(
         _evaluate(request, action, settings, calibration)
         for action in enumerate_actions(settings, supports_tilt=request.supports_tilt)
+        if request.has_blind or action.blind.percent == 100
     )
     best = min(
         evaluations,

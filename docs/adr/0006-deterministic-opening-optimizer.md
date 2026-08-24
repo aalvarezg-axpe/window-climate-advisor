@@ -12,7 +12,9 @@ that divides 100. A non-closed window requires a blind opening above 0%; the
 initial 10% step therefore produces 21 or 31 feasible candidates. The observed
 current action is still scored separately when it is non-closed/0%, so the
 advisor can recommend correcting a real incoherent state without allowing it
-to win a tie. Do not add a numerical solver or optimization dependency.
+to win a tie. When an opening has no configured blind, only 100% is feasible;
+the optimizer must not invent unavailable solar protection. Do not add a
+numerical solver or optimization dependency.
 
 For each current or forecast horizon, derive intent from the selected profile:
 heat below the lower bound or preconditioning target minus hysteresis, cool

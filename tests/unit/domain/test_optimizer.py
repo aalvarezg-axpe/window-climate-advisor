@@ -31,6 +31,7 @@ def request(
     forecast: ThermalConditions | None = None,
     current_action: CandidateAction = DEFAULT_CURRENT_ACTION,
     supports_tilt: bool = True,
+    has_blind: bool = True,
 ) -> OptimizationRequest:
     """Build one concise typed request for tests."""
     return OptimizationRequest(
@@ -40,6 +41,7 @@ def request(
         forecast_conditions=forecast,
         current_action=current_action,
         supports_tilt=supports_tilt,
+        has_blind=has_blind,
     )
 
 
@@ -166,6 +168,17 @@ def test_incoherent_current_action_is_compared_but_cannot_win() -> None:
     assert result.avoided_cost_w == 0
 
 
+def test_opening_without_blind_only_evaluates_fully_open_blind_state() -> None:
+    """Do not model solar protection that the configured opening lacks."""
+    result = optimize_opening(
+        request(ThermalConditions(27, 22, 1200), has_blind=False),
+        ZERO_PENALTIES,
+    )
+
+    assert result.evaluated_candidates == 3
+    assert result.best.action.blind == BlindOpening(100)
+
+
 def test_optimizer_settings_and_current_state_are_validated() -> None:
     """Reject invalid resolution, penalties, and unsupported current tilt."""
     for values in (
@@ -185,6 +198,15 @@ def test_optimizer_settings_and_current_state_are_validated() -> None:
                 ThermalConditions(23, 23, 0),
                 current_action=CandidateAction(WindowState.TILT, BlindOpening(50)),
                 supports_tilt=False,
+            ),
+            ZERO_PENALTIES,
+        )
+    with pytest.raises(ValueError):
+        optimize_opening(
+            request(
+                ThermalConditions(23, 23, 0),
+                current_action=CandidateAction(WindowState.CLOSED, BlindOpening(50)),
+                has_blind=False,
             ),
             ZERO_PENALTIES,
         )
