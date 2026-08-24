@@ -118,6 +118,15 @@ Git integration, and final acceptance. It also retains work when delegation
 tooling is unavailable, the write set cannot be isolated, or delegation cost
 exceeds the task; record the concrete exception in the phase plan.
 
+Each execution capsule defines an observable progress checkpoint. If an
+executor produces neither a requested status nor an allowed artifact across two
+consecutive manager checkpoints and one direct status request, the root
+interrupts the wave and records the exception instead of waiting repeatedly.
+After the same persistent session stalls this way in two consecutive waves,
+the root retains subsequent work until that session is replaced or the owner
+directs another attempt. A slow successful gate is progress; silence with no
+artifact is not.
+
 An executor handoff may report only `listo para revisión`, `parcial`, or
 `bloqueado`. Only the root decides whether a task or phase is complete.
 

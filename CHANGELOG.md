@@ -23,3 +23,5 @@ Semantic Versioning after the first distributable integration release.
   exact local gates, bounded write sets, and deployment stop conditions.
 - Versioned v4.17_pre behaviour catalog separating weather safety, replaceable
   thermal heuristics, state stability, and unavailable-data handling.
+- Pure coupled opening/blind model with explicit geometry, solar transmission,
+  unilateral airflow, thermal-load components, bounds, and assumption tests.
