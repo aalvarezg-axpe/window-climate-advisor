@@ -23,7 +23,11 @@ from .application.evaluator import (
     evaluate_snapshot,
 )
 from .application.state import AdvisorState, state_from_dict, state_to_dict
-from .config_flow import profiles_from_options, settings_from_options
+from .config_flow import (
+    has_duplicate_entity_links,
+    profiles_from_options,
+    settings_from_options,
+)
 from .const import CONF_SELECTION_MODE, CONF_WEATHER_ENTITY_ID, DOMAIN
 from .domain.profiles import SelectionMode, select_season
 
@@ -89,6 +93,11 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
     async def _async_update_data(self) -> CoordinatorData:
         """Assemble, evaluate, persist, and publish one coherent snapshot."""
         now = dt_util.utcnow()
+        if has_duplicate_entity_links(
+            self.config_entry.data,
+            *(subentry.data for subentry in self.config_entry.subentries.values()),
+        ):
+            raise UpdateFailed("Duplicate entity links in advisor configuration")
         settings: EvaluationSettings | None = None
         profiles = None
         source_max_age: timedelta | None = None
@@ -139,8 +148,10 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
             now,
             settings,
         )
+        state_changed = evaluation.state != self._state
         self._state = evaluation.state
-        await self._store.async_save(state_to_dict(self._state))
+        if state_changed:
+            await self._store.async_save(state_to_dict(self._state))
         quality = dict(built.source_quality)
         quality["options"] = (
             "ready" if settings is not None else "configuration_required"

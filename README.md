@@ -1,33 +1,39 @@
 # Window Climate Advisor
 
-Custom integration for Home Assistant that will recommend how to use windows,
+Custom integration for Home Assistant that recommends how to use windows,
 tilt positions, blinds, shutters, and solar protection from room conditions,
 outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
-The project starts in **bootstrap and shadow-only mode**. It does not control
-physical actuators. The deployed automation `v4.17_pre` remains the operational
-baseline and rollback while the Python engine is characterized and compared.
+The project is in **local advisor/shadow development**. The accepted Python
+engine and its Home Assistant informational entities are implemented locally;
+deployment and the observed shadow period are still pending. It does not
+control physical actuators. The deployed automation `v4.17_pre` remains the
+operational baseline and rollback.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
-tracked in [`docs/phases/00-bootstrap/PLAN.md`](docs/phases/00-bootstrap/PLAN.md),
+tracked in
+[`docs/phases/01-domain-optimizer/PLAN.md`](docs/phases/01-domain-optimizer/PLAN.md),
 and repository-wide rules are in [`AGENTS.md`](AGENTS.md).
 
 ## Intended architecture
 
-The distributable code will live under
+The distributable code lives under
 `custom_components/window_climate_advisor`. Home Assistant entrypoints will be
 thin adapters around a typed, I/O-free domain engine. Configuration will use a
 UI config flow plus room and opening subentries; no user-authored YAML will be
 required.
 
-The initial entity surface will be informational:
+The initial entity surface is informational:
 
 - recommendation per opening;
-- recommended blind position;
-- safety and availability status;
-- thermal balance, airflow, solar load, and confidence diagnostics;
-- global strategy and reason codes.
+- recommended blind position when a cover is configured;
+- safety-to-open status;
+- active comfort profile and last-evaluation timestamp;
+- redacted downloadable diagnostics with reason codes and source quality.
+
+There are no services, notifications, helpers, YAML automations, or actuator
+platforms in the integration.
 
 ## Local development
 
@@ -42,7 +48,7 @@ Luna/max executor, and the three Ponytail skills. Repository-local
 agent-profile folders are not used. See
 [`docs/operations/development.md`](docs/operations/development.md).
 
-## Bootstrap checks
+## Local checks
 
 ```powershell
 uv sync --frozen --group dev

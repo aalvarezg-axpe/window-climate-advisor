@@ -75,7 +75,11 @@ Subentry type `opening` stores:
 Room links store the immutable subentry ID, never the room title. Subentry IDs,
 not names or selected entity IDs, are the stable opening/room identities.
 Creation and reconfigure flows validate selector domains, numeric bounds, and
-that an opening references a room belonging to the same config entry.
+that an opening references a room belonging to the same config entry. One Home
+Assistant entity may fill only one semantic input across the dwelling; create,
+reconfigure, and runtime setup reject duplicate entity links. Reconfiguring a
+subentry excludes its prior data from that comparison, so keeping an unchanged
+valid assignment is allowed.
 
 ### Frozen entity surface
 
@@ -89,8 +93,8 @@ P01-T09 implements this frozen informational surface:
 - per opening: safety-to-open binary sensor;
 - per dwelling: active comfort-profile sensor and last-evaluation timestamp
   sensor;
-- disabled-by-default diagnostic sensors only when the engine produces their
-  values.
+- no diagnostic sensor in Phase 01; detailed values use redacted downloadable
+  Home Assistant diagnostics instead.
 
 Entity unique IDs use `<entry_id>:<subentry_id>:<kind>` for opening entities and
 `<entry_id>:<kind>` for dwelling entities. Display names and entity IDs never

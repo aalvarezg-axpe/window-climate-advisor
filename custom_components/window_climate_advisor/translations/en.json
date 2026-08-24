@@ -32,6 +32,9 @@
     },
     "abort": {
       "reconfigure_successful": "The dwelling was reconfigured."
+    },
+    "error": {
+      "duplicate_entity_link": "Each Home Assistant entity can be assigned to only one dwelling input."
     }
   },
   "options": {
@@ -77,6 +80,39 @@
       }
     }
   },
+  "entity": {
+    "sensor": {
+      "recommendation": {
+        "name": "Recommendation",
+        "state": {
+          "open": "Open",
+          "tilt": "Tilt",
+          "close": "Close",
+          "hold": "Hold",
+          "degraded": "Degraded"
+        }
+      },
+      "recommended_blind_position": {
+        "name": "Recommended blind position"
+      },
+      "active_profile": {
+        "name": "Active comfort profile",
+        "state": {
+          "summer": "Summer",
+          "shoulder": "Shoulder season",
+          "winter": "Winter"
+        }
+      },
+      "last_evaluation": {
+        "name": "Last evaluation"
+      }
+    },
+    "binary_sensor": {
+      "safe_to_open": {
+        "name": "Safe to open"
+      }
+    }
+  },
   "config_subentries": {
     "room": {
       "title": "Room",
@@ -99,6 +135,9 @@
             "co2_entity_id": "Carbon dioxide"
           }
         }
+      },
+      "error": {
+        "duplicate_entity_link": "This entity is already assigned to another dwelling input."
       }
     },
     "opening": {
@@ -139,6 +178,9 @@
       },
       "abort": {
         "no_rooms": "Add a room before adding an opening."
+      },
+      "error": {
+        "duplicate_entity_link": "This entity is already assigned to another dwelling input."
       }
     }
   }

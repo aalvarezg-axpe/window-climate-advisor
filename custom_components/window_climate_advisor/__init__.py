@@ -1,6 +1,7 @@
 """Window Climate Advisor integration."""
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import (
@@ -12,6 +13,12 @@ from .const import (
     SUBENTRY_TYPE_OPENING,
     VERSION,
 )
+from .coordinator import (
+    WindowClimateAdvisorConfigEntry,
+    WindowClimateAdvisorCoordinator,
+)
+
+PLATFORMS = (Platform.SENSOR, Platform.BINARY_SENSOR)
 
 _V1_GEOMETRY_KEYS = {
     "facade_azimuth": CONF_FACADE_AZIMUTH_DEG,
@@ -41,15 +48,23 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up a behaviour-free configuration entry."""
+async def async_setup_entry(
+    hass: HomeAssistant, entry: WindowClimateAdvisorConfigEntry
+) -> bool:
+    """Set up one recommendation-only dwelling coordinator."""
+    coordinator = WindowClimateAdvisorCoordinator(hass, entry)
+    await coordinator.async_config_entry_first_refresh()
+    entry.runtime_data = coordinator
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a behaviour-free configuration entry."""
-    return True
+async def async_unload_entry(
+    hass: HomeAssistant, entry: WindowClimateAdvisorConfigEntry
+) -> bool:
+    """Unload both informational platforms."""
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
 async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:

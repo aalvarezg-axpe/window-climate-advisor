@@ -19,14 +19,17 @@ from custom_components.window_climate_advisor.const import (
     SUBENTRY_TYPE_ROOM,
     VERSION,
 )
+from tests.integration.test_adapters import entry as advisor_entry
+from tests.integration.test_adapters import set_ready_states
 
 
 async def test_entry_setup_unload_and_update_listener_reload(
     hass: HomeAssistant,
 ) -> None:
-    """Set up, update, reload, and unload a behaviour-free entry."""
-    entry = MockConfigEntry(domain=DOMAIN, data={CONF_NAME: "Casa"})
+    """Set up, update, reload, and unload the advisor platforms."""
+    entry = advisor_entry()
     entry.add_to_hass(hass)
+    set_ready_states(hass)
 
     assert await hass.config_entries.async_setup(entry.entry_id)
     assert entry.state is ConfigEntryState.LOADED
@@ -36,7 +39,7 @@ async def test_entry_setup_unload_and_update_listener_reload(
         hass.config_entries, "async_reload", new_callable=AsyncMock
     ) as async_reload:
         hass.config_entries.async_update_entry(
-            entry, data={CONF_NAME: "Casa actualizada"}
+            entry, data={**entry.data, CONF_NAME: "Casa actualizada"}
         )
         await hass.async_block_till_done()
         async_reload.assert_awaited_once_with(entry.entry_id)

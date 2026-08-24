@@ -70,7 +70,13 @@ Home Assistant diagnostics return configuration shape, source quality,
 reason codes, timestamps, and accepted engine results. Entity IDs and config
 names are redacted; tokens, raw entity states, household history, contacts, and
 coordinates are absent. No rapidly changing diagnostic attributes or enabled
-diagnostic sensors are added in this phase.
+diagnostic sensors are added in this phase. Subentry IDs are replaced with
+stable report-local aliases such as `room_1` and `opening_1`.
+
+All configured `*_entity_id` values are one-to-one across a dwelling. The UI
+flows reject duplicates and setup repeats the check defensively for migrated or
+corrupted stored data. This prevents one physical observation from silently
+standing in for two inputs with different units or meanings.
 
 ## Consequences
 

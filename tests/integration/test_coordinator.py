@@ -9,6 +9,10 @@ from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from custom_components.window_climate_advisor.application.evaluator import InputIssue
+from custom_components.window_climate_advisor.const import (
+    CONF_WIND_GUST_ENTITY_ID,
+    CONF_WIND_SPEED_ENTITY_ID,
+)
 from custom_components.window_climate_advisor.coordinator import (
     WindowClimateAdvisorCoordinator,
 )
@@ -83,6 +87,29 @@ async def test_invalid_structural_storage_fails_setup_explicitly(
     """Do not silently invent required entity assignments from corrupt config."""
     config_entry = entry()
     object.__setattr__(config_entry, "data", type(config_entry.data)({}))
+    config_entry.add_to_hass(hass)
+    config_entry.mock_state(hass, ConfigEntryState.SETUP_IN_PROGRESS)
+    coordinator = WindowClimateAdvisorCoordinator(hass, config_entry)
+
+    with pytest.raises(ConfigEntryNotReady):
+        await coordinator.async_config_entry_first_refresh()
+
+
+async def test_duplicate_stored_links_fail_setup_explicitly(
+    hass: HomeAssistant,
+) -> None:
+    """Defend setup against duplicate links from older or corrupted storage."""
+    config_entry = entry()
+    object.__setattr__(
+        config_entry,
+        "data",
+        type(config_entry.data)(
+            {
+                **config_entry.data,
+                CONF_WIND_GUST_ENTITY_ID: config_entry.data[CONF_WIND_SPEED_ENTITY_ID],
+            }
+        ),
+    )
     config_entry.add_to_hass(hass)
     config_entry.mock_state(hass, ConfigEntryState.SETUP_IN_PROGRESS)
     coordinator = WindowClimateAdvisorCoordinator(hass, config_entry)

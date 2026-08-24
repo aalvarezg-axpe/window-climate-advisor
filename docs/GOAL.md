@@ -92,6 +92,7 @@ implemented in the custom integration and traced as follows:
 | F04-07 stability and notification control | P01-T07 | Carried forward; shadow mode does not own notifications. |
 | F04-08 seasonal simulation | P01-T08 | Carried forward with versioned replay scenarios and comparison against v4.17_pre. |
 | F04-09 version, regression, and deployment | P01-T09 and P01-T10 | Adapted to an integration build and reversible shadow deployment; no v4.18 YAML automation is created. |
+| Imported HANDOFF solar-geometry scenarios 1–6 | P01-T11 | Close the recorded inventory gap by projecting global radiation onto each façade and overhang before deployment. |
 
 ## 4. Scope
 
@@ -220,8 +221,8 @@ initial design favours:
 - one recommended blind-position sensor per opening when a blind exists;
 - explicit safety/availability state;
 - global strategy and last-evaluation sensors;
-- disabled-by-default diagnostics for thermal watts, airflow, effective solar
-  load, source age, confidence, and reason codes.
+- redacted downloadable diagnostics for reason codes, source quality, and
+  bounded engine results; no rapidly changing diagnostic sensors in Phase 01.
 
 Avoid large or rapidly changing attributes that inflate Recorder. Configuration
 belongs in config entries; detailed troubleshooting belongs in redacted

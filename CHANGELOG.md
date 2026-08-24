@@ -39,3 +39,13 @@ Semantic Versioning after the first distributable integration release.
   notification candidate per evaluation.
 - Versioned synthetic Summer, Shoulder-season, and Winter replay evidence with
   v4.17 action provenance, physical-model comparison, and bounded sensitivity.
+- Corrected joint window/blind feasibility so every non-closed recommendation,
+  including `hold`, requires a positive blind opening.
+- Version-2 unit-explicit opening geometry migration and required runtime
+  optimizer, stability, and source-age options.
+- Typed Home Assistant source/forecast adapters, conservative degradation, one
+  five-minute event-aware coordinator, and restart-safe state storage.
+- Stable recommendation, blind-position, active-profile, evaluation-time, and
+  safety entities with translated English/Spanish state names.
+- Duplicate entity-link validation and redacted diagnostics that omit names,
+  entity IDs, raw states, tokens, coordinates, and household history.

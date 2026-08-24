@@ -150,6 +150,79 @@ async def test_user_flow_shows_typed_form_and_creates_entry(
     assert result["data"] == VALID_INPUT
 
 
+async def test_flows_reject_duplicate_entity_links(hass: HomeAssistant) -> None:
+    """Prevent one physical entity from filling multiple semantic inputs."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            **VALID_INPUT,
+            CONF_SOLAR_RADIATION_ENTITY_ID: VALID_INPUT[
+                CONF_OUTDOOR_TEMPERATURE_ENTITY_ID
+            ],
+        },
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "duplicate_entity_link"}
+
+    entry = MockConfigEntry(domain=DOMAIN, data=VALID_INPUT, title="Casa")
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_ROOM), context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={
+            **ROOM_INPUT,
+            CONF_TEMPERATURE_ENTITY_ID: VALID_INPUT[CONF_OUTDOOR_TEMPERATURE_ENTITY_ID],
+        },
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "duplicate_entity_link"}
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], user_input=ROOM_INPUT
+    )
+    assert result["type"] == "create_entry"
+    room = next(iter(entry.subentries.values()))
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": SOURCE_RECONFIGURE, "entry_id": entry.entry_id},
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            **VALID_INPUT,
+            CONF_OUTDOOR_TEMPERATURE_ENTITY_ID: ROOM_INPUT[CONF_TEMPERATURE_ENTITY_ID],
+        },
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "duplicate_entity_link"}
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_OPENING), context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_NAME: "Ventana sur",
+            CONF_ROOM_SUBENTRY_ID: room.subentry_id,
+            CONF_FACADE_AZIMUTH_DEG: 180,
+            CONF_WIDTH_M: 1.6,
+            CONF_HEIGHT_M: 1.2,
+            CONF_OVERHANG_DEPTH_M: 0.5,
+            CONF_OVERHANG_GAP_M: 0.2,
+            CONF_SUPPORTS_TILT: True,
+            CONF_RAIN_PROTECTED: False,
+            CONF_CONTACT_ENTITY_ID: VALID_INPUT[CONF_RAIN_ENTITY_ID],
+        },
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "duplicate_entity_link"}
+
+
 async def test_reconfigure_flow_updates_existing_entry(hass: HomeAssistant) -> None:
     """Reconfigure a dwelling without replacing its config-entry identity."""
     entry = MockConfigEntry(domain=DOMAIN, data=VALID_INPUT, title="Casa")
@@ -173,6 +246,7 @@ async def test_reconfigure_flow_updates_existing_entry(hass: HomeAssistant) -> N
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input=updated_input
     )
+    await hass.async_block_till_done()
 
     assert result["type"] == "abort"
     assert result["reason"] == "reconfigure_successful"

@@ -32,6 +32,9 @@
     },
     "abort": {
       "reconfigure_successful": "La vivienda se ha reconfigurado."
+    },
+    "error": {
+      "duplicate_entity_link": "Cada entidad de Home Assistant solo puede asignarse a una entrada de la vivienda."
     }
   },
   "options": {
@@ -77,6 +80,39 @@
       }
     }
   },
+  "entity": {
+    "sensor": {
+      "recommendation": {
+        "name": "Recomendación",
+        "state": {
+          "open": "Abrir",
+          "tilt": "Oscilobatiente",
+          "close": "Cerrar",
+          "hold": "Mantener",
+          "degraded": "Degradado"
+        }
+      },
+      "recommended_blind_position": {
+        "name": "Posición de persiana recomendada"
+      },
+      "active_profile": {
+        "name": "Perfil de confort activo",
+        "state": {
+          "summer": "Verano",
+          "shoulder": "Entretiempo",
+          "winter": "Invierno"
+        }
+      },
+      "last_evaluation": {
+        "name": "Última evaluación"
+      }
+    },
+    "binary_sensor": {
+      "safe_to_open": {
+        "name": "Es seguro abrir"
+      }
+    }
+  },
   "config_subentries": {
     "room": {
       "title": "Estancia",
@@ -99,6 +135,9 @@
             "co2_entity_id": "Dióxido de carbono"
           }
         }
+      },
+      "error": {
+        "duplicate_entity_link": "Esta entidad ya está asignada a otra entrada de la vivienda."
       }
     },
     "opening": {
@@ -139,6 +178,9 @@
       },
       "abort": {
         "no_rooms": "Añade una estancia antes de añadir un hueco."
+      },
+      "error": {
+        "duplicate_entity_link": "Esta entidad ya está asignada a otra entrada de la vivienda."
       }
     }
   }
