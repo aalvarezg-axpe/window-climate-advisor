@@ -179,6 +179,11 @@ def set_ready_states(hass: HomeAssistant, *, gust_sensor: bool = True) -> None:
     hass.states.async_set("binary_sensor.rain", "off")
     hass.states.async_set("binary_sensor.window", "off")
     hass.states.async_set("cover.blind", "open", {ATTR_CURRENT_POSITION: 80})
+    hass.states.async_set(
+        "sun.sun",
+        "above_horizon",
+        {"azimuth": 180, "elevation": 30},
+    )
 
 
 def test_ready_snapshot_normalizes_sources_and_current_action(
@@ -201,11 +206,13 @@ def test_ready_snapshot_normalizes_sources_and_current_action(
     assert opening.input_issue is None
     assert opening.current_conditions is not None
     assert opening.current_conditions.indoor_temperature_c == 27
+    assert opening.current_conditions.facade_irradiance_w_m2 > 300
     assert opening.current_action.window_state is WindowState.CLOSED
     assert opening.current_action.blind == BlindOpening(80)
     assert set(built.source_quality.values()) == {"ready"}
     assert built.indoor_temperatures_c == (27,)
     assert "sensor.outdoor" in configured_entity_ids(config_entry)
+    assert "sun.sun" in configured_entity_ids(config_entry)
 
 
 def test_no_cover_uses_persisted_window_and_weather_gust(
@@ -251,6 +258,12 @@ def test_binary_rain_is_conservative_and_stale_thermal_data_is_explicit(
         {ATTR_UNIT_OF_MEASUREMENT: UnitOfTemperature.CELSIUS},
         timestamp=(now - timedelta(minutes=20)).timestamp(),
     )
+    hass.states.async_set(
+        "sun.sun",
+        "above_horizon",
+        {"azimuth": 180, "elevation": 30},
+        timestamp=(now - timedelta(minutes=20)).timestamp(),
+    )
 
     opening = build_snapshot(
         hass,
@@ -274,6 +287,7 @@ def test_binary_rain_is_conservative_and_stale_thermal_data_is_explicit(
         ("sensor.direction", "360", {}),
         ("cover.blind", "open", {ATTR_CURRENT_POSITION: True}),
         ("binary_sensor.window", "neither", {}),
+        ("sun.sun", "above_horizon", {"azimuth": True, "elevation": 30}),
     ],
 )
 def test_malformed_required_sources_degrade_opening(

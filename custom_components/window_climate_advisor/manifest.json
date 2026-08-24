@@ -3,6 +3,7 @@
   "name": "Window Climate Advisor",
   "version": "0.1.0",
   "config_flow": true,
+  "dependencies": ["sun"],
   "integration_type": "helper",
   "iot_class": "calculated",
   "codeowners": []

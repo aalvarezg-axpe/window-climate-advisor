@@ -49,3 +49,5 @@ Semantic Versioning after the first distributable integration release.
   safety entities with translated English/Spanish state names.
 - Duplicate entity-link validation and redacted diagnostics that omit names,
   entity IDs, raw states, tokens, coordinates, and household history.
+- Bounded per-façade solar projection from global radiation, `sun.sun`,
+  orientation, opening height, and overhang shade.

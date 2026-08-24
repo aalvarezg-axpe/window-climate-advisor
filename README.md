@@ -19,10 +19,15 @@ and repository-wide rules are in [`AGENTS.md`](AGENTS.md).
 ## Intended architecture
 
 The distributable code lives under
-`custom_components/window_climate_advisor`. Home Assistant entrypoints will be
-thin adapters around a typed, I/O-free domain engine. Configuration will use a
-UI config flow plus room and opening subentries; no user-authored YAML will be
+`custom_components/window_climate_advisor`. Home Assistant entrypoints are
+thin adapters around a typed, I/O-free domain engine. Configuration uses a UI
+config flow plus room and opening subentries; no user-authored YAML is
 required.
+
+Current solar load is projected per opening from global radiation,
+`sun.sun`, façade orientation, and overhang geometry. Missing source or sun
+position data degrades the recommendation instead of inventing a favourable
+value.
 
 The initial entity surface is informational:
 

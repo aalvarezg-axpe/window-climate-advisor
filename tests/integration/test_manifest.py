@@ -28,6 +28,7 @@ def test_manifest_declares_a_calculated_helper() -> None:
         "name": "Window Climate Advisor",
         "version": "0.1.0",
         "config_flow": True,
+        "dependencies": ["sun"],
         "integration_type": "helper",
         "iot_class": "calculated",
         "codeowners": [],

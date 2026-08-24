@@ -46,4 +46,4 @@ async def test_diagnostics_redact_household_identifiers_and_raw_state(
     assert report["evaluation"]["openings"][0]["evaluated_candidates"] == 31
     assert report["source_quality"]["room_1:temperature"] == "ready"
     assert report["source_quality"]["opening_1:contact"] == "ready"
-    assert report["source_quality_summary"] == {"ready": 10}
+    assert report["source_quality_summary"] == {"ready": 11}

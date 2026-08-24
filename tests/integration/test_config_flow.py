@@ -107,6 +107,12 @@ VALID_OPTIONS = {
 }
 
 
+@pytest.fixture
+def expected_lingering_timers() -> bool:
+    """Allow the built-in sun dependency's interval timer in flow-only tests."""
+    return True
+
+
 async def _create_room(hass: HomeAssistant, entry: ConfigEntry) -> ConfigSubentry:
     """Create and return one room through the production subentry flow."""
     result = await hass.config_entries.subentries.async_init(

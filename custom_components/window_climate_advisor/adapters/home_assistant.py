@@ -6,6 +6,13 @@ from datetime import datetime, timedelta
 from typing import Any, cast
 
 from homeassistant.components.cover import ATTR_CURRENT_POSITION
+from homeassistant.components.sun.const import (
+    DOMAIN as SUN_DOMAIN,
+)
+from homeassistant.components.sun.const import (
+    STATE_ATTR_AZIMUTH,
+    STATE_ATTR_ELEVATION,
+)
 from homeassistant.components.weather.const import (
     ATTR_WEATHER_WIND_GUST_SPEED,
     ATTR_WEATHER_WIND_SPEED_UNIT,
@@ -49,6 +56,7 @@ from ..const import (
     SUBENTRY_TYPE_OPENING,
     SUBENTRY_TYPE_ROOM,
 )
+from ..domain.geometry import facade_irradiance_w_m2
 from ..domain.models import (
     BlindOpening,
     OpeningDimensions,
@@ -63,6 +71,7 @@ from ..domain.policy import (
 )
 
 _UNUSABLE_STATES = {STATE_UNKNOWN, STATE_UNAVAILABLE}
+_SUN_ENTITY_ID = f"{SUN_DOMAIN}.{SUN_DOMAIN}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -147,6 +156,32 @@ def _direction(value: float, state: State) -> float:
     if not 0 <= value < 360:
         raise ValueError("wind direction must be within [0, 360)")
     return value
+
+
+def _sun_position(
+    hass: HomeAssistant,
+    now: datetime,
+    max_age: timedelta | None,
+) -> tuple[ObservedFloat, ObservedFloat]:
+    """Return validated current solar azimuth and elevation."""
+    state = hass.states.get(_SUN_ENTITY_ID)
+    if (issue := _state_issue(state, now, max_age)) is not None:
+        missing = ObservedFloat(None, issue)
+        return missing, missing
+    assert state is not None
+    azimuth = state.attributes.get(STATE_ATTR_AZIMUTH)
+    elevation = state.attributes.get(STATE_ATTR_ELEVATION)
+    if (
+        isinstance(azimuth, bool)
+        or not isinstance(azimuth, int | float)
+        or not 0 <= azimuth < 360
+        or isinstance(elevation, bool)
+        or not isinstance(elevation, int | float)
+        or not -90 <= elevation <= 90
+    ):
+        missing = ObservedFloat(None, InputIssue.MISSING_INPUT)
+        return missing, missing
+    return ObservedFloat(float(azimuth), None), ObservedFloat(float(elevation), None)
 
 
 def _weather_gust(
@@ -262,6 +297,7 @@ def configured_entity_ids(entry: ConfigEntry) -> set[str]:
             for key, value in subentry.data.items()
             if key.endswith("_entity_id") and isinstance(value, str)
         )
+    entity_ids.add(_SUN_ENTITY_ID)
     return entity_ids
 
 
@@ -287,6 +323,8 @@ def build_snapshot(
         max_age,
         _irradiance,
     )
+    sun_azimuth, sun_elevation = _sun_position(hass, now, max_age)
+    sun_issue = _merge_issue(sun_azimuth, sun_elevation)
     wind = _numeric_state(
         hass,
         entry.data[CONF_WIND_SPEED_ENTITY_ID],
@@ -317,6 +355,7 @@ def build_snapshot(
     quality = {
         "outdoor_temperature": _quality(outdoor),
         "solar_radiation": _quality(irradiance),
+        "sun_position": sun_issue.value if sun_issue is not None else "ready",
         "wind_speed": _quality(wind),
         "wind_direction": _quality(direction),
         "wind_gust": _quality(gust),
@@ -380,7 +419,15 @@ def build_snapshot(
         input_issue = (
             InputIssue.CONFIGURATION_REQUIRED
             if indoor is None
-            else _merge_issue(indoor, outdoor, irradiance, wind, gust)
+            else _merge_issue(
+                indoor,
+                outdoor,
+                irradiance,
+                sun_azimuth,
+                sun_elevation,
+                wind,
+                gust,
+            )
         )
         if contact_issue is not None or cover_issue is not None:
             input_issue = InputIssue.MISSING_INPUT
@@ -390,7 +437,15 @@ def build_snapshot(
             current_conditions = ThermalConditions(
                 cast(float, indoor.value),
                 cast(float, outdoor.value),
-                cast(float, irradiance.value),
+                facade_irradiance_w_m2(
+                    cast(float, irradiance.value),
+                    cast(float, sun_azimuth.value),
+                    cast(float, sun_elevation.value),
+                    float(data[CONF_FACADE_AZIMUTH_DEG]),
+                    float(data[CONF_HEIGHT_M]),
+                    float(data[CONF_OVERHANG_DEPTH_M]),
+                    float(data[CONF_OVERHANG_GAP_M]),
+                ),
                 cast(float, wind.value),
                 cast(float, gust.value),
             )

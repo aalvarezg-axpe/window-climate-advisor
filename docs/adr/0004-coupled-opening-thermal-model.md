@@ -55,8 +55,9 @@ the provisional residual. No value is described as measured.
 - A closed window has zero ventilation. A fully lowered blind conservatively
   contributes zero free ventilation area; 100% raised restores the state's
   full free area.
-- P01-T02 consumes façade irradiance already calculated at the boundary. It
-  does not implement sun position, overhang shade, weather safety, seasonal
-  policy, hysteresis, or candidate selection.
+- P01-T02 consumes façade irradiance already calculated at the boundary. P01-T11
+  later implements that missing global-to-façade boundary under ADR 0009; this
+  thermal module still does not own sun state, weather safety, seasonal policy,
+  hysteresis, or candidate selection.
 - These formulas produce comparable candidate loads, not an actuator command
   and not a building-energy simulation presented as calibrated truth.
