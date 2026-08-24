@@ -34,7 +34,7 @@ def optimized(state: WindowState, blind_percent: float = 60) -> OptimizationResu
     action = CandidateAction(state, BlindOpening(blind_percent))
     load = ThermalLoad(0, 0, 0)
     evaluation = CandidateEvaluation(action, load, None, 0, 0, 0, 0)
-    return OptimizationResult(evaluation, 33)
+    return OptimizationResult(evaluation, evaluation, 33)
 
 
 def test_stale_or_missing_safety_data_fails_closed_as_degraded() -> None:

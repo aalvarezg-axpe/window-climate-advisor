@@ -71,6 +71,8 @@ def test_optimizer_couples_cooling_and_solar_protection() -> None:
     assert cool.best.action == CandidateAction(WindowState.OPEN, BlindOpening(100))
     assert solar.best.action == CandidateAction(WindowState.CLOSED, BlindOpening(0))
     assert cool.evaluated_candidates == solar.evaluated_candidates == 33
+    assert cool.avoided_cost_w > 0
+    assert solar.avoided_cost_w > 0
 
 
 def test_optimizer_uses_the_worse_current_or_forecast_horizon() -> None:

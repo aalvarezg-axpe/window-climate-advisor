@@ -34,3 +34,6 @@ Semantic Versioning after the first distributable integration release.
 - Typed recommendation-only weather policy with fail-closed degraded inputs,
   absolute rain/gust priority, continuous façade wind limits, and protected
   tilt geometry.
+- Cost/benefit and time-based recommendation stability with versioned UTC
+  memory, blind-direction deduplication, and one delivery-free grouped
+  notification candidate per evaluation.

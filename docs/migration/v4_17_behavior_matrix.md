@@ -47,18 +47,18 @@ policy, and 4 is stability/presentation. Safety always wins.
 | C013 | Worse valid solar/conduction forecast | Forecast cannot open blind further | thermal / 3 | adapt / P01-T04 | A03 / S03,S07 |
 | C014 | Historical geometry, cool outside, solar 0 then 1200 W/m² | Solar can reverse opening benefit | thermal / 3 | adapt / P01-T02 | A04 / S06 |
 | C015 | Current/forecast delta and missing forecast | Worst horizon; stricter missing-data threshold | data quality / 2 | adapt / P01-T04 | A04 / S07,S08 |
-| C016 | New vs existing opening at -150/+50 W boundaries | Retain without rearming | stability / 4 | adapt / P01-T07 | A04 / S07,S12 |
+| C016 | New vs existing opening at -150/+50 W boundaries | Retain without rearming | stability / 4 | optimizer avoided-cost gate plus stable memory / P01-T04,P01-T07 | A04 / S07,S12 |
 | C017 | Missing, unavailable, malformed, or stale forecast | Exclude forecast and expose degradation | data quality / 2 | forecast uncertainty in optimizer; safety degradation in policy / P01-T04,P01-T06 | A04 / S08,S14 |
 | C018 | Façade distance 0–105° | Continuous 10–20 / 35–45 km/h limits | weather safety / 1 | implemented by safety policy / P01-T06 | A05 / S09 |
 | C019 | 0.5 m vs 1.2 m overhang at 8 km/h façade gust | Tilt-only vs full rain protection | weather safety / 1 | implemented conservatively as tilt-only / P01-T06 | A05 / S09 |
 | C020 | Forecast maxima around 25 °C and history around 21/25 °C | Calentar/Refrescar/Neutral | thermal / 3 | replace / P01-T03 | A06 / S10 |
 | C021 | No forecast or history values | Neutral legacy result | data quality / 2 | adapt to explicit degradation / P01-T03 | A06 / S10,S14 |
-| C022 | Same/opposite blind action for 0/10/15 min | Stable change only after 15 min | stability / 4 | adapt / P01-T07 | A08 / S05,S12 |
-| C023 | 30 days × 48 percentage samples | Percentage drift is diagnostic | stability / 4 | adapt / P01-T07 | A03 / S05,S11,S13 |
-| C024 | `A→O` degradation vs `O→A` improvement | Faster unsafe degradation, stable improvement | safety/stability / 1 | keep / P01-T07 | A07 / S11,S12 |
+| C022 | Same/opposite blind action for 0/10/15 min | Stable change only after 15 min | stability / 4 | implemented by direction candidate memory / P01-T07 | A08 / S05,S12 |
+| C023 | 30 days × 48 percentage samples | Percentage drift is diagnostic | stability / 4 | implemented with caller-supplied deadband and same-direction deduplication / P01-T07 | A03 / S05,S11,S13 |
+| C024 | `A→O` degradation vs `O→A` improvement | Faster unsafe degradation, stable improvement | safety/stability / 1 | implemented as 5/0-minute degradation and 10-minute improvement / P01-T07 | A07 / S11,S12 |
 | C025 | 30-minute ordinary period plus separate weather triggers | Bounded recovery without delaying safety | stability / 1 | adapt / P01-T09 | A07 / S11 |
-| C026 | Weather recovery or restart with prior physical category | Do not erase memory or repeat same result | stability / 4 | adapt / P01-T07 | A08 / S12,S14 |
-| C027 | Multiple room/reason candidates | At most one grouped candidate; none delivered in shadow | stability / 4 | adapt / P01-T07 | A07 / S11,S13 |
+| C026 | Weather recovery or restart with prior physical category | Do not erase memory or repeat same result | stability / 4 | implemented by versioned validated UTC state / P01-T07 | A08 / S12,S14 |
+| C027 | Multiple room/reason candidates | At most one grouped candidate; none delivered in shadow | stability / 4 | implemented as one value-only grouped candidate / P01-T07 | A07 / S11,S13 |
 
 ## Keep/replace boundary
 

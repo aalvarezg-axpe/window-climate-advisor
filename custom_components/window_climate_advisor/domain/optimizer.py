@@ -86,7 +86,13 @@ class OptimizationResult:
     """Winning candidate and exhaustive search size."""
 
     best: CandidateEvaluation
+    current: CandidateEvaluation
     evaluated_candidates: int
+
+    @property
+    def avoided_cost_w(self) -> float:
+        """Return cost avoided by the optimum relative to the current action."""
+        return self.current.total_cost_w - self.best.total_cost_w
 
 
 def enumerate_actions(
@@ -218,4 +224,11 @@ def optimize_opening(
             item.action.blind.percent,
         ),
     )
-    return OptimizationResult(best=best, evaluated_candidates=len(evaluations))
+    current = next(
+        item for item in evaluations if item.action == request.current_action
+    )
+    return OptimizationResult(
+        best=best,
+        current=current,
+        evaluated_candidates=len(evaluations),
+    )
