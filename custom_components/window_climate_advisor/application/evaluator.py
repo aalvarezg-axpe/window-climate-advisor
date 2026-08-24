@@ -131,7 +131,7 @@ def evaluate_snapshot(
     snapshot: EvaluationSnapshot,
     previous_state: AdvisorState,
     now: datetime,
-    settings: EvaluationSettings,
+    settings: EvaluationSettings | None,
 ) -> AdvisorEvaluation:
     """Evaluate every ready opening and preserve explicit degradation."""
     if now.tzinfo is None or now.utcoffset() != timedelta(0):
@@ -142,7 +142,7 @@ def evaluate_snapshot(
     profile = snapshot.profile
 
     for opening in snapshot.openings:
-        if profile is None:
+        if profile is None or settings is None:
             results[opening.opening_id] = _degraded(InputIssue.CONFIGURATION_REQUIRED)
             continue
         issue = opening.input_issue
@@ -185,9 +185,17 @@ def evaluate_snapshot(
             if opening_id in configured_ids
         }
     )
-    transition = advance_evaluation(retained_state, samples, now, settings.stability)
+    if settings is None:
+        state = retained_state
+        notification_candidate = None
+    else:
+        transition = advance_evaluation(
+            retained_state, samples, now, settings.stability
+        )
+        state = transition.state
+        notification_candidate = transition.notification_candidate
     for opening_id, (opening, optimized, policy) in evaluated.items():
-        stable = transition.state.openings[opening_id]
+        stable = state.openings[opening_id]
         recommendation = (
             Recommendation.DEGRADED
             if policy.recommendation is Recommendation.DEGRADED
@@ -209,6 +217,6 @@ def evaluate_snapshot(
         now,
         snapshot.season,
         results,
-        transition.state,
-        transition.notification_candidate,
+        state,
+        notification_candidate,
     )

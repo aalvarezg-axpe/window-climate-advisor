@@ -159,7 +159,7 @@ def test_incomplete_options_degrade_and_removed_openings_are_pruned() -> None:
     )
 
     result = evaluate_snapshot(
-        snapshot(opening(), configured=False), previous, NOW, SETTINGS
+        snapshot(opening(), configured=False), previous, NOW, None
     )
 
     assert result.season is None
