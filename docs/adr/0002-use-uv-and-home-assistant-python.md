@@ -1,14 +1,15 @@
 # ADR 0002 — Use uv and track Home Assistant's supported Python
 
-- Status: accepted, provisioning pending
+- Status: accepted and implemented
 - Date: 2026-08-24
 
 ## Context
 
 The local workstation currently exposes Python 3.11 and `uv`, but not GNU Make.
-Current Home Assistant developer documentation requires Python 3.14.2 or newer
-for a manual Core development environment. Building against the workstation's
-default interpreter would therefore create an unrepresentative environment.
+The deployed Home Assistant 2026.8.2 instance and current developer
+documentation require Python 3.14.2 or newer for the development environment.
+Building against the workstation's default interpreter would therefore create
+an unrepresentative environment.
 
 The predecessor `hyperlocal-weather` repository already demonstrates a locked
 `uv` workflow and canonical `make` targets, but its Python 3.11 service runtime
@@ -17,12 +18,13 @@ must not be copied to a Home Assistant 2026 integration.
 ## Decision
 
 - Manage Python and dependencies with `uv`.
-- Pin the project interpreter to the version supported by the target Home
-  Assistant release, beginning with Python 3.14.2 unless the installed target
-  reports a newer requirement before bootstrap.
+- Pin the project interpreter to Python 3.14.2 for the deployed Home Assistant
+  2026.8.2 target.
 - Commit dependency metadata and `uv.lock` together.
-- Expose all routine checks through one cross-platform project command selected
-  in P00-T02.
+- Expose all routine checks through
+  `uv run --frozen python scripts/verify.py`; do not require GNU Make.
+- Run Home Assistant pytest inside local WSL 2 when invoked from Windows;
+  native Windows lacks Core's required POSIX `fcntl` module.
 - Separate fast domain tests from Home Assistant integration tests.
 - Do not add production dependencies unless the standard library and Home
   Assistant APIs are insufficient and an ADR or phase task records the need.

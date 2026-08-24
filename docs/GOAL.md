@@ -2,8 +2,9 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.1
+> Document version: 0.2
 > Initial date: 2026-08-24
+> Last reviewed: 2026-08-24
 > Initial state: **planned / bootstrap**
 > Home Assistant display timezone: `Europe/Madrid`
 > Internal operational timezone: UTC
@@ -19,6 +20,13 @@ The root manager reads this document and the active phase plan before planning
 or editing. Executors read them at the start of a persistent work wave. Code
 existence alone never completes a phase: its declared tests, integration gates,
 shadow comparison, deployment, and Home Assistant verification must pass.
+
+This document, `AGENTS.md`, and every phase `PLAN.md` are living references.
+When implementation or review exposes an inefficiency, contradiction, stale
+assumption, or omitted accepted requirement, the root manager corrects the
+affected documents as part of the same traceable task. A documentation update
+may clarify or reorganize accepted scope, but cannot silently authorize a new
+product capability or weaken a safety, privacy, rollback, or verification gate.
 
 The owner may update task state, evidence, dates, links, and ADRs without
 changing product scope. Changes to physical-action safety, behavioural parity,
@@ -66,6 +74,23 @@ automation is the rollback until the new integration has:
 5. been deployed and verified as a single available config entry without
    duplicate entities or configuration errors.
 
+The predecessor also contains a planned but unimplemented v4.18_pre backlog.
+That backlog is a requirements source, not a second behavioural baseline and
+not an instruction to create another YAML automation. Its accepted intent is
+implemented in the custom integration and traced as follows:
+
+| Predecessor task | Integration task | Disposition |
+|---|---|---|
+| F04-01 heuristic inventory | P01-T01 | Carried forward; weather safety is separated from replaceable thermal policy. |
+| F04-02 coupled blind/window model | P01-T02 | Carried forward as pure, calibrated domain logic. |
+| F04-03 seasonal comfort profiles | P01-T03 | Carried forward through typed config-entry/options data; separate helpers are not the default. |
+| F04-04 numerical optimization | P01-T04 | Carried forward; deterministic enumeration is the initial implementation unless evidence requires a solver. |
+| F04-05 remove `terraza_caliente` | P01-T05 | Carried forward; real geometry may remain, the binary thermal heuristic may not. |
+| F04-06 replace discrete thermal rules | P01-T06 | Carried forward as recommendation-only policy with absolute weather-safety priority. |
+| F04-07 stability and notification control | P01-T07 | Carried forward; shadow mode does not own notifications. |
+| F04-08 seasonal simulation | P01-T08 | Carried forward with versioned replay scenarios and comparison against v4.17_pre. |
+| F04-09 version, regression, and deployment | P01-T09 and P01-T10 | Adapted to an integration build and reversible shadow deployment; no v4.18 YAML automation is created. |
+
 ## 4. Scope
 
 ### 4.1 Initial product scope
@@ -77,10 +102,17 @@ automation is the rollback until the new integration has:
 - Reconfigurable opening subentries linked to rooms, including orientation,
   dimensions, overhang geometry, rain protection, optional contact sensor, and
   optional blind/cover entity.
-- Global weather, radiation, wind, rain, sun, and forecast source selection
-  through typed Home Assistant selectors.
+- Global outdoor-temperature, weather/forecast, radiation, wind, and rain
+  source selection through typed Home Assistant selectors; solar position comes
+  from Home Assistant's built-in `sun` integration when the evaluator consumes
+  it.
 - Pure Python domain models for geometry, solar exposure, ventilation, thermal
   balance, safety, strategy, hysteresis, and recommendation aggregation.
+- Deterministic joint evaluation of window state and recommended blind opening,
+  initially by exhaustive enumeration of the small auditable action space.
+- Independent Summer, Shoulder-season, and Winter comfort profiles with lower
+  and upper bounds, preconditioning target, hysteresis, automatic selection,
+  and manual override.
 - Native informational entities and diagnostics.
 - Supported config-entry schema migrations and restart-safe state.
 - Stable, consolidated recommendation notifications only after shadow parity.
@@ -114,7 +146,7 @@ custom_components/window_climate_advisor/
   select.py                   # operational strategy control, if justified
   switch.py                   # operational feature toggles, if justified
   diagnostics.py              # redacted diagnostics
-  strings.json                # canonical translations
+  translations/en.json       # complete English custom-integration strings
   translations/es.json
   domain/
     models.py                 # typed input/output values
@@ -145,6 +177,9 @@ Home Assistant-required platform files stay at the integration root, but all
 non-trivial decisions live behind typed boundaries. Domain modules have no Home
 Assistant imports and no I/O, which allows fast deterministic tests and replay
 of the v4.17 baseline.
+
+Custom integrations ship complete language files under `translations/` and do
+not use Core's build-time `strings.json` pipeline.
 
 ### 5.2 Configuration ownership
 

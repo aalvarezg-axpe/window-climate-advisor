@@ -48,8 +48,8 @@ print either value.
 
 Installing a custom integration additionally requires writing files below Home
 Assistant's `config/custom_components` directory. The REST API token does not by
-itself provide that file channel. Before deployed tests, P00-T04 must select one
-of these mutually exclusive contracts:
+itself provide that file channel. P00-T04 found no available route; before
+deployed tests, P01-T10 must select one of these mutually exclusive contracts:
 
 1. a server-visible mounted config path, represented by
    `WCA_HOME_ASSISTANT_CONFIG_PATH`; or
@@ -71,15 +71,27 @@ They belong in the Home Assistant config/reconfigure/options flows, not `.env`.
 
 ```powershell
 Set-Location 'C:\Users\aalvarezg\Documents\Home Assistant\window-climate-advisor'
-git diff --check
+uv sync --frozen --group dev
+uv run --frozen python scripts/verify.py
 ```
+
+The repository pins Python 3.14.2 for the deployed Home Assistant 2026.8.2
+target. `scripts/verify.py` is the canonical cross-platform runner; GNU Make is
+not required. It checks artifacts/secrets, formatting, lint, strict typing, and
+the Home Assistant integration tests with branch coverage.
+
+Home Assistant Core 2026.8 does not execute its pytest plugin natively on
+Windows because it imports POSIX modules including `fcntl`. The canonical
+runner therefore executes static checks in the Windows `uv` environment and
+delegates pytest to the local default WSL 2 distribution. WSL uses the same
+`uv.lock`, Python 3.14.2, and an environment outside the repository at
+`$HOME/.cache/window-climate-advisor/venv`; no remote development host is used.
 
 Phase 00 must then:
 
-1. provision the Home Assistant-compatible Python interpreter with local `uv`;
-2. select a cross-platform canonical command runner or install GNU Make;
-3. create and lock the development environment;
-4. expand the canonical verification gate before adding production code.
+1. keep `.python-version`, `pyproject.toml`, and `uv.lock` synchronized;
+2. run the canonical gate before accepting production code;
+3. add focused tests as each production path is introduced.
 
 ## Secret-safe checks
 

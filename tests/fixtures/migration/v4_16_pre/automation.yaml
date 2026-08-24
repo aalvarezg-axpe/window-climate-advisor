@@ -1,0 +1,2359 @@
+alias: "Clima - Asesor por ventanas y persianas v4.16_pre"
+description: >-
+  Recomienda abrir, usar oscilo, cerrar y ajustar persianas según temperatura,
+  sol, lluvia impulsada por el viento, orientación, protección de aleros y
+  previsión diaria y horaria e historial térmico. Reduce el ruido mediante
+  horario configurable, memoria de acciones físicas, histéresis y estabilidad;
+  usa el promedio exterior de 30 minutos, no impone cupos diarios y agrupa
+  cada evaluación ordinaria de 30 minutos en un único aviso. v4.16_pre decide
+  la conveniencia térmica de abrir comparando, para un hueco de 1,92 m², la
+  ganancia solar adicional y la conducción del vidrio con la potencia que
+  transporta el caudal de ventilación unilateral inducido por viento y
+  flotabilidad; contrasta el resultado actual con Hyperlocal a 30–60 minutos.
+  Los cierres de seguridad por lluvia o viento conservan prioridad inmediata.
+
+# AYUDANTES NECESARIOS:
+# - input_select.modo_asesor_ventanas
+#     Opciones exactas: Automático, Invierno, Verano, Desactivado
+# - input_number.temperatura_minima_confort
+# - input_number.temperatura_maxima_confort
+# - input_boolean.modo_vacaciones
+#     Solo bloquea la recomendación de SUBIR persianas para ganar calor solar.
+# - input_boolean.asesor_ventanas_usar_prevision
+# - input_text.asesor_ventanas_entidad_meteo
+#     Estado de ejemplo: weather.forecast_casa
+# - input_text.asesor_ventanas_resumen_prevision (máximo 255 caracteres)
+# - input_text.asesor_ventanas_avisos_diarios (máximo 255 caracteres)
+# - input_text.asesor_ventanas_estado_notificaciones (máximo 255 caracteres)
+#     Memoria compacta de acciones físicas y candidatos de estabilidad.
+# - input_text.ultima_recomendacion_ventanas (máximo 255 caracteres)
+# - sensor.temperatura_exterior_promedio_estacion_30_min
+#     Ayudante Filter: media móvil simple temporal de 30 minutos sobre
+#     sensor.gw1200a_outdoor_temperature, con precisión de 0,1 °C.
+# - Sensores opcionales de Hyperlocal Weather usados para el contraste térmico:
+#     sensor.hyperlocal_weather_casa_radiation_forecast_0m
+#     sensor.hyperlocal_weather_casa_radiation_forecast_30m
+#     sensor.hyperlocal_weather_casa_temperature_forecast_1h
+#     sensor.hyperlocal_weather_casa_temperature_forecast_age
+#     sensor.hyperlocal_weather_casa_temperature_forecast_source_age
+#     sensor.hyperlocal_weather_casa_temperature_forecast_status
+#     sensor.hyperlocal_weather_casa_nowcast_confidence
+#     sensor.hyperlocal_weather_casa_nowcast_last_update
+#     sensor.hyperlocal_weather_casa_radar_data_age
+#   Si faltan o están obsoletos, el cálculo usa solo los datos actuales y un
+#   umbral de entrada más exigente. No son condiciones de disponibilidad.
+#
+# La v4.16_pre conserva el interruptor maestro y la franja de avisos, pero no
+# usa cupos ni presupuestos diarios:
+# - input_boolean.asesor_ventanas_recordatorios_horarios
+# - input_datetime.ventanas_inicio_avisos                   (07:00)
+# - input_datetime.ventanas_fin_avisos                      (23:30)
+#
+# Esta otra franja solo calcula el dato informativo de mejor momento de
+# ventilación invernal dentro de la caché meteorológica:
+# - input_datetime.ventanas_invierno_ventilar_desde          (11:00)
+# - input_datetime.ventanas_invierno_ventilar_hasta          (16:00)
+# Ninguna de esas dos horas impide los avisos por cambio de acción.
+#
+# La bajada invernal empieza a evaluarse a la puesta de sol y se confirma tras
+# los 15 minutos de estabilidad exigidos a cualquier acción de persiana.
+# Las alertas generales de lluvia y viento se mantienen en sus automatizaciones
+# independientes para no duplicar notificaciones aquí.
+#
+# Avisos enviados únicamente a notify.mobile_app_cph1919.
+#
+# IMPORTANTE:
+# - El dormitorio 2 sigue comentado porque se facilitó el mismo entity_id
+#   para los dos dormitorios. Descoméntalo al disponer del entity_id correcto.
+# - Comprueba que viento/racha Ecowitt estén en km/h y lluvia en mm/h.
+# - Comprueba que la dirección Ecowitt indica DE DÓNDE viene el viento y que el
+#   WS90 está orientado al norte. Si la dirección falta, se asume la fachada a
+#   barlovento como margen de seguridad.
+# - Se combinan la dirección instantánea y gw1200a_wind_direction_10m_avg. Para
+#   cada fachada prevalece la que produzca mayor exposición.
+
+triggers:
+  - trigger: time_pattern
+    minutes: "/30"
+    id: revision
+
+  - trigger: sun
+    event: sunset
+    id: ocaso
+
+  - trigger: time
+    at: input_datetime.ventanas_inicio_avisos
+    id: inicio_avisos
+
+  - trigger: time
+    at: input_datetime.ventanas_fin_avisos
+    id: fin_jornada
+
+  # Recalcula inmediatamente ante cambios meteorológicos importantes,
+  # pero no duplica las alertas generales de lluvia/viento.
+  - trigger: numeric_state
+    entity_id: sensor.gw1200a_rain_rate
+    above: 0
+    id: lluvia
+
+  - trigger: numeric_state
+    entity_id: sensor.gw1200a_wind_gust
+    above: 20
+    id: viento_20
+
+  - trigger: numeric_state
+    entity_id: sensor.gw1200a_wind_gust
+    above: 35
+    id: viento_35
+
+  - trigger: numeric_state
+    entity_id: sensor.gw1200a_wind_gust
+    above: 45
+    id: viento_45
+
+  - trigger: state
+    entity_id:
+      - input_select.modo_asesor_ventanas
+      - input_number.temperatura_minima_confort
+      - input_number.temperatura_maxima_confort
+      - input_boolean.modo_vacaciones
+      - input_boolean.asesor_ventanas_usar_prevision
+      - input_boolean.asesor_ventanas_recordatorios_horarios
+      - input_text.asesor_ventanas_entidad_meteo
+      - input_datetime.ventanas_inicio_avisos
+      - input_datetime.ventanas_fin_avisos
+      - input_datetime.ventanas_invierno_ventilar_desde
+      - input_datetime.ventanas_invierno_ventilar_hasta
+    id: ajustes
+
+  # Cuando un sensor esencial vuelve a estar disponible se reevalúa la
+  # situación, conservando la memoria física para no rearmar todos los avisos.
+  - trigger: state
+    entity_id:
+      - sensor.temperatura_exterior_promedio_estacion_30_min
+      - sensor.gw1200a_solar_radiation
+      - sensor.gw1200a_wind_speed
+      - sensor.gw1200a_wind_gust
+      - sensor.gw1200a_rain_rate
+    from: "unavailable"
+    id: datos_meteo_recuperados
+
+  - trigger: state
+    entity_id:
+      - sensor.temperatura_exterior_promedio_estacion_30_min
+      - sensor.gw1200a_solar_radiation
+      - sensor.gw1200a_wind_speed
+      - sensor.gw1200a_wind_gust
+      - sensor.gw1200a_rain_rate
+    from: "unknown"
+    id: datos_meteo_recuperados
+
+conditions:
+  - condition: not
+    conditions:
+      - condition: state
+        entity_id: input_select.modo_asesor_ventanas
+        state: "Desactivado"
+
+  - condition: and
+    conditions:
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: sensor.temperatura_exterior_promedio_estacion_30_min
+            state:
+              - "unknown"
+              - "unavailable"
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: sensor.gw1200a_solar_radiation
+            state:
+              - "unknown"
+              - "unavailable"
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: sensor.gw1200a_wind_speed
+            state:
+              - "unknown"
+              - "unavailable"
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: sensor.gw1200a_wind_gust
+            state:
+              - "unknown"
+              - "unavailable"
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: sensor.gw1200a_rain_rate
+            state:
+              - "unknown"
+              - "unavailable"
+
+actions:
+  - variables:
+      id_disparo: >-
+        {{ trigger.id if trigger is defined and trigger.id is defined else 'manual' }}
+
+  # ------------------------------------------------------------------------
+  # PREVISIÓN HORARIA, DIARIA E HISTORIAL TÉRMICO
+  # ------------------------------------------------------------------------
+  - variables:
+      entidad_meteo: >-
+        {{ states('input_text.asesor_ventanas_entidad_meteo') | trim }}
+      entidad_meteo_valida: >-
+        {{
+          is_state('input_boolean.asesor_ventanas_usar_prevision', 'on')
+          and (states('input_text.asesor_ventanas_entidad_meteo') | trim).startswith('weather.')
+          and has_value(states('input_text.asesor_ventanas_entidad_meteo') | trim)
+        }}
+      refrescar_contexto_meteo: >-
+        {{
+          id_disparo in [
+            'ocaso', 'ajustes', 'datos_meteo_recuperados', 'manual'
+          ]
+          or (id_disparo == 'revision' and now().minute in [0, 30])
+        }}
+      consultar_prevision: >-
+        {{ entidad_meteo_valida | bool and refrescar_contexto_meteo | bool }}
+      consultar_historial: >-
+        {{
+          states('input_select.modo_asesor_ventanas') == 'Automático'
+          and refrescar_contexto_meteo | bool
+        }}
+
+  - if:
+      - condition: template
+        value_template: "{{ consultar_prevision | bool }}"
+    then:
+      - action: weather.get_forecasts
+        continue_on_error: true
+        target:
+          entity_id: "{{ entidad_meteo }}"
+        data:
+          type: hourly
+        response_variable: respuesta_prevision_horaria
+
+      - action: weather.get_forecasts
+        continue_on_error: true
+        target:
+          entity_id: "{{ entidad_meteo }}"
+        data:
+          type: daily
+        response_variable: respuesta_prevision_diaria
+
+  # La máxima histórica se calcula sobre los tres últimos días completos. La
+  # consulta se limita a dos veces por hora y a los disparadores importantes.
+  - if:
+      - condition: template
+        value_template: "{{ consultar_historial | bool }}"
+    then:
+      - action: recorder.get_statistics
+        continue_on_error: true
+        data:
+          statistic_ids:
+            - sensor.temperatura_exterior_promedio_estacion_30_min
+          start_time: "{{ (today_at() - timedelta(days=3)).isoformat() }}"
+          end_time: "{{ today_at().isoformat() }}"
+          period: day
+          types:
+            - max
+          units:
+            temperature: "°C"
+        response_variable: respuesta_historial_temperatura
+
+  - if:
+      - condition: template
+        value_template: >-
+          {{ consultar_prevision | bool or consultar_historial | bool }}
+    then:
+      - variables:
+          resumen_prevision_nuevo: >-
+                {% set lista =
+                  respuesta_prevision_horaria[entidad_meteo]['forecast']
+                  if respuesta_prevision_horaria is defined
+                    and entidad_meteo in respuesta_prevision_horaria
+                    and 'forecast' in respuesta_prevision_horaria[entidad_meteo]
+                  else [] %}
+                {% set lista_diaria =
+                  respuesta_prevision_diaria[entidad_meteo]['forecast']
+                  if respuesta_prevision_diaria is defined
+                    and entidad_meteo in respuesta_prevision_diaria
+                    and 'forecast' in respuesta_prevision_diaria[entidad_meteo]
+                  else [] %}
+                {% set estadisticas_historial =
+                  respuesta_historial_temperatura.get('statistics', {})
+                  if respuesta_historial_temperatura is defined
+                    and respuesta_historial_temperatura is mapping
+                  else [] %}
+                {% set filas_historial =
+                  estadisticas_historial.get(
+                    'sensor.temperatura_exterior_promedio_estacion_30_min', []
+                  )
+                  if estadisticas_historial is mapping
+                  else [] %}
+                {% set ahora = as_timestamp(now()) %}
+                {% set unidad_t = state_attr(entidad_meteo, 'temperature_unit') or '°C' %}
+                {% set unidad_v = state_attr(entidad_meteo, 'wind_speed_unit') or 'km/h' %}
+                {% set unidad_p = state_attr(entidad_meteo, 'precipitation_unit') or 'mm' %}
+                {% set desde =
+                  (states('input_datetime.ventanas_invierno_ventilar_desde')[:5]
+                   if has_value('input_datetime.ventanas_invierno_ventilar_desde')
+                   else '11:00') %}
+                {% set hasta =
+                  (states('input_datetime.ventanas_invierno_ventilar_hasta')[:5]
+                   if has_value('input_datetime.ventanas_invierno_ventilar_hasta')
+                   else '16:00') %}
+                {% set ns = namespace(
+                  tx=-999.0,
+                  tn=999.0,
+                  nt=0,
+                  pp3=0.0,
+                  pr3=0.0,
+                  wg6=0.0,
+                  ht='',
+                  vsafe_t=-999.0,
+                  vsafe_dt='',
+                  vany_t=-999.0,
+                  vany_dt='',
+                  diaria_min=999.0,
+                  diaria_max=-999.0,
+                  nd=0,
+                  historial_max=-999.0,
+                  nh=0
+                ) %}
+
+                {% for f in lista %}
+                  {% set instante = as_timestamp(f.get('datetime'), 0) %}
+                  {% set horas = (instante - ahora) / 3600 %}
+                  {% set fecha_local = as_local(as_datetime(f.get('datetime'))) %}
+
+                  {% set temp_bruta = f.get('temperature') | float(-999) %}
+                  {% set temp =
+                    ((temp_bruta - 32) * 5 / 9
+                     if unidad_t in ['°F', 'F']
+                     else temp_bruta) %}
+
+                  {% set precip_bruta = f.get('precipitation', 0) | float(0) %}
+                  {% set precip =
+                    (precip_bruta * 25.4
+                     if unidad_p in ['in', 'inch', 'inches']
+                     else precip_bruta) %}
+                  {% set prob = f.get('precipitation_probability', 0) | float(0) %}
+
+                  {% set viento_bruto =
+                    f.get('wind_gust_speed', f.get('wind_speed', 0)) | float(0) %}
+                  {% if unidad_v in ['m/s', 'mps'] %}
+                    {% set viento_kmh = viento_bruto * 3.6 %}
+                  {% elif unidad_v in ['mph'] %}
+                    {% set viento_kmh = viento_bruto * 1.609344 %}
+                  {% elif unidad_v in ['kn', 'kt', 'kts', 'knots'] %}
+                    {% set viento_kmh = viento_bruto * 1.852 %}
+                  {% else %}
+                    {% set viento_kmh = viento_bruto %}
+                  {% endif %}
+
+                  {% if horas >= -0.25 and horas <= 12 and temp > -100 %}
+                    {% if temp > ns.tx %}
+                      {% set ns.tx = temp %}
+                      {% set ns.ht = f.get('datetime', '') %}
+                    {% endif %}
+                    {% if temp < ns.tn %}
+                      {% set ns.tn = temp %}
+                    {% endif %}
+                    {% set ns.nt = ns.nt + 1 %}
+
+                    {% if horas <= 3 %}
+                      {% if prob > ns.pp3 %}
+                        {% set ns.pp3 = prob %}
+                      {% endif %}
+                      {% set ns.pr3 = ns.pr3 + precip %}
+                    {% endif %}
+
+                    {% if horas <= 6 and viento_kmh > ns.wg6 %}
+                      {% set ns.wg6 = viento_kmh %}
+                    {% endif %}
+                  {% endif %}
+
+                  {# Mejor hora de ventilación invernal de hoy. #}
+                  {% if fecha_local.date() == now().date()
+                        and desde <= fecha_local.strftime('%H:%M') <= hasta
+                        and temp > -100 %}
+                    {% if temp > ns.vany_t %}
+                      {% set ns.vany_t = temp %}
+                      {% set ns.vany_dt = f.get('datetime', '') %}
+                    {% endif %}
+                    {% if prob < 50 and precip < 0.2 and viento_kmh < 35
+                          and temp > ns.vsafe_t %}
+                      {% set ns.vsafe_t = temp %}
+                      {% set ns.vsafe_dt = f.get('datetime', '') %}
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+
+                {# Extremos de las máximas de todos los días disponibles. #}
+                {% for f in lista_diaria %}
+                  {% set temp_bruta = f.get('temperature') | float(-999) %}
+                  {% set temp =
+                    ((temp_bruta - 32) * 5 / 9
+                     if unidad_t in ['°F', 'F']
+                     else temp_bruta) %}
+                  {% if temp > -100 %}
+                    {% if temp < ns.diaria_min %}
+                      {% set ns.diaria_min = temp %}
+                    {% endif %}
+                    {% if temp > ns.diaria_max %}
+                      {% set ns.diaria_max = temp %}
+                    {% endif %}
+                    {% set ns.nd = ns.nd + 1 %}
+                  {% endif %}
+                {% endfor %}
+
+                {# Máxima exterior de los tres últimos días completos. #}
+                {% for fila in filas_historial %}
+                  {% set temp = fila.get('max') | float(-999) %}
+                  {% if temp > -100 %}
+                    {% if temp > ns.historial_max %}
+                      {% set ns.historial_max = temp %}
+                    {% endif %}
+                    {% set ns.nh = ns.nh + 1 %}
+                  {% endif %}
+                {% endfor %}
+
+                {% set diaria_completa =
+                  ns.nd > 0 and ns.nd == lista_diaria | count %}
+
+                {{
+                  {
+                    'ok': 1 if (ns.nt > 0 or diaria_completa) else 0,
+                    'u': now().isoformat(),
+                    'tx': (ns.tx | round(1)) if ns.nt > 0 else none,
+                    'tn': (ns.tn | round(1)) if ns.nt > 0 else none,
+                    'pp': ns.pp3 | round(0),
+                    'pr': ns.pr3 | round(1),
+                    'wg': ns.wg6 | round(1),
+                    'ht': ns.ht,
+                    'vh': ns.vsafe_dt if ns.vsafe_dt else ns.vany_dt,
+                    'vt': ((ns.vsafe_t if ns.vsafe_dt else ns.vany_t) | round(1))
+                          if (ns.vsafe_dt or ns.vany_dt) else none,
+                    'vs': 1 if ns.vsafe_dt else 0,
+                    'nd': ns.nd if diaria_completa else 0,
+                    'dl': (ns.diaria_min | round(1)) if diaria_completa else none,
+                    'dh': (ns.diaria_max | round(1)) if diaria_completa else none,
+                    'nh': ns.nh,
+                    'hx': (ns.historial_max | round(1)) if ns.nh > 0 else none
+                  } | to_json
+                }}
+
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.asesor_ventanas_resumen_prevision
+        data:
+          value: "{{ resumen_prevision_nuevo }}"
+
+  # ------------------------------------------------------------------------
+  # HUECOS Y GEOMETRÍA
+  # ------------------------------------------------------------------------
+  - variables:
+      zonas:
+        # tipo_sombra:
+        # - ninguna: hueco sin protección solar superior.
+        # - terraza: corte empírico por elevación, pendiente de medir.
+        # - alero: calcula qué fracción de los 1,20 m de ventana queda al sol.
+        # tipo_proteccion_lluvia se mantiene separado porque un techo puede
+        # proteger muy bien del agua y conservar un modelo solar empírico.
+        - clave: salon_se
+          indice: 0
+          habitacion: s
+          nombre: "Salón · SE"
+          aviso: "Salón"
+          temperatura: sensor.gw1200a_indoor_temperature
+          azimut: 136
+          tipo_sombra: ninguna
+          elevacion_limite_empirica: 89
+          profundidad_alero: 0
+          distancia_alero_ventana: 0
+          altura_ventana: 1.2
+          tipo_proteccion_lluvia: ninguna
+          profundidad_proteccion_lluvia: 0
+          distancia_proteccion_ventana: 0
+          burbuja_terraza: false
+
+        - clave: despacho_se
+          indice: 1
+          habitacion: d
+          nombre: "Despacho · SE con terraza"
+          aviso: "Despacho"
+          temperatura: sensor.zhimi_de_392240250_mb3_temperature_p_3_8
+          azimut: 136
+          tipo_sombra: terraza
+          elevacion_limite_empirica: 35
+          profundidad_alero: 0
+          distancia_alero_ventana: 0.5
+          altura_ventana: 1.2
+          # Techo de terraza: vuelo de 1,20 m situado 0,50 m sobre el hueco.
+          tipo_proteccion_lluvia: alero
+          profundidad_proteccion_lluvia: 1.2
+          distancia_proteccion_ventana: 0.5
+          burbuja_terraza: true
+
+        # Alero: 0,50 m de vuelo, 0,50 m sobre el borde superior del hueco
+        # y ventana de aproximadamente 1,20 m de altura.
+        - clave: cocina_so
+          indice: 2
+          habitacion: c
+          nombre: "Cocina · SO con alero"
+          aviso: "Cocina"
+          temperatura: sensor.0xd44867fffe0e3e6e_temperature
+          azimut: 226
+          tipo_sombra: alero
+          elevacion_limite_empirica: 89
+          profundidad_alero: 0.5
+          distancia_alero_ventana: 0.5
+          altura_ventana: 1.2
+          tipo_proteccion_lluvia: alero
+          profundidad_proteccion_lluvia: 0.5
+          distancia_proteccion_ventana: 0.5
+          burbuja_terraza: false
+
+        - clave: cocina_no
+          indice: 3
+          habitacion: c
+          nombre: "Cocina · NO sin alero"
+          aviso: "Cocina"
+          temperatura: sensor.0xd44867fffe0e3e6e_temperature
+          azimut: 316
+          tipo_sombra: ninguna
+          elevacion_limite_empirica: 89
+          profundidad_alero: 0
+          distancia_alero_ventana: 0
+          altura_ventana: 1.2
+          tipo_proteccion_lluvia: ninguna
+          profundidad_proteccion_lluvia: 0
+          distancia_proteccion_ventana: 0
+          burbuja_terraza: false
+
+        - clave: dormitorio_1_ne
+          indice: 4
+          habitacion: "1"
+          nombre: "Dormitorio 1 · NE con alero"
+          aviso: "Dorm. 1"
+          temperatura: sensor.0xd44867fffe098c0b_temperature
+          azimut: 46
+          tipo_sombra: alero
+          elevacion_limite_empirica: 89
+          profundidad_alero: 0.5
+          distancia_alero_ventana: 0.5
+          altura_ventana: 1.2
+          tipo_proteccion_lluvia: alero
+          profundidad_proteccion_lluvia: 0.5
+          distancia_proteccion_ventana: 0.5
+          burbuja_terraza: false
+
+        # Descomenta y reemplaza el entity_id correcto:
+        # - clave: dormitorio_2_ne
+        #   habitacion: "2"
+        #   nombre: "Dormitorio 2 · NE con alero"
+        #   temperatura: sensor.REEMPLAZAR_TEMPERATURA_DORMITORIO_2
+        #   azimut: 46
+        #   tipo_sombra: alero
+        #   elevacion_limite_empirica: 89
+        #   profundidad_alero: 0.5
+        #   distancia_alero_ventana: 0.5
+        #   altura_ventana: 1.2
+        #   tipo_proteccion_lluvia: alero
+        #   profundidad_proteccion_lluvia: 0.5
+        #   distancia_proteccion_ventana: 0.5
+        #   burbuja_terraza: false
+
+        # Baño SO pendiente únicamente del entity_id de temperatura:
+        # - clave: bano_so
+        #   habitacion: b
+        #   nombre: "Baño · SO con alero"
+        #   temperatura: sensor.REEMPLAZAR_TEMPERATURA_BANO
+        #   azimut: 226
+        #   tipo_sombra: alero
+        #   elevacion_limite_empirica: 89
+        #   profundidad_alero: 1.0
+        #   distancia_alero_ventana: 0.5
+        #   altura_ventana: 1.2
+        #   tipo_proteccion_lluvia: alero
+        #   profundidad_proteccion_lluvia: 1.0
+        #   distancia_proteccion_ventana: 0.5
+        #   burbuja_terraza: false
+
+  # ------------------------------------------------------------------------
+  # VARIABLES ACTUALES, PREVISIÓN PERSISTIDA Y FRANJAS HORARIAS
+  # ------------------------------------------------------------------------
+  - variables:
+      modo: "{{ states('input_select.modo_asesor_ventanas') }}"
+      t_min: >-
+        {{ states('input_number.temperatura_minima_confort') | float(18) }}
+      t_max: >-
+        {{ states('input_number.temperatura_maxima_confort') | float(24) }}
+      t_exterior: >-
+        {{ states('sensor.temperatura_exterior_promedio_estacion_30_min') | float(0) }}
+      radiacion: >-
+        {{ states('sensor.gw1200a_solar_radiation') | float(0) }}
+      velocidad_viento: >-
+        {{ states('sensor.gw1200a_wind_speed') | float(0) }}
+      racha: >-
+        {{ states('sensor.gw1200a_wind_gust') | float(0) }}
+      lluvia: >-
+        {{ states('sensor.gw1200a_rain_rate') | float(0) }}
+      direccion_viento_instantanea: >-
+        {{ states('sensor.gw1200a_wind_direction') | float(0) }}
+      direccion_viento_10m: >-
+        {{ states('sensor.gw1200a_wind_direction_10m_avg') | float(0) }}
+      direccion_viento_instantanea_valida: >-
+        {{
+          has_value('sensor.gw1200a_wind_direction')
+          and is_number(states('sensor.gw1200a_wind_direction'))
+          and (
+            states('sensor.gw1200a_wind_speed') | float(0) >= 3
+            or states('sensor.gw1200a_wind_gust') | float(0) >= 8
+          )
+        }}
+      direccion_viento_10m_valida: >-
+        {{
+          has_value('sensor.gw1200a_wind_direction_10m_avg')
+          and is_number(states('sensor.gw1200a_wind_direction_10m_avg'))
+          and (
+            states('sensor.gw1200a_wind_speed') | float(0) >= 3
+            or states('sensor.gw1200a_wind_gust') | float(0) >= 8
+          )
+        }}
+      racha_referencia_viento: >-
+        {{
+          [
+            states('sensor.gw1200a_wind_gust') | float(0),
+            states('sensor.gw1200a_wind_speed') | float(0) * 1.5
+          ] | max
+        }}
+      # Márgenes conservadores para lluvia impulsada por el viento.
+      # La racha de cálculo es max(racha, 1,5 × viento medio), aumentada un
+      # 20 % y 2 km/h. También se ensancha 15° el sector expuesto.
+      margen_racha_lluvia_factor: 1.20
+      margen_racha_lluvia_kmh: 2
+      margen_direccion_lluvia_grados: 15
+      # El GW1200A informa 1,2 mm/h como primer valor distinto de cero. Este
+      # umbral representa el escalón mínimo observable, no una garantía de que
+      # el hueco esté protegido: todavía se exigen racha y geometría seguras.
+      lluvia_ligera_max_mm_h: 1.2
+      racha_referencia_max_oscilo_lluvia_kmh: 18
+      # Equivalente vertical conservador de caída de las gotas. Permite estimar
+      # la sombra de lluvia del alero con las mismas dimensiones del hueco.
+      velocidad_vertical_lluvia_kmh: 15
+      altura_superior_oscilo_m: 0.20
+      margen_vertical_lluvia_m: 0.15
+      # Histéresis del ciclo notificado de ventilación. La temperatura exterior
+      # ya llega suavizada con una media móvil de 30 minutos, por lo que la
+      # apertura y el cierre térmicos se confirman en la misma evaluación. El
+      # cierre de seguridad R por lluvia o viento continúa usando datos en crudo
+      # y es inmediato.
+      margen_mantener_ventilacion: 0.3
+      minutos_confirmar_persiana: 15
+      # Los empeoramientos A -> O provocados por rachas marginales deben
+      # persistir. A partir de 20 km/h se aplican inmediatamente; las mejoras
+      # O -> A conservan su confirmación y el margen adicional de 3 km/h.
+      minutos_confirmar_degradacion_marginal_viento: 5
+      racha_degradacion_inmediata_kmh: 20
+      minutos_confirmar_mejora_apertura: 10
+      margen_mejora_apertura_kmh: 3
+      radiacion_proteccion_entrada_normal: 230
+      radiacion_proteccion_entrada_calor_previsto: 180
+      radiacion_proteccion_salida_normal: 130
+      radiacion_proteccion_salida_calor_previsto: 100
+      # Modelo térmico de v4.16_pre. El caudal usa la formulación conservadora
+      # de ventilación unilateral de EN 16798-7: se toma el mayor motor entre
+      # viento y flotabilidad, sin sumar una constante de turbulencia.
+      ancho_ventana_m: 1.60
+      altura_ventana_m: 1.20
+      area_ventana_m2: 1.92
+      fraccion_apertura_oscilo: 0.12
+      densidad_aire_kg_m3: 1.2041
+      calor_especifico_aire_j_kgk: 1005
+      coeficiente_viento_unilateral: 0.001
+      coeficiente_flotabilidad_unilateral: 0.0035
+      factor_solar_vidrio: 0.55
+      transmitancia_vidrio_w_m2k: 1.40
+      fraccion_difusa_vertical: 0.15
+      umbral_balance_termico_entrada_w: 150
+      umbral_balance_termico_sin_prevision_w: 200
+      histeresis_balance_termico_w: 50
+      radiacion_hyperlocal_0m: >-
+        {{ states('sensor.hyperlocal_weather_casa_radiation_forecast_0m')
+          | float(-1) }}
+      radiacion_hyperlocal_30m: >-
+        {{ states('sensor.hyperlocal_weather_casa_radiation_forecast_30m')
+          | float(-1) }}
+      temperatura_hyperlocal_1h: >-
+        {{ states('sensor.hyperlocal_weather_casa_temperature_forecast_1h')
+          | float(-99) }}
+      edad_radiacion_hyperlocal_min: >-
+        {{ states('sensor.hyperlocal_weather_casa_radar_data_age') | float(999) }}
+      confianza_radiacion_hyperlocal: >-
+        {{ states('sensor.hyperlocal_weather_casa_nowcast_confidence') }}
+      edad_temperatura_hyperlocal_min: >-
+        {{ states('sensor.hyperlocal_weather_casa_temperature_forecast_age')
+          | float(999) }}
+      edad_fuente_temperatura_hyperlocal_min: >-
+        {{ states(
+          'sensor.hyperlocal_weather_casa_temperature_forecast_source_age'
+        ) | float(999) }}
+      estado_temperatura_hyperlocal: >-
+        {{ states('sensor.hyperlocal_weather_casa_temperature_forecast_status') }}
+      # Después de un cierre R no se vuelve a recomendar abrir hasta acumular
+      # 30 minutos sin ningún R. El cierre sigue siendo inmediato; solo se
+      # retrasa la reapertura para evitar oscilaciones entre chubascos.
+      minutos_confirmar_reapertura_meteo: 30
+      hora_actual: "{{ now().strftime('%H:%M') }}"
+      hora_inicio_avisos: >-
+        {{ states('input_datetime.ventanas_inicio_avisos')[0:5] }}
+      hora_fin_avisos: >-
+        {{ states('input_datetime.ventanas_fin_avisos')[0:5] }}
+      recordatorios_activos: >-
+        {{ is_state('input_boolean.asesor_ventanas_recordatorios_horarios', 'on') }}
+      dentro_franja_avisos: >-
+        {% set inicio = states('input_datetime.ventanas_inicio_avisos')[0:5] %}
+        {% set fin = states('input_datetime.ventanas_fin_avisos')[0:5] %}
+        {% set ahora = now().strftime('%H:%M') %}
+        {% if inicio <= fin %}
+          {{ inicio <= ahora <= fin }}
+        {% else %}
+          {{ ahora >= inicio or ahora <= fin }}
+        {% endif %}
+      avisos_ordinarios_permitidos: >-
+        {{ recordatorios_activos | bool and dentro_franja_avisos | bool }}
+      azimut_sol: "{{ state_attr('sun.sun', 'azimuth') | float(0) }}"
+      elevacion_sol: "{{ state_attr('sun.sun', 'elevation') | float(-90) }}"
+      prevision: >-
+        {% set texto = states('input_text.asesor_ventanas_resumen_prevision') %}
+        {% if texto.startswith('{') %}
+          {{ texto | from_json }}
+        {% else %}
+          {{ {} }}
+        {% endif %}
+
+  - variables:
+      prevision_termica_hyperlocal_valida: >-
+        {{
+          has_value('sensor.hyperlocal_weather_casa_radiation_forecast_0m')
+          and has_value('sensor.hyperlocal_weather_casa_radiation_forecast_30m')
+          and has_value('sensor.hyperlocal_weather_casa_temperature_forecast_1h')
+          and has_value('sensor.hyperlocal_weather_casa_nowcast_last_update')
+          and radiacion_hyperlocal_0m | float(-1) >= 0
+          and radiacion_hyperlocal_30m | float(-1) >= 0
+          and temperatura_hyperlocal_1h | float(-99) > -50
+          and confianza_radiacion_hyperlocal in ['high', 'medium']
+          and edad_radiacion_hyperlocal_min | float(999) <= 15
+          and (
+            as_timestamp(now())
+            - as_timestamp(states(
+              'sensor.hyperlocal_weather_casa_nowcast_last_update'
+            ), 0)
+          ) <= 1800
+          and edad_temperatura_hyperlocal_min | float(999) <= 60
+          and edad_fuente_temperatura_hyperlocal_min | float(999) <= 120
+          and estado_temperatura_hyperlocal in ['ok', 'degraded']
+        }}
+      factor_correccion_radiacion_hyperlocal: >-
+        {% if radiacion_hyperlocal_0m | float(-1) >= 50
+              and radiacion | float(0) >= 20 %}
+          {{ clamp(
+            radiacion | float(0) / radiacion_hyperlocal_0m | float,
+            0.5,
+            2.0
+          ) }}
+        {% else %}
+          1
+        {% endif %}
+      radiacion_prevista_termica_30m: >-
+        {% if prevision_termica_hyperlocal_valida | bool %}
+          {{
+            radiacion_hyperlocal_30m | float(0)
+            * factor_correccion_radiacion_hyperlocal | float(1)
+          }}
+        {% else %}
+          {{ radiacion | float(0) }}
+        {% endif %}
+      temperatura_exterior_prevista_termica_1h: >-
+        {{
+          temperatura_hyperlocal_1h | float
+          if prevision_termica_hyperlocal_valida | bool
+          else t_exterior | float
+        }}
+      viento_termico_kmh: >-
+        {{
+          [
+            velocidad_viento | float(0),
+            racha | float(0) * 0.35
+          ] | max
+        }}
+      prevision_valida: >-
+        {{
+          prevision is mapping
+          and prevision.get('ok', 0) | int(0) == 1
+          and as_timestamp(prevision.get('u'), 0) > 0
+          and (as_timestamp(now()) - as_timestamp(prevision.get('u'), 0)) < 7200
+        }}
+      prevision_tmax_12h: >-
+        {{ prevision.get('tx', -99) | float(-99) if prevision is mapping else -99 }}
+      prevision_tmin_12h: >-
+        {{ prevision.get('tn', 99) | float(99) if prevision is mapping else 99 }}
+      prevision_prob_lluvia_3h: >-
+        {{ prevision.get('pp', 0) | float(0) if prevision is mapping else 0 }}
+      prevision_lluvia_3h: >-
+        {{ prevision.get('pr', 0) | float(0) if prevision is mapping else 0 }}
+      prevision_racha_6h: >-
+        {{ prevision.get('wg', 0) | float(0) if prevision is mapping else 0 }}
+      prevision_hora_maxima: >-
+        {% if prevision is mapping and prevision.get('ht', '') %}
+          {{ as_local(as_datetime(prevision.get('ht'))).strftime('%H:%M') }}
+        {% else %}
+          n/d
+        {% endif %}
+      prevision_hora_ventilacion: >-
+        {% if prevision is mapping and prevision.get('vh', '') %}
+          {{ as_local(as_datetime(prevision.get('vh'))).strftime('%H:%M') }}
+        {% else %}
+          n/d
+        {% endif %}
+      prevision_fecha_hora_ventilacion: >-
+        {{ prevision.get('vh', '') if prevision is mapping else '' }}
+      prevision_temp_ventilacion: >-
+        {{ prevision.get('vt', -99) | float(-99) if prevision is mapping else -99 }}
+      prevision_ventilacion_segura: >-
+        {{ prevision.get('vs', 0) | int(0) == 1 if prevision is mapping else false }}
+      prevision_num_dias: >-
+        {{ prevision.get('nd', 0) | int(0) if prevision is mapping else 0 }}
+      prevision_maxima_diaria_menor: >-
+        {{ prevision.get('dl', -99) | float(-99) if prevision is mapping else -99 }}
+      prevision_maxima_diaria_mayor: >-
+        {{ prevision.get('dh', -99) | float(-99) if prevision is mapping else -99 }}
+      historial_num_dias: >-
+        {{ prevision.get('nh', 0) | int(0) if prevision is mapping else 0 }}
+      historial_tmax_3d: >-
+        {{ prevision.get('hx', -99) | float(-99) if prevision is mapping else -99 }}
+      historial_valido: >-
+        {{
+          prevision is mapping
+          and as_timestamp(prevision.get('u'), 0) > 0
+          and (as_timestamp(now()) - as_timestamp(prevision.get('u'), 0)) < 7200
+          and prevision.get('nh', 0) | int(0) > 0
+          and prevision.get('hx', -99) | float(-99) > -50
+        }}
+  - variables:
+      t_interior_maxima: >-
+        {% set ns = namespace(valor=-99) %}
+        {% for z in zonas %}
+          {% if has_value(z.temperatura) %}
+            {% set valor = states(z.temperatura) | float(-99) %}
+            {% if valor > ns.valor %}
+              {% set ns.valor = valor %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.valor }}
+      t_interior_minima: >-
+        {% set ns = namespace(valor=99) %}
+        {% for z in zonas %}
+          {% if has_value(z.temperatura) %}
+            {% set valor = states(z.temperatura) | float(99) %}
+            {% if valor < ns.valor %}
+              {% set ns.valor = valor %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.valor }}
+
+  - variables:
+      calor_previsto: >-
+        {{
+          prevision_valida | bool
+          and prevision_tmax_12h | float(-99) >= t_max | float + 1
+        }}
+      lluvia_prevista_pronto: >-
+        {{
+          prevision_valida | bool
+          and (
+            prevision_prob_lluvia_3h | float(0) >= 60
+            or prevision_lluvia_3h | float(0) >= 0.5
+          )
+        }}
+      viento_previsto_pronto: >-
+        {{
+          prevision_valida | bool
+          and prevision_racha_6h | float(0) >= 35
+        }}
+      estrategia_templada: >-
+        {% if prevision_valida | bool
+              and prevision_num_dias | int(0) > 0
+              and prevision_maxima_diaria_mayor | float(-99) < 25 %}
+          Calentar
+        {% elif prevision_valida | bool
+              and prevision_num_dias | int(0) > 0
+              and prevision_maxima_diaria_menor | float(-99) > 25 %}
+          Refrescar
+        {% elif historial_valido | bool
+              and historial_tmax_3d | float(-99) > 25 %}
+          Refrescar
+        {% elif historial_valido | bool
+              and historial_tmax_3d | float(-99) < 21 %}
+          Calentar
+        {% else %}
+          Neutral
+        {% endif %}
+      temporada_operativa: >-
+        {% if modo in ['Verano', 'Invierno'] %}
+          {{ modo }}
+        {% elif t_interior_maxima | float(-99) >= t_max | float - 0.5
+              or now().month in [6, 7, 8, 9] %}
+          Verano
+        {% elif t_interior_minima | float(99) <= t_min | float + 1
+              or now().month in [11, 12, 1, 2, 3] %}
+          Invierno
+        {% elif estrategia_templada == 'Refrescar' %}
+          Verano
+        {% elif estrategia_templada == 'Calentar' %}
+          Invierno
+        {% else %}
+          Templado
+        {% endif %}
+
+  # Memoria física separada del código de recomendación. Un estado M no borra
+  # la última instrucción comunicada y, por tanto, no rearma el mismo aviso.
+  - variables:
+      estado_notificaciones_guardado: >-
+        {% set texto = states('input_text.asesor_ventanas_estado_notificaciones') %}
+        {% if texto.startswith('{') %}
+          {{ texto | from_json }}
+        {% else %}
+          {{ {} }}
+        {% endif %}
+
+  - variables:
+      nuevo_dia_notificaciones: >-
+        {% set estado = estado_notificaciones_guardado
+          if estado_notificaciones_guardado is mapping else {} %}
+        {{ estado.get('d', '') | string != now().strftime('%Y%m%d') }}
+      memoria_ventanas_previa: >-
+        {% set estado = estado_notificaciones_guardado
+          if estado_notificaciones_guardado is mapping else {} %}
+        {% if nuevo_dia_notificaciones | bool %}
+          {% set ns = namespace(items=[]) %}
+          {% for z in zonas %}
+            {% set ns.items = ns.items + [z.indice ~ 'C'] %}
+          {% endfor %}
+          {{ ns.items | join(',') }}
+        {% else %}
+          {{ estado.get('w', '') | string | trim }}
+        {% endif %}
+      memoria_persianas_previa: >-
+        {% set estado = estado_notificaciones_guardado
+          if estado_notificaciones_guardado is mapping else {} %}
+        {{ estado.get('b', '') | string | trim }}
+      candidatos_persiana_previos: >-
+        {% set estado = estado_notificaciones_guardado
+          if estado_notificaciones_guardado is mapping else {} %}
+        {{ '' if nuevo_dia_notificaciones | bool
+          else estado.get('bc', '') | string | trim }}
+      candidatos_cambio_apertura_previos: >-
+        {% set estado = estado_notificaciones_guardado
+          if estado_notificaciones_guardado is mapping else {} %}
+        {{ '' if nuevo_dia_notificaciones | bool
+          else estado.get('wc', '') | string | trim }}
+
+  # Balance térmico por hueco. Una potencia diferencial negativa significa
+  # que abrir introduce menos calor (o extrae más) que mantener cerrado; una
+  # positiva significa que abrir calienta más. El cálculo no automatiza ningún
+  # elemento y se conserva en la traza mediante diagnostico_termico.
+  - variables:
+      modelo_termico_zonas: >-
+        {% set ns = namespace(items=[]) %}
+
+        {% for z in zonas %}
+          {% set estado_t = states(z.temperatura) %}
+          {% if estado_t in ['unknown', 'unavailable', 'none', ''] %}
+            {% set ns.items = ns.items + [{
+              'clave': z.clave,
+              'ok': 0
+            }] %}
+          {% else %}
+            {% set t_habitacion = estado_t | float %}
+            {% set memoria_ventana = namespace(accion='C') %}
+            {% for item in memoria_ventanas_previa.split(',') %}
+              {% if item | length >= 2
+                    and item[:-1] | int(-1) == z.indice | int %}
+                {% set memoria_ventana.accion = item[-1] %}
+              {% endif %}
+            {% endfor %}
+
+            {# Irradiancia equivalente sobre el plano vertical del hueco. #}
+            {% set dif_sol =
+              (((azimut_sol | float - z.azimut + 180) % 360) - 180) | abs %}
+            {% set sol_delante =
+              elevacion_sol | float > 3
+              and dif_sol <= 80
+              and radiacion | float >= 20 %}
+
+            {% if not sol_delante %}
+              {% set fraccion_directa_sin_sombra = 0 %}
+            {% elif z.tipo_sombra == 'alero' %}
+              {% set cos_incidencia = cos(dif_sol * pi / 180) %}
+              {% set sombra_vertical =
+                z.profundidad_alero
+                * tan(elevacion_sol | float * pi / 180)
+                / cos_incidencia %}
+              {% set fraccion_directa_sin_sombra = clamp(
+                (
+                  z.distancia_alero_ventana
+                  + z.altura_ventana
+                  - sombra_vertical
+                ) / z.altura_ventana,
+                0,
+                1
+              ) %}
+            {% elif z.tipo_sombra == 'terraza' %}
+              {% set fraccion_directa_sin_sombra =
+                1 if elevacion_sol | float <= z.elevacion_limite_empirica
+                else 0 %}
+            {% else %}
+              {% set fraccion_directa_sin_sombra = 1 %}
+            {% endif %}
+
+            {% if sol_delante %}
+              {% set proyeccion_plano_vertical = clamp(
+                cos(elevacion_sol | float * pi / 180)
+                * cos(dif_sol * pi / 180)
+                / ([sin(elevacion_sol | float * pi / 180), 0.25] | max),
+                0,
+                2
+              ) %}
+            {% else %}
+              {% set proyeccion_plano_vertical = 0 %}
+            {% endif %}
+            {% set factor_irradiancia_fachada = clamp(
+              fraccion_difusa_vertical | float
+              + (1 - fraccion_difusa_vertical | float)
+                * proyeccion_plano_vertical | float
+                * fraccion_directa_sin_sombra | float,
+              0,
+              1.8
+            ) %}
+            {% set irradiancia_fachada_actual =
+              radiacion | float(0) * factor_irradiancia_fachada | float %}
+            {# En 30 min se conserva la geometría actual como aproximación. #}
+            {% set irradiancia_fachada_prevista =
+              radiacion_prevista_termica_30m | float(0)
+              * factor_irradiancia_fachada | float %}
+
+            {# Caudal unilateral EN 16798-7: Q=A/2*sqrt(max(viento, flotabilidad)). #}
+            {% set velocidad_termica_ms = viento_termico_kmh | float(0) / 3.6 %}
+            {% set delta_t_actual =
+              t_exterior | float - t_habitacion | float %}
+            {% set delta_t_prevista =
+              temperatura_exterior_prevista_termica_1h | float
+              - t_habitacion | float %}
+            {% set motor_actual = ([
+              coeficiente_viento_unilateral | float
+                * velocidad_termica_ms ** 2,
+              coeficiente_flotabilidad_unilateral | float
+                * altura_ventana_m | float
+                * delta_t_actual | abs
+            ] | max) ** 0.5 %}
+            {% set motor_previsto = ([
+              coeficiente_viento_unilateral | float
+                * velocidad_termica_ms ** 2,
+              coeficiente_flotabilidad_unilateral | float
+                * altura_ventana_m | float
+                * delta_t_prevista | abs
+            ] | max) ** 0.5 %}
+            {% set caudal_actual_m3_s =
+              0.5 * area_ventana_m2 | float * motor_actual | float %}
+            {% set caudal_previsto_m3_s =
+              0.5 * area_ventana_m2 | float * motor_previsto | float %}
+
+            {# Potencia del hueco cerrado y abierto, y diferencia abrir-cerrar. #}
+            {% set solar_cerrado_actual_w =
+              irradiancia_fachada_actual | float
+              * area_ventana_m2 | float
+              * factor_solar_vidrio | float %}
+            {% set solar_abierto_actual_w =
+              irradiancia_fachada_actual | float * area_ventana_m2 | float %}
+            {% set conduccion_cerrado_actual_w =
+              transmitancia_vidrio_w_m2k | float
+              * area_ventana_m2 | float
+              * delta_t_actual | float %}
+            {% set ventilacion_abierto_actual_w =
+              densidad_aire_kg_m3 | float
+              * calor_especifico_aire_j_kgk | float
+              * caudal_actual_m3_s | float
+              * delta_t_actual | float %}
+            {% set balance_actual_w =
+              solar_abierto_actual_w | float
+              + ventilacion_abierto_actual_w | float
+              - solar_cerrado_actual_w | float
+              - conduccion_cerrado_actual_w | float %}
+
+            {% set solar_cerrado_previsto_w =
+              irradiancia_fachada_prevista | float
+              * area_ventana_m2 | float
+              * factor_solar_vidrio | float %}
+            {% set solar_abierto_previsto_w =
+              irradiancia_fachada_prevista | float
+              * area_ventana_m2 | float %}
+            {% set conduccion_cerrado_previsto_w =
+              transmitancia_vidrio_w_m2k | float
+              * area_ventana_m2 | float
+              * delta_t_prevista | float %}
+            {% set ventilacion_abierto_previsto_w =
+              densidad_aire_kg_m3 | float
+              * calor_especifico_aire_j_kgk | float
+              * caudal_previsto_m3_s | float
+              * delta_t_prevista | float %}
+            {% set balance_previsto_w =
+              solar_abierto_previsto_w | float
+              + ventilacion_abierto_previsto_w | float
+              - solar_cerrado_previsto_w | float
+              - conduccion_cerrado_previsto_w | float %}
+
+            {# Para enfriar se usa el peor balance; para calentar, el menor. #}
+            {% set balance_control_frio_w =
+              [balance_actual_w, balance_previsto_w] | max
+              if prevision_termica_hyperlocal_valida | bool
+              else balance_actual_w %}
+            {% set balance_control_calor_w =
+              [balance_actual_w, balance_previsto_w] | min
+              if prevision_termica_hyperlocal_valida | bool
+              else balance_actual_w %}
+            {% set umbral_entrada_w =
+              umbral_balance_termico_entrada_w | float
+              if prevision_termica_hyperlocal_valida | bool
+              else umbral_balance_termico_sin_prevision_w | float %}
+            {% set limite_frio_w =
+              histeresis_balance_termico_w | float
+              if memoria_ventana.accion in ['A', 'O']
+              else 0 - umbral_entrada_w | float %}
+            {% set limite_calor_w =
+              0 - histeresis_balance_termico_w | float
+              if memoria_ventana.accion in ['A', 'O']
+              else umbral_entrada_w | float %}
+
+            {% set ns.items = ns.items + [{
+              'clave': z.clave,
+              'ok': 1,
+              'frio': balance_control_frio_w | float <= limite_frio_w | float,
+              'calor': balance_control_calor_w | float >= limite_calor_w | float,
+              'ba': balance_actual_w | round(0),
+              'bp': balance_previsto_w | round(0),
+              'bc': balance_control_frio_w | round(0),
+              'q': (caudal_actual_m3_s | float * 3600) | round(0),
+              'qo': (
+                caudal_actual_m3_s | float
+                * fraccion_apertura_oscilo | float
+                * 3600
+              ) | round(0),
+              'sf': solar_cerrado_actual_w | round(0),
+              'sa': solar_abierto_actual_w | round(0),
+              'fc': 1 if prevision_termica_hyperlocal_valida | bool else 0
+            }] %}
+          {% endif %}
+        {% endfor %}
+
+        {{ ns.items }}
+
+  - variables:
+      diagnostico_termico: >-
+        {% set ns = namespace(items=[]) %}
+        {% for m in modelo_termico_zonas %}
+          {% if m.get('ok', 0) | int(0) == 1 %}
+            {% set ns.items = ns.items + [
+              m.get('clave')
+              ~ ':d' ~ m.get('ba') ~ '/' ~ m.get('bp') ~ 'W'
+              ~ ',q' ~ m.get('q') ~ '/' ~ m.get('qo') ~ 'm3h'
+              ~ ',s' ~ m.get('sf') ~ '/' ~ m.get('sa') ~ 'W'
+              ~ ',f' ~ m.get('fc')
+            ] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.items | join('|') }}
+
+  # Código compacto por hueco:
+  # Ventana: A=abrir, O=oscilo, R=cerrar por meteorología,
+  #          F=cerrar para conservar frescor, H=conservar calor, M=mantener.
+  # Persiana: P=bajar por sol, G=subir para ganar calor,
+  #           I=bajar para aislamiento nocturno,
+  #           V=subir/dejar abierta para permitir ventilación, M=mantener.
+  - variables:
+      codigo_actual: >-
+        {% set ns = namespace(partes=[]) %}
+
+        {% for z in zonas %}
+          {% set estado_t = states(z.temperatura) %}
+
+          {% if estado_t in ['unknown', 'unavailable', 'none', ''] %}
+            {% set ventana = 'M' %}
+            {% set persiana = 'M' %}
+          {% else %}
+            {% set t_habitacion = estado_t | float %}
+            {% set memoria_ventana = namespace(accion='C') %}
+            {% set memoria_persiana = namespace(accion='') %}
+            {% for item in memoria_ventanas_previa.split(',') %}
+              {% if item | length >= 2
+                    and item[:-1] | int(-1) == z.indice | int %}
+                {% set memoria_ventana.accion = item[-1] %}
+              {% endif %}
+            {% endfor %}
+            {% for item in memoria_persianas_previa.split(',') %}
+              {% if item | length >= 2
+                    and item[:-1] | int(-1) == z.indice | int %}
+                {% set memoria_persiana.accion = item[-1] %}
+              {% endif %}
+            {% endfor %}
+            {% set modelo_termico = namespace(datos={}) %}
+            {% for item in modelo_termico_zonas %}
+              {% if item.get('clave', '') == z.clave %}
+                {% set modelo_termico.datos = item %}
+              {% endif %}
+            {% endfor %}
+            {% set dif_sol =
+              (((azimut_sol | float - z.azimut + 180) % 360) - 180) | abs %}
+            {% set dif_viento_instantanea =
+              (((direccion_viento_instantanea | float
+                  - z.azimut + 180) % 360) - 180) | abs %}
+            {% set dif_viento_10m =
+              (((direccion_viento_10m | float
+                  - z.azimut + 180) % 360) - 180) | abs %}
+
+            {#
+              La instantánea conserva giros recientes y la media de 10 min
+              aporta estabilidad. Para seguridad se usa la que quede más cerca
+              de la normal de esta fachada. Si ambas faltan, se asume viento
+              frontal. No se promedian grados dentro de la automatización.
+            #}
+            {% if direccion_viento_instantanea_valida | bool
+                  and direccion_viento_10m_valida | bool %}
+              {% set dif_viento_conservadora =
+                [dif_viento_instantanea, dif_viento_10m] | min %}
+            {% elif direccion_viento_instantanea_valida | bool %}
+              {% set dif_viento_conservadora = dif_viento_instantanea %}
+            {% elif direccion_viento_10m_valida | bool %}
+              {% set dif_viento_conservadora = dif_viento_10m %}
+            {% else %}
+              {% set dif_viento_conservadora = 0 %}
+            {% endif %}
+
+            {% set sol_delante =
+              elevacion_sol | float > 3
+              and dif_sol <= 80
+              and radiacion | float >= 120 %}
+
+            {% if not sol_delante %}
+              {% set fraccion_soleada = 0 %}
+            {% elif z.tipo_sombra == 'alero' %}
+              {% set cos_incidencia = cos(dif_sol * pi / 180) %}
+              {% set sombra_vertical =
+                z.profundidad_alero
+                * tan(elevacion_sol | float * pi / 180)
+                / cos_incidencia %}
+              {% set fraccion_soleada = clamp(
+                (
+                  z.distancia_alero_ventana
+                  + z.altura_ventana
+                  - sombra_vertical
+                ) / z.altura_ventana,
+                0,
+                1
+              ) %}
+            {% elif z.tipo_sombra == 'terraza' %}
+              {% set fraccion_soleada =
+                1 if elevacion_sol | float <= z.elevacion_limite_empirica
+                else 0 %}
+            {% else %}
+              {% set fraccion_soleada = 1 %}
+            {% endif %}
+
+            {% set sol_directo = fraccion_soleada >= 0.10 %}
+            {% set radiacion_efectiva = radiacion | float * fraccion_soleada %}
+
+            {% set terraza_caliente =
+              z.burbuja_terraza
+              and radiacion | float >= 450
+              and elevacion_sol | float > 15
+              and dif_sol <= 110
+              and t_exterior | float >= t_habitacion - 1.5 %}
+
+            {#
+              Exposición a lluvia por hueco. La dirección Ecowitt es la
+              procedencia: diferencia 0° significa viento contra la fachada. El
+              margen angular acerca 15° la dirección conservadora a la normal.
+            #}
+            {% set racha_seguridad_lluvia =
+              racha_referencia_viento | float
+              * margen_racha_lluvia_factor | float
+              + margen_racha_lluvia_kmh | float %}
+            {% set dif_viento_lluvia =
+              ([
+                dif_viento_conservadora
+                  - margen_direccion_lluvia_grados | float,
+                0
+              ] | max) %}
+            {% set factor_exposicion_viento =
+              cos(dif_viento_lluvia * pi / 180)
+              if dif_viento_lluvia < 90
+              else 0 %}
+            {% set componente_racha_fachada =
+              racha_seguridad_lluvia
+              * factor_exposicion_viento %}
+            {#
+              Límites continuos sin cuadrantes. La apertura completa admite
+              entre 10 km/h (frontal) y 20 km/h (sotavento). El oscilo con
+              viento fuerte admite entre 35 y 45 km/h con la misma transición.
+            #}
+            {% set limite_racha_apertura_completa =
+              20 - 10 * factor_exposicion_viento %}
+            {% set limite_racha_oscilo =
+              45 - 10 * factor_exposicion_viento %}
+
+            {#
+              En un alero, la sombra vertical de lluvia crece al caer la lluvia
+              más vertical. Se exige resguardar la abertura superior del oscilo
+              más 15 cm; para no pedir cierre se exige cubrir todo el hueco más
+              esos 15 cm. La geometría de lluvia es independiente del modelo de
+              sombra solar; el techo del despacho usa 1,20 m de vuelo.
+            #}
+            {% if z.tipo_proteccion_lluvia == 'ninguna' %}
+              {% set proteccion_lluvia_oscilo = false %}
+              {% set proteccion_lluvia_total = false %}
+            {% elif z.tipo_proteccion_lluvia == 'alero' %}
+              {% set alcance_vertical_lluvia =
+                99
+                if componente_racha_fachada < 0.5
+                else z.profundidad_proteccion_lluvia
+                  * velocidad_vertical_lluvia_kmh | float
+                  / componente_racha_fachada %}
+              {% set proteccion_lluvia_oscilo =
+                alcance_vertical_lluvia
+                >= z.distancia_proteccion_ventana
+                  + altura_superior_oscilo_m | float
+                  + margen_vertical_lluvia_m | float %}
+              {% set proteccion_lluvia_total =
+                alcance_vertical_lluvia
+                >= z.distancia_proteccion_ventana
+                  + z.altura_ventana
+                  + margen_vertical_lluvia_m | float %}
+            {% else %}
+              {% set proteccion_lluvia_oscilo = false %}
+              {% set proteccion_lluvia_total = false %}
+            {% endif %}
+
+            {% set contexto_frio =
+              temporada_operativa == 'Verano'
+              or t_habitacion >= t_max | float %}
+
+            {% set contexto_calor =
+              temporada_operativa == 'Invierno'
+              or t_habitacion <= t_min | float - 0.5 %}
+
+            {% set conviene_enfriar =
+              contexto_frio
+              and (
+                t_habitacion >= t_max | float - 0.5
+                or (
+                  calor_previsto | bool
+                  and t_habitacion >= t_min | float + 1
+                )
+              )
+              and modelo_termico.datos.get('ok', 0) | int(0) == 1
+              and modelo_termico.datos.get('frio', false) | bool %}
+
+            {% set conviene_calentar =
+              contexto_calor
+              and t_habitacion <= t_min | float + 0.5
+              and modelo_termico.datos.get('ok', 0) | int(0) == 1
+              and modelo_termico.datos.get('calor', false) | bool %}
+
+            {# Con calor previsto se adelanta la protección solar. #}
+            {% set margen_preventivo = 2.0 if calor_previsto | bool else 1.2 %}
+            {% set cerrar_preventivo_frescor =
+              contexto_frio
+              and t_habitacion >= t_max | float - margen_preventivo
+              and (
+                not modelo_termico.datos.get('frio', false) | bool
+                or t_exterior | float >= t_habitacion - 0.3
+                or radiacion_efectiva | float >=
+                    (150 if calor_previsto | bool else 250)
+                or terraza_caliente
+              ) %}
+
+            {% set conservar_calor =
+              contexto_calor
+              and t_habitacion <= t_min | float + 0.5
+              and t_exterior | float <= t_habitacion - 0.5 %}
+
+            {#
+              Recomendación de ventana: seguridad primero. Con lluvia no se
+              cierra solo por detectar agua si el hueco completo queda realmente
+              protegido. Si únicamente queda protegida la parte superior, solo
+              se permite oscilo cuando existe una necesidad térmica.
+            #}
+            {% if racha | float >= 45 %}
+              {% set ventana = 'R' %}
+            {% elif lluvia | float > 0 %}
+              {% if lluvia | float <= lluvia_ligera_max_mm_h | float
+                    and racha_referencia_viento | float
+                      < racha_referencia_max_oscilo_lluvia_kmh | float
+                    and proteccion_lluvia_total %}
+                {% set ventana =
+                  'O' if (conviene_enfriar or conviene_calentar) else 'M' %}
+              {% elif lluvia | float <= lluvia_ligera_max_mm_h | float
+                    and racha_referencia_viento | float
+                      < racha_referencia_max_oscilo_lluvia_kmh | float
+                    and proteccion_lluvia_oscilo
+                    and (conviene_enfriar or conviene_calentar) %}
+                {% set ventana = 'O' %}
+              {% else %}
+                {% set ventana = 'R' %}
+              {% endif %}
+            {% elif racha_referencia_viento | float >= 35 %}
+              {% if racha_referencia_viento | float < limite_racha_oscilo
+                    and (conviene_enfriar or conviene_calentar) %}
+                {% set ventana = 'O' %}
+              {% else %}
+                {% set ventana = 'R' %}
+              {% endif %}
+            {% elif conviene_enfriar or conviene_calentar %}
+              {% if memoria_ventana.accion == 'O'
+                    and racha_referencia_viento | float
+                      < limite_racha_apertura_completa
+                        - margen_mejora_apertura_kmh | float %}
+                {% set ventana = 'A' %}
+              {% elif memoria_ventana.accion == 'O' %}
+                {% set ventana = 'O' %}
+              {% elif racha_referencia_viento | float
+                    < limite_racha_apertura_completa %}
+                {% set ventana = 'A' %}
+              {% else %}
+                {% set ventana = 'O' %}
+              {% endif %}
+            {% elif cerrar_preventivo_frescor %}
+              {% set ventana = 'F' %}
+            {% elif conservar_calor %}
+              {% set ventana = 'H' %}
+            {% else %}
+              {% set ventana = 'M' %}
+            {% endif %}
+
+            {# Recomendación de persiana. #}
+            {% if (
+                    radiacion_efectiva | float >= (
+                      radiacion_proteccion_entrada_calor_previsto | float
+                      if calor_previsto | bool
+                      else radiacion_proteccion_entrada_normal | float
+                    )
+                    or (
+                      memoria_persiana.accion == 'B'
+                      and radiacion_efectiva | float >= (
+                        radiacion_proteccion_salida_calor_previsto | float
+                        if calor_previsto | bool
+                        else radiacion_proteccion_salida_normal | float
+                      )
+                    )
+                    or terraza_caliente
+                  )
+                  and t_habitacion >=
+                      t_max | float - (2.0 if calor_previsto | bool else 1.5)
+                  and contexto_frio %}
+              {% set persiana = 'P' %}
+            {% elif temporada_operativa == 'Verano'
+                  and ventana in ['A', 'O']
+                  and (
+                    elevacion_sol | float <= 8
+                    or radiacion_efectiva | float < 150
+                  ) %}
+              {% set persiana = 'V' %}
+            {% elif temporada_operativa == 'Invierno'
+                  and not is_state('input_boolean.modo_vacaciones', 'on')
+                  and sol_directo
+                  and radiacion_efectiva | float >= 150
+                  and t_habitacion < t_max | float - 0.5 %}
+              {% set persiana = 'G' %}
+            {% elif temporada_operativa == 'Invierno'
+                  and elevacion_sol | float <= 0 %}
+              {% set persiana = 'I' %}
+            {% else %}
+              {% set persiana = 'M' %}
+            {% endif %}
+          {% endif %}
+
+          {% set ns.partes = ns.partes + [z.clave ~ '=' ~ ventana ~ persiana] %}
+        {% endfor %}
+
+        {{ ns.partes | join('|') }}
+
+  # ------------------------------------------------------------------------
+  # RESÚMENES Y CONTROL DE FRECUENCIA
+  # ------------------------------------------------------------------------
+  - variables:
+      estado_avisos_guardado: >-
+        {% set texto = states('input_text.asesor_ventanas_avisos_diarios') %}
+        {% if texto.startswith('{') %}
+          {{ texto | from_json }}
+        {% else %}
+          {{ {} }}
+        {% endif %}
+
+  - variables:
+      fecha_ciclo_avisos: "{{ now().strftime('%Y%m%d') }}"
+      nuevo_dia_avisos: >-
+        {% set avisos =
+          estado_avisos_guardado
+          if estado_avisos_guardado is mapping else {} %}
+        {{ avisos.get('d', '') | string != now().strftime('%Y%m%d') }}
+
+  - variables:
+      # Al cambiar de día se asumen todas las ventanas cerradas: se olvidan las
+      # aperturas y los campos térmicos heredados, pero el bloqueo meteorológico
+      # rb/rs sobrevive. Recuperar sensores solo reevalúa; no rearma avisos.
+      codigo_anterior: >-
+        {{ states('input_text.ultima_recomendacion_ventanas') }}
+      estado_avisos: >-
+        {% set anterior = estado_avisos_guardado
+          if estado_avisos_guardado is mapping else {} %}
+        {% if nuevo_dia_avisos | bool %}
+          {{
+            {
+              'd': fecha_ciclo_avisos,
+              'av': '',
+              'ct': '',
+              'oa': '',
+              'rb': anterior.get('rb', 0) | int(0),
+              'rs': anterior.get('rs', 0) | int(0)
+            }
+          }}
+        {% else %}
+          {{ anterior }}
+        {% endif %}
+
+      hay_abrir: >-
+        {% set ns = namespace(valor=false) %}
+        {% for parte in codigo_actual.split('|') %}
+          {% if parte.split('=') | count == 2
+                and parte.split('=')[1][0] in ['A', 'O'] %}
+            {% set ns.valor = true %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.valor }}
+
+      hay_riesgo_meteo_actual: >-
+        {% set ns = namespace(valor=false) %}
+        {% for parte in codigo_actual.split('|') %}
+          {% if parte.split('=') | count == 2
+                and parte.split('=')[1][0] == 'R' %}
+            {% set ns.valor = true %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.valor }}
+
+      # Claves de los huecos incluidos en el aviso de apertura. Se conservan
+      # hasta que cada uno pierda la ventaja térmica y reciba su aviso de cierre.
+      zonas_abrir_codigo: >-
+        {% set ns = namespace(claves=[]) %}
+        {% for parte in codigo_actual.split('|') %}
+          {% if parte.split('=') | count == 2
+                and parte.split('=')[1][0] in ['A', 'O'] %}
+            {% set ns.claves = ns.claves + [parte.split('=')[0]] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.claves | join(',') }}
+
+      hay_cerrar_ventanas_verano: >-
+        {% set ns = namespace(valor=false) %}
+        {% for parte in codigo_actual.split('|') %}
+          {% if parte.split('=') | count == 2
+                and parte.split('=')[1][0] == 'F' %}
+            {% set ns.valor = true %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.valor }}
+
+      # Una persiana P sin cierre F tiene su propio aviso. Si una zona está en
+      # FP, ambas acciones se comunican juntas en el aviso de cierre.
+      hay_proteccion_solar_verano: >-
+        {% set ns = namespace(valor=false) %}
+        {% for parte in codigo_actual.split('|') %}
+          {% if parte.split('=') | count == 2 %}
+            {% set c = parte.split('=')[1] %}
+            {% if c[0] != 'F' and c[1] == 'P' %}
+              {% set ns.valor = true %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.valor }}
+
+      hay_subir_invierno: >-
+        {% set ns = namespace(valor=false) %}
+        {% for parte in codigo_actual.split('|') %}
+          {% if parte.split('=') | count == 2
+                and parte.split('=')[1][1] == 'G' %}
+            {% set ns.valor = true %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.valor }}
+
+      resumen_abrir: >-
+        {% set ns = namespace(abrir=[], oscilo=[]) %}
+        {% for z in zonas %}
+          {% set hallado = namespace(codigo='MM') %}
+          {% for parte in codigo_actual.split('|') %}
+            {% if parte.split('=')[0] == z.clave %}
+              {% set hallado.codigo = parte.split('=')[1] %}
+            {% endif %}
+          {% endfor %}
+          {% if hallado.codigo[0] == 'A' %}
+            {% if z.aviso not in ns.abrir %}
+              {% set ns.abrir = ns.abrir + [z.aviso] %}
+            {% endif %}
+          {% elif hallado.codigo[0] == 'O' %}
+            {% if z.aviso not in ns.oscilo %}
+              {% set ns.oscilo = ns.oscilo + [z.aviso] %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {% set salida = namespace(partes=[]) %}
+        {% if ns.abrir | count > 0 %}
+          {% set salida.partes = salida.partes + ['Abre: ' ~ ns.abrir | join(', ')] %}
+        {% endif %}
+        {% if ns.oscilo | count > 0 %}
+          {% set salida.partes = salida.partes + ['Oscilo: ' ~ ns.oscilo | join(', ')] %}
+        {% endif %}
+        {{ salida.partes | join(' · ') }}
+
+      resumen_cierre_ventanas_verano: >-
+        {% set ns = namespace(cerrar=[], persianas=[]) %}
+        {% for z in zonas %}
+          {% set hallado = namespace(codigo='MM') %}
+          {% for parte in codigo_actual.split('|') %}
+            {% if parte.split('=')[0] == z.clave %}
+              {% set hallado.codigo = parte.split('=')[1] %}
+            {% endif %}
+          {% endfor %}
+          {% if hallado.codigo[0] == 'F' %}
+            {% if z.aviso not in ns.cerrar %}
+              {% set ns.cerrar = ns.cerrar + [z.aviso] %}
+            {% endif %}
+            {% if hallado.codigo[1] == 'P' %}
+              {% if z.aviso not in ns.persianas %}
+                {% set ns.persianas = ns.persianas + [z.aviso] %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {% set salida = namespace(partes=[]) %}
+        {% if ns.cerrar | count > 0 %}
+          {% set salida.partes = salida.partes + ['Cierra: ' ~ ns.cerrar | join(', ')] %}
+        {% endif %}
+        {% if ns.persianas | count > 0 %}
+          {% set salida.partes = salida.partes + ['Persianas: ' ~ ns.persianas | join(', ')] %}
+        {% endif %}
+        {{ salida.partes | join(' · ') }}
+
+      resumen_proteccion_solar_verano: >-
+        {% set ns = namespace(zonas=[]) %}
+        {% for z in zonas %}
+          {% set hallado = namespace(codigo='MM') %}
+          {% for parte in codigo_actual.split('|') %}
+            {% if parte.split('=')[0] == z.clave %}
+              {% set hallado.codigo = parte.split('=')[1] %}
+            {% endif %}
+          {% endfor %}
+          {% if hallado.codigo[0] != 'F' and hallado.codigo[1] == 'P' %}
+            {% if z.aviso not in ns.zonas %}
+              {% set ns.zonas = ns.zonas + [z.aviso] %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        Persianas: {{ ns.zonas | join(', ') }}
+
+      resumen_subir_invierno: >-
+        {% set ns = namespace(zonas=[]) %}
+        {% for z in zonas %}
+          {% set hallado = namespace(codigo='MM') %}
+          {% for parte in codigo_actual.split('|') %}
+            {% if parte.split('=')[0] == z.clave %}
+              {% set hallado.codigo = parte.split('=')[1] %}
+            {% endif %}
+          {% endfor %}
+          {% if hallado.codigo[1] == 'G' %}
+            {% if z.aviso not in ns.zonas %}
+              {% set ns.zonas = ns.zonas + [z.aviso] %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        Sube: {{ ns.zonas | join(', ') }}
+
+      resumen_ventilacion_invierno: >-
+        {% set ns = namespace(abrir=[], moderado=[], oscilo=[]) %}
+        {% for z in zonas %}
+          {% set dif_instantanea =
+            (((direccion_viento_instantanea | float
+                - z.azimut + 180) % 360) - 180) | abs %}
+          {% set dif_10m =
+            (((direccion_viento_10m | float
+                - z.azimut + 180) % 360) - 180) | abs %}
+          {% if direccion_viento_instantanea_valida | bool
+                and direccion_viento_10m_valida | bool %}
+            {% set dif_conservadora = [dif_instantanea, dif_10m] | min %}
+          {% elif direccion_viento_instantanea_valida | bool %}
+            {% set dif_conservadora = dif_instantanea %}
+          {% elif direccion_viento_10m_valida | bool %}
+            {% set dif_conservadora = dif_10m %}
+          {% else %}
+            {% set dif_conservadora = 0 %}
+          {% endif %}
+          {% set dif_segura =
+            [dif_conservadora - margen_direccion_lluvia_grados | float, 0] | max %}
+          {% set factor_exposicion =
+            cos(dif_segura * pi / 180) if dif_segura < 90 else 0 %}
+          {% set limite_apertura = 20 - 10 * factor_exposicion %}
+
+          {% if racha_referencia_viento | float < 10 %}
+            {% if z.aviso not in ns.abrir %}
+              {% set ns.abrir = ns.abrir + [z.aviso] %}
+            {% endif %}
+          {% elif racha_referencia_viento | float < limite_apertura %}
+            {% if z.aviso not in ns.moderado %}
+              {% set ns.moderado = ns.moderado + [z.aviso] %}
+            {% endif %}
+          {% elif racha_referencia_viento | float < 35 %}
+            {% if z.aviso not in ns.oscilo %}
+              {% set ns.oscilo = ns.oscilo + [z.aviso] %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {% set salida = namespace(partes=[]) %}
+        {% if ns.abrir | count > 0 %}
+          {% set salida.partes = salida.partes + ['Abre 5–10 min: ' ~ ns.abrir | join(', ')] %}
+        {% endif %}
+        {% if ns.moderado | count > 0 %}
+          {% set salida.partes = salida.partes + ['Abre moderado: ' ~ ns.moderado | join(', ')] %}
+        {% endif %}
+        {% if ns.oscilo | count > 0 %}
+          {% set salida.partes = salida.partes + ['Oscilo 5–10 min: ' ~ ns.oscilo | join(', ')] %}
+        {% endif %}
+        {{ salida.partes | join(' · ') }}
+
+  - variables:
+      zonas_ventilacion_pendientes: >-
+        {% set avisos = estado_avisos if estado_avisos is mapping else {} %}
+        {{ avisos.get('av', '') | string | trim }}
+
+      bloqueo_reapertura_previo: >-
+        {% set avisos = estado_avisos if estado_avisos is mapping else {} %}
+        {% if 'rb' in avisos %}
+          {{ avisos.get('rb', 0) | int(0) == 1 }}
+        {% else %}
+          {# Migración desde un estado anterior que todavía no tenía rb. #}
+          {% set ns = namespace(valor=false) %}
+          {% for parte in codigo_anterior.split('|') %}
+            {% if parte.split('=') | count == 2
+                  and parte.split('=')[1][0] == 'R' %}
+              {% set ns.valor = true %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.valor }}
+        {% endif %}
+
+      inicio_reapertura_previo: >-
+        {% set avisos = estado_avisos if estado_avisos is mapping else {} %}
+        {{ avisos.get('rs', 0) | int(0) }}
+
+  - variables:
+      resultado_reapertura_meteo: >-
+        {% set ahora = as_timestamp(now()) | int(0) %}
+        {% set espera =
+          minutos_confirmar_reapertura_meteo | int(30) * 60 %}
+        {% if hay_riesgo_meteo_actual | bool %}
+          1|0
+        {% elif bloqueo_reapertura_previo | bool %}
+          {% if inicio_reapertura_previo | int(0) > 0
+                and ahora - inicio_reapertura_previo | int(0) >= espera %}
+            0|0
+          {% else %}
+            1|{{ inicio_reapertura_previo | int(0)
+                 if inicio_reapertura_previo | int(0) > 0 else ahora }}
+          {% endif %}
+        {% else %}
+          0|0
+        {% endif %}
+
+  - variables:
+      bloqueo_reapertura_actual: >-
+        {{ resultado_reapertura_meteo.split('|')[0] | int(0) == 1 }}
+      inicio_reapertura_actual: >-
+        {{ resultado_reapertura_meteo.split('|')[1] | int(0) }}
+      reapertura_meteo_permitida: >-
+        {{ not bloqueo_reapertura_actual | bool }}
+
+  - variables:
+      # La media móvil exterior de 30 minutos ya aporta la estabilidad térmica:
+      # no se añade una segunda espera antes de recomendar A u O. El aviso solo
+      # se emite cuando además se cumplen los 30 minutos sin R.
+      resultado_confirmacion_apertura: >-
+        {% set pendientes = zonas_ventilacion_pendientes.split(',') %}
+        {% set ns = namespace(confirmadas=[]) %}
+        {% for z in zonas
+             if z.clave not in pendientes
+             and avisos_ordinarios_permitidos | bool %}
+          {% set hallado = namespace(codigo='MM') %}
+          {% for parte in codigo_actual.split('|') %}
+            {% if parte.split('=') | count == 2
+                  and parte.split('=')[0] == z.clave %}
+              {% set hallado.codigo = parte.split('=')[1] %}
+            {% endif %}
+          {% endfor %}
+          {% if hallado.codigo[0] in ['A', 'O'] %}
+            {% set ns.confirmadas = ns.confirmadas + [z.clave] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.confirmadas | join(',') ~ '|' }}
+
+  - variables:
+      zonas_apertura_confirmadas: >-
+        {{ resultado_confirmacion_apertura.split('|')[0] | trim }}
+      candidatos_apertura_actualizados: >-
+        {{
+          resultado_confirmacion_apertura.split('|')[1] | trim
+          if resultado_confirmacion_apertura.split('|') | count > 1
+          else ''
+        }}
+
+  # La apertura se sigue por habitación, no por franja completa. Una estancia
+  # que empieza a compensar más tarde entra en el siguiente aviso consolidado
+  # sin repetir las que continúan pendientes. Los dos huecos de Cocina usan c.
+  - variables:
+      habitaciones_ventilacion_pendientes: >-
+        {% set pendientes = zonas_ventilacion_pendientes.split(',') %}
+        {% set ns = namespace(codigos=[]) %}
+        {% for z in zonas if z.clave in pendientes %}
+          {% if z.habitacion not in ns.codigos %}
+            {% set ns.codigos = ns.codigos + [z.habitacion] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.codigos | join('') }}
+
+      habitaciones_abrir_codigo: >-
+        {% set ns = namespace(codigos=[]) %}
+        {% for z in zonas %}
+          {% set hallado = namespace(codigo='MM') %}
+          {% for parte in codigo_actual.split('|') %}
+            {% if parte.split('=') | count == 2
+                  and parte.split('=')[0] == z.clave %}
+              {% set hallado.codigo = parte.split('=')[1] %}
+            {% endif %}
+          {% endfor %}
+          {% if hallado.codigo[0] in ['A', 'O']
+                and z.habitacion not in ns.codigos %}
+            {% set ns.codigos = ns.codigos + [z.habitacion] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.codigos | join('') }}
+
+  - variables:
+      habitaciones_abrir_nuevas_codigos: >-
+        {% set confirmadas = zonas_apertura_confirmadas.split(',') %}
+        {% set pendientes = zonas_ventilacion_pendientes.split(',') %}
+        {% set ns = namespace(codigos=[]) %}
+        {% if reapertura_meteo_permitida | bool
+              and avisos_ordinarios_permitidos | bool %}
+          {% for z in zonas
+               if z.clave in confirmadas and z.clave not in pendientes %}
+            {% if z.habitacion not in ns.codigos %}
+              {% set ns.codigos = ns.codigos + [z.habitacion] %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        {{ ns.codigos | join('') }}
+
+  - variables:
+      zonas_abrir_nuevas_codigo: >-
+        {% set confirmadas = zonas_apertura_confirmadas.split(',') %}
+        {% set pendientes = zonas_ventilacion_pendientes.split(',') %}
+        {% set ns = namespace(claves=[]) %}
+        {% for z in zonas
+             if z.habitacion in habitaciones_abrir_nuevas_codigos
+             and z.clave in confirmadas
+             and z.clave not in pendientes %}
+          {% set ns.claves = ns.claves + [z.clave] %}
+        {% endfor %}
+        {{ ns.claves | join(',') }}
+
+      # A -> O se confirma tras 5 minutos cuando la racha de referencia es
+      # marginal, y de inmediato desde 20 km/h. Con la revisión /30, el caso
+      # marginal se notificará normalmente en la siguiente evaluación. O -> A
+      # conserva 10 minutos y el margen de 3 km/h ya aplicado al código.
+      resultado_cambio_ao: >-
+        {% set pendientes = zonas_ventilacion_pendientes.split(',') %}
+        {% set minuto_actual = now().hour * 60 + now().minute %}
+        {% set marca_actual = now().strftime('%H%M') %}
+        {% set ns = namespace(claves=[], candidatos=[]) %}
+        {% for z in zonas if z.clave in pendientes %}
+          {% set actual = namespace(codigo='MM') %}
+          {% set anterior = namespace(accion='C') %}
+          {% for parte in codigo_actual.split('|') %}
+            {% if parte.split('=') | count == 2
+                  and parte.split('=')[0] == z.clave %}
+              {% set actual.codigo = parte.split('=')[1] %}
+            {% endif %}
+          {% endfor %}
+          {% for item in memoria_ventanas_previa.split(',') %}
+            {% if item | length >= 2
+                  and item[:-1] | int(-1) == z.indice | int %}
+              {% set anterior.accion = item[-1] %}
+            {% endif %}
+          {% endfor %}
+          {% set va = actual.codigo[0] %}
+          {% if avisos_ordinarios_permitidos | bool
+                and anterior.accion == 'A' and va == 'O' %}
+            {% if racha_referencia_viento | float(0)
+                  >= racha_degradacion_inmediata_kmh | float(20) %}
+              {% set ns.claves = ns.claves + [z.clave] %}
+            {% else %}
+              {% set previo = namespace(marca='') %}
+              {% for item in candidatos_cambio_apertura_previos.split(',') %}
+                {% set partes = item.split(':') %}
+                {% if partes | count == 2
+                      and partes[0][:-1] | int(-1) == z.indice | int
+                      and partes[0][-1] == 'O' %}
+                  {% set previo.marca = partes[1] %}
+                {% endif %}
+              {% endfor %}
+              {% set marca = previo.marca
+                if previo.marca | length == 4 else marca_actual %}
+              {% set minuto_inicio =
+                marca[0:2] | int(0) * 60 + marca[2:4] | int(0) %}
+              {% set transcurrido = minuto_actual - minuto_inicio %}
+              {% if transcurrido < 0 %}
+                {% set transcurrido = transcurrido + 1440 %}
+              {% endif %}
+              {% if transcurrido
+                    >= minutos_confirmar_degradacion_marginal_viento | int(5) %}
+                {% set ns.claves = ns.claves + [z.clave] %}
+              {% else %}
+                {% set ns.candidatos = ns.candidatos
+                  + [z.indice ~ 'O:' ~ marca] %}
+              {% endif %}
+            {% endif %}
+          {% elif avisos_ordinarios_permitidos | bool
+                and reapertura_meteo_permitida | bool
+                and anterior.accion == 'O' and va == 'A' %}
+            {% set previo = namespace(marca='') %}
+            {% for item in candidatos_cambio_apertura_previos.split(',') %}
+              {% set partes = item.split(':') %}
+              {% if partes | count == 2
+                    and partes[0][:-1] | int(-1) == z.indice | int
+                    and partes[0][-1] == 'A' %}
+                {% set previo.marca = partes[1] %}
+              {% endif %}
+            {% endfor %}
+            {% set marca = previo.marca
+              if previo.marca | length == 4 else marca_actual %}
+            {% set minuto_inicio =
+              marca[0:2] | int(0) * 60 + marca[2:4] | int(0) %}
+            {% set transcurrido = minuto_actual - minuto_inicio %}
+            {% if transcurrido < 0 %}
+              {% set transcurrido = transcurrido + 1440 %}
+            {% endif %}
+            {% if transcurrido
+                  >= minutos_confirmar_mejora_apertura | int(10) %}
+              {% set ns.claves = ns.claves + [z.clave] %}
+            {% else %}
+              {% set ns.candidatos = ns.candidatos
+                + [z.indice ~ 'A:' ~ marca] %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.claves | join(',') ~ '|' ~ ns.candidatos | join(',') }}
+
+      zonas_abrir_cambio_codigo: >-
+        {{ resultado_cambio_ao.split('|')[0] | trim }}
+
+      candidatos_cambio_apertura_actualizados: >-
+        {{ resultado_cambio_ao.split('|')[1] | trim
+          if resultado_cambio_ao.split('|') | count > 1 else '' }}
+
+      zonas_ventilacion_con_nuevas: >-
+        {% set pendientes = zonas_ventilacion_pendientes.split(',') %}
+        {% set nuevas = zonas_abrir_nuevas_codigo.split(',') %}
+        {% set cambios = zonas_abrir_cambio_codigo.split(',') %}
+        {% set ns = namespace(claves=[]) %}
+        {% for z in zonas %}
+          {% if (z.clave in pendientes or z.clave in nuevas
+                or z.clave in cambios)
+                and z.clave not in ns.claves %}
+            {% set ns.claves = ns.claves + [z.clave] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.claves | join(',') }}
+
+  - variables:
+      # La media móvil exterior elimina la espera térmica adicional. El segundo
+      # campo se conserva vacío para limpiar candidatos de versiones anteriores.
+      resultado_histeresis_cierre: >-
+        {% set pendientes = zonas_ventilacion_pendientes.split(',') %}
+        {% set ns = namespace(cerrar=[]) %}
+        {% for z in zonas if z.clave in pendientes %}
+          {% set hallado = namespace(codigo='MM') %}
+          {% for parte in codigo_actual.split('|') %}
+            {% if parte.split('=') | count == 2
+                  and parte.split('=')[0] == z.clave %}
+              {% set hallado.codigo = parte.split('=')[1] %}
+            {% endif %}
+          {% endfor %}
+
+          {# El final de jornada y R cierran pendientes sin espera térmica. #}
+          {% if recordatorios_activos | bool and id_disparo == 'fin_jornada' %}
+            {% set ns.cerrar = ns.cerrar + [z.clave] %}
+          {% elif recordatorios_activos | bool
+                and hallado.codigo[0] == 'R' %}
+            {% set ns.cerrar = ns.cerrar + [z.clave] %}
+          {% elif avisos_ordinarios_permitidos | bool
+                and has_value(z.temperatura) %}
+            {% set diferencia =
+              states(z.temperatura) | float - t_exterior | float %}
+            {% if hallado.codigo[0] in ['F', 'H']
+                  or diferencia <= margen_mantener_ventilacion | float %}
+              {% set ns.cerrar = ns.cerrar + [z.clave] %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.cerrar | join(',') ~ '|' }}
+
+  - variables:
+      zonas_cerrar_fin_ventana_termica: >-
+        {{ resultado_histeresis_cierre.split('|')[0] | trim }}
+
+      candidatos_cierre_actualizados: >-
+        {{
+          resultado_histeresis_cierre.split('|')[1] | trim
+          if resultado_histeresis_cierre.split('|') | count > 1
+          else ''
+        }}
+
+      zonas_ventilacion_restantes: >-
+        {% set cerrar = zonas_cerrar_fin_ventana_termica.split(',') %}
+        {% set ns = namespace(claves=[]) %}
+        {% for clave in zonas_ventilacion_pendientes.split(',')
+             if clave | trim != '' and clave not in cerrar %}
+          {% set ns.claves = ns.claves + [clave] %}
+        {% endfor %}
+        {{ ns.claves | join(',') }}
+
+      hay_cierre_fin_ventana_termica: >-
+        {{ zonas_cerrar_fin_ventana_termica | trim != '' }}
+
+      resumen_cierre_fin_ventana_termica: >-
+        {% set cerrar = zonas_cerrar_fin_ventana_termica.split(',') %}
+        {% set ns = namespace(zonas=[]) %}
+        {% for z in zonas if z.clave in cerrar %}
+          {% if z.aviso not in ns.zonas %}
+            {% set ns.zonas = ns.zonas + [z.aviso] %}
+          {% endif %}
+        {% endfor %}
+        Cierra: {{ ns.zonas | join(', ') }}
+
+  # Una persiana solo genera un cambio tras 15 minutos continuados en la misma
+  # acción física. M cancela candidatos, pero conserva la memoria notificada.
+  - variables:
+      resultado_estabilidad_persianas: >-
+        {% set minuto_actual = now().hour * 60 + now().minute %}
+        {% set marca_actual = now().strftime('%H%M') %}
+        {% set ns = namespace(confirmadas=[], candidatos=[]) %}
+        {% for z in zonas %}
+          {% set actual = namespace(codigo='MM') %}
+          {% set anterior = namespace(accion='') %}
+          {% for parte in codigo_actual.split('|') %}
+            {% if parte.split('=') | count == 2
+                  and parte.split('=')[0] == z.clave %}
+              {% set actual.codigo = parte.split('=')[1] %}
+            {% endif %}
+          {% endfor %}
+          {% for item in memoria_persianas_previa.split(',') %}
+            {% if item | length >= 2
+                  and item[:-1] | int(-1) == z.indice | int %}
+              {% set anterior.accion = item[-1] %}
+            {% endif %}
+          {% endfor %}
+          {% set accion = 'B' if actual.codigo[1] in ['P', 'I'] else
+            'S' if actual.codigo[1] in ['G', 'V'] else 'M' %}
+          {% if avisos_ordinarios_permitidos | bool
+                and accion in ['B', 'S']
+                and accion != anterior.accion %}
+            {% set previo = namespace(marca='') %}
+            {% for item in candidatos_persiana_previos.split(',') %}
+              {% set partes = item.split(':') %}
+              {% if partes | count == 2
+                    and partes[0][:-1] | int(-1) == z.indice | int
+                    and partes[0][-1] == accion %}
+                {% set previo.marca = partes[1] %}
+              {% endif %}
+            {% endfor %}
+            {% set marca = previo.marca
+              if previo.marca | length == 4 else marca_actual %}
+            {% set minuto_inicio =
+              marca[0:2] | int(0) * 60 + marca[2:4] | int(0) %}
+            {% set transcurrido = minuto_actual - minuto_inicio %}
+            {% if transcurrido < 0 %}
+              {% set transcurrido = transcurrido + 1440 %}
+            {% endif %}
+            {% if transcurrido >= minutos_confirmar_persiana | int(15) %}
+              {% set ns.confirmadas = ns.confirmadas
+                + [z.indice ~ accion] %}
+            {% else %}
+              {% set ns.candidatos = ns.candidatos
+                + [z.indice ~ accion ~ ':' ~ marca] %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.confirmadas | join(',') ~ '|' ~ ns.candidatos | join(',') }}
+
+  - variables:
+      persianas_confirmadas: >-
+        {{ resultado_estabilidad_persianas.split('|')[0] | trim }}
+      candidatos_persiana_actualizados: >-
+        {{ resultado_estabilidad_persianas.split('|')[1] | trim
+          if resultado_estabilidad_persianas.split('|') | count > 1 else '' }}
+
+  # No hay cupos diarios. Las fuentes de un aviso son exclusivamente una
+  # apertura confirmada, un A/O confirmado, el cierre de un ciclo pendiente o
+  # una persiana estable. Todas se agrupan en un único envío por evaluación.
+  - variables:
+      habitaciones_cambio_accion_codigos: >-
+        {% set aperturas = zonas_abrir_nuevas_codigo.split(',') %}
+        {% set cambios = zonas_abrir_cambio_codigo.split(',') %}
+        {% set cierres = zonas_cerrar_fin_ventana_termica.split(',') %}
+        {% set persianas = persianas_confirmadas.split(',') %}
+        {% set ns = namespace(codigos=[]) %}
+        {% for z in zonas %}
+          {% set token_b = z.indice ~ 'B' %}
+          {% set token_s = z.indice ~ 'S' %}
+          {% if (z.clave in aperturas or z.clave in cambios
+                or z.clave in cierres
+                or token_b in persianas or token_s in persianas)
+                and z.habitacion not in ns.codigos %}
+            {% set ns.codigos = ns.codigos + [z.habitacion] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.codigos | join('') }}
+
+      zonas_ventilacion_resultantes: >-
+        {% set cerrar = zonas_cerrar_fin_ventana_termica.split(',') %}
+        {% set ns = namespace(claves=[]) %}
+        {% for clave in zonas_ventilacion_con_nuevas.split(',')
+             if clave | trim != '' and clave not in cerrar %}
+          {% set ns.claves = ns.claves + [clave] %}
+        {% endfor %}
+        {{ ns.claves | join(',') }}
+
+  - variables:
+      resumen_notificacion: >-
+        {% set aperturas = zonas_abrir_nuevas_codigo.split(',') %}
+        {% set cambios = zonas_abrir_cambio_codigo.split(',') %}
+        {% set cierres = zonas_cerrar_fin_ventana_termica.split(',') %}
+        {% set persianas = persianas_confirmadas.split(',') %}
+        {% set salida = namespace(partes=[]) %}
+        {% for habitacion in habitaciones_cambio_accion_codigos | list %}
+          {% set h = namespace(nombre=habitacion, acciones=[]) %}
+          {% for z in zonas if z.habitacion == habitacion %}
+            {% set h.nombre = z.aviso %}
+            {% set actual = namespace(codigo='MM') %}
+            {% for parte in codigo_actual.split('|') %}
+              {% if parte.split('=') | count == 2
+                    and parte.split('=')[0] == z.clave %}
+                {% set actual.codigo = parte.split('=')[1] %}
+              {% endif %}
+            {% endfor %}
+            {% if z.clave in cierres and 'C' not in h.acciones %}
+              {% set h.acciones = h.acciones + ['C'] %}
+            {% elif (z.clave in aperturas or z.clave in cambios)
+                  and actual.codigo[0] in ['A', 'O']
+                  and actual.codigo[0] not in h.acciones %}
+              {% set h.acciones = h.acciones + [actual.codigo[0]] %}
+            {% endif %}
+            {% if z.indice ~ 'S' in persianas and 'S' not in h.acciones %}
+              {% set h.acciones = h.acciones + ['S'] %}
+            {% endif %}
+            {% if z.indice ~ 'B' in persianas and 'B' not in h.acciones %}
+              {% set h.acciones = h.acciones + ['B'] %}
+            {% endif %}
+          {% endfor %}
+          {% set plural = habitacion == 'c' %}
+          {% set frases = namespace(items=[]) %}
+          {% if 'A' in h.acciones %}
+            {% set frases.items = frases.items
+              + [('abre ventanas' if plural else 'abre ventana')] %}
+          {% endif %}
+          {% if 'O' in h.acciones %}
+            {% set frases.items = frases.items
+              + [('pon ventanas en oscilo' if plural else 'usa el oscilo')] %}
+          {% endif %}
+          {% if 'C' in h.acciones %}
+            {% set frases.items = frases.items
+              + [('cierra ventanas' if plural else 'cierra ventana')] %}
+          {% endif %}
+          {% if 'S' in h.acciones %}
+            {% set frases.items = frases.items
+              + [('sube persianas' if plural else 'sube persiana')] %}
+          {% endif %}
+          {% if 'B' in h.acciones %}
+            {% set frases.items = frases.items
+              + [('baja persianas' if plural else 'baja persiana')] %}
+          {% endif %}
+          {% if frases.items | count > 0 %}
+            {% set salida.partes = salida.partes
+              + [h.nombre ~ ': ' ~ frases.items | join(' + ')] %}
+          {% endif %}
+        {% endfor %}
+        {{ salida.partes | join(' · ') }}. Fuera
+        {{ t_exterior | float | round(1) }}°.
+
+  # Un solo aviso reúne todos los cambios confirmados en esta evaluación.
+  - if:
+      - condition: template
+        value_template: >-
+          {{ habitaciones_cambio_accion_codigos | trim != '' }}
+    then:
+      - action: notify.mobile_app_cph1919
+        data:
+          title: >-
+            {{ '🌙 Fin de jornada' if id_disparo == 'fin_jornada'
+              else '🌡️ Asesor de la casa' }}
+          message: "{{ resumen_notificacion }}"
+          data:
+            tag: asesor_ventanas_casa
+            group: clima
+
+  - variables:
+      memoria_ventanas_nueva: >-
+        {% set aperturas = zonas_abrir_nuevas_codigo.split(',') %}
+        {% set cambios = zonas_abrir_cambio_codigo.split(',') %}
+        {% set cierres = zonas_cerrar_fin_ventana_termica.split(',') %}
+        {% set ns = namespace(items=[]) %}
+        {% for z in zonas %}
+          {% set anterior = namespace(accion='C') %}
+          {% set actual = namespace(codigo='MM') %}
+          {% for item in memoria_ventanas_previa.split(',') %}
+            {% if item | length >= 2
+                  and item[:-1] | int(-1) == z.indice | int %}
+              {% set anterior.accion = item[-1] %}
+            {% endif %}
+          {% endfor %}
+          {% for parte in codigo_actual.split('|') %}
+            {% if parte.split('=') | count == 2
+                  and parte.split('=')[0] == z.clave %}
+              {% set actual.codigo = parte.split('=')[1] %}
+            {% endif %}
+          {% endfor %}
+          {% if z.clave in cierres %}
+            {% set accion = 'C' %}
+          {% elif (z.clave in aperturas or z.clave in cambios)
+                and actual.codigo[0] in ['A', 'O'] %}
+            {% set accion = actual.codigo[0] %}
+          {% else %}
+            {% set accion = anterior.accion %}
+          {% endif %}
+          {% set ns.items = ns.items + [z.indice ~ accion] %}
+        {% endfor %}
+        {{ ns.items | join(',') }}
+
+      memoria_persianas_nueva: >-
+        {% set confirmadas = persianas_confirmadas.split(',') %}
+        {% set ns = namespace(items=[]) %}
+        {% for z in zonas %}
+          {% set anterior = namespace(accion='') %}
+          {% for item in memoria_persianas_previa.split(',') %}
+            {% if item | length >= 2
+                  and item[:-1] | int(-1) == z.indice | int %}
+              {% set anterior.accion = item[-1] %}
+            {% endif %}
+          {% endfor %}
+          {% if z.indice ~ 'B' in confirmadas %}
+            {% set accion = 'B' %}
+          {% elif z.indice ~ 'S' in confirmadas %}
+            {% set accion = 'S' %}
+          {% else %}
+            {% set accion = anterior.accion %}
+          {% endif %}
+          {% if accion in ['B', 'S'] %}
+            {% set ns.items = ns.items + [z.indice ~ accion] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.items | join(',') }}
+
+      estado_notificaciones_nuevo: >-
+        {{
+          {
+            'd': fecha_ciclo_avisos,
+            'w': memoria_ventanas_nueva,
+            'b': memoria_persianas_nueva,
+            'bc': candidatos_persiana_actualizados,
+            'wc': candidatos_cambio_apertura_actualizados
+          } | to_json | replace(': ', ':') | replace(', ', ',')
+        }}
+
+  - if:
+      - condition: template
+        value_template: >-
+          {{ states('input_text.asesor_ventanas_estado_notificaciones')
+            != estado_notificaciones_nuevo }}
+    then:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.asesor_ventanas_estado_notificaciones
+        data:
+          value: "{{ estado_notificaciones_nuevo }}"
+
+  # El código bruto se conserva para diagnóstico; la deduplicación real está
+  # en las memorias w/b y no se borra al aparecer M ni al recuperar sensores.
+  - if:
+      - condition: template
+        value_template: "{{ codigo_actual != codigo_anterior }}"
+    then:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.ultima_recomendacion_ventanas
+        data:
+          value: "{{ codigo_actual }}"
+
+  # Este ayudante no impone cupos diarios. Conserva el ciclo supuesto de
+  # ventanas y el bloqueo tras riesgo meteorológico. ct/oa se mantienen vacíos
+  # durante la migración para limpiar candidatos térmicos de versiones previas.
+  - variables:
+      estado_avisos_nuevo: >-
+        {{
+          {
+            'd': fecha_ciclo_avisos,
+            'av': zonas_ventilacion_resultantes,
+            'ct': candidatos_cierre_actualizados,
+            'oa': candidatos_apertura_actualizados,
+            'rb': 1 if bloqueo_reapertura_actual | bool else 0,
+            'rs': inicio_reapertura_actual | int(0)
+          } | to_json | replace(': ', ':') | replace(', ', ',')
+        }}
+
+  - if:
+      - condition: template
+        value_template: >-
+          {{ states('input_text.asesor_ventanas_avisos_diarios') != estado_avisos_nuevo }}
+    then:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.asesor_ventanas_avisos_diarios
+        data:
+          value: "{{ estado_avisos_nuevo }}"
+
+mode: restart

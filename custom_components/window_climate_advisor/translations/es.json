@@ -1,0 +1,102 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurar Window Climate Advisor",
+        "description": "Elige las fuentes climáticas compartidas de esta vivienda.",
+        "data": {
+          "name": "Nombre de la vivienda",
+          "outdoor_temperature_entity_id": "Temperatura exterior",
+          "weather_entity_id": "Tiempo meteorológico",
+          "solar_radiation_entity_id": "Radiación solar",
+          "wind_speed_entity_id": "Velocidad del viento",
+          "wind_direction_entity_id": "Dirección del viento",
+          "wind_gust_entity_id": "Ráfaga de viento",
+          "rain_entity_id": "Lluvia"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurar Window Climate Advisor",
+        "description": "Actualiza las fuentes climáticas compartidas de esta vivienda.",
+        "data": {
+          "name": "Nombre de la vivienda",
+          "outdoor_temperature_entity_id": "Temperatura exterior",
+          "weather_entity_id": "Tiempo meteorológico",
+          "solar_radiation_entity_id": "Radiación solar",
+          "wind_speed_entity_id": "Velocidad del viento",
+          "wind_direction_entity_id": "Dirección del viento",
+          "wind_gust_entity_id": "Ráfaga de viento",
+          "rain_entity_id": "Lluvia"
+        }
+      }
+    },
+    "abort": {
+      "reconfigure_successful": "La vivienda se ha reconfigurado."
+    }
+  },
+  "config_subentries": {
+    "room": {
+      "title": "Estancia",
+      "step": {
+        "user": {
+          "title": "Añadir estancia",
+          "data": {
+            "name": "Nombre de la estancia",
+            "temperature_entity_id": "Temperatura",
+            "humidity_entity_id": "Humedad",
+            "co2_entity_id": "Dióxido de carbono"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigurar estancia",
+          "data": {
+            "name": "Nombre de la estancia",
+            "temperature_entity_id": "Temperatura",
+            "humidity_entity_id": "Humedad",
+            "co2_entity_id": "Dióxido de carbono"
+          }
+        }
+      }
+    },
+    "opening": {
+      "title": "Hueco",
+      "step": {
+        "user": {
+          "title": "Añadir hueco",
+          "data": {
+            "name": "Nombre del hueco",
+            "room_subentry_id": "Estancia",
+            "facade_azimuth": "Azimut de la fachada",
+            "width": "Anchura",
+            "height": "Altura",
+            "overhang_depth": "Profundidad del alero",
+            "overhang_gap": "Separación vertical del alero",
+            "supports_tilt": "Admite posición oscilobatiente",
+            "rain_protected": "Protegido de la lluvia directa",
+            "contact_entity_id": "Contacto de ventana",
+            "cover_entity_id": "Persiana o contraventana"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigurar hueco",
+          "data": {
+            "name": "Nombre del hueco",
+            "room_subentry_id": "Estancia",
+            "facade_azimuth": "Azimut de la fachada",
+            "width": "Anchura",
+            "height": "Altura",
+            "overhang_depth": "Profundidad del alero",
+            "overhang_gap": "Separación vertical del alero",
+            "supports_tilt": "Admite posición oscilobatiente",
+            "rain_protected": "Protegido de la lluvia directa",
+            "contact_entity_id": "Contacto de ventana",
+            "cover_entity_id": "Persiana o contraventana"
+          }
+        }
+      },
+      "abort": {
+        "no_rooms": "Añade una estancia antes de añadir un hueco."
+      }
+    }
+  }
+}

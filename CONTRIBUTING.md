@@ -11,7 +11,7 @@ change. `docs/GOAL.md` prevails if instructions conflict.
 4. Search for an existing extension point before adding a dependency, file,
    entity, action, abstraction, or configuration field.
 5. Add focused tests for behaviour and failure paths, then run the narrow test
-   followed by the applicable canonical `make` gate.
+   followed by `uv run --frozen python scripts/verify.py`.
 6. Review the full diff, status, ignored files, and artifact inventory.
 7. Use a Conventional Commit and add `Task: PNN-TXX` to its body or trailer.
 
