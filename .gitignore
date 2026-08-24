@@ -1,0 +1,46 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Python bytecode, environments, caches and tooling
+__pycache__/
+*.py[cod]
+.venv/
+.uv-cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Packages, build results and Home Assistant test runtime
+build/
+dist/
+*.egg-info/
+config/
+artifacts/
+test-results/
+
+# Logs and temporary files
+*.log
+*.pid
+tmp/
+var/
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Codex transient files; global agent profiles are not repository-owned
+.codex-remote-attachments/
