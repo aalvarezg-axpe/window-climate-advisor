@@ -27,3 +27,5 @@ Semantic Versioning after the first distributable integration release.
   unilateral airflow, thermal-load components, bounds, and assumption tests.
 - User-supplied Summer, Shoulder-season, and Winter comfort profiles with
   deterministic automatic/manual selection and a translated options flow.
+- Dependency-free exhaustive window/blind optimizer with current/forecast
+  scoring, explicit movement/uncertainty costs, and stable tie-breaking.
