@@ -183,6 +183,12 @@ def _advance_window(
         return replace(state, pending_window=None), False
 
     delay = _window_delay(state, sample, settings)
+    if (
+        state.window is WindowState.CLOSED
+        and state.blind.percent == 0
+        and target is not WindowState.CLOSED
+    ):
+        delay = max(delay, settings.blind_delay)
     if delay == timedelta(0):
         return replace(state, window=target, pending_window=None), True
     pending = state.pending_window
@@ -218,6 +224,13 @@ def _advance_blind(
         return replace(state, blind=target, pending_blind=None), False
 
     direction = _blind_direction(state.blind, target)
+    if state.window is not WindowState.CLOSED and state.blind.percent == 0:
+        return replace(
+            state,
+            blind=target,
+            blind_direction=direction,
+            pending_blind=None,
+        ), True
     if direction is state.blind_direction:
         return replace(state, blind=target, pending_blind=None), False
 

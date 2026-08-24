@@ -115,8 +115,8 @@ def test_minimum_avoided_cost_blocks_small_joint_changes() -> None:
     )
 
 
-def test_hold_corrects_zero_blind_for_non_closed_window_after_confirmation() -> None:
-    """Do not let the cost gate preserve an incoherent hold recommendation."""
+def test_hold_immediately_corrects_zero_blind_for_non_closed_window() -> None:
+    """Never publish an incoherent hold while waiting for thermal benefit."""
     current = CandidateAction(WindowState.TILT, BlindOpening(0))
     proposal = sample(
         current,
@@ -126,18 +126,38 @@ def test_hold_corrects_zero_blind_for_non_closed_window_after_confirmation() -> 
         recommendation=Recommendation.HOLD,
     )
 
-    started = advance_opening(initial_stability_state(current), proposal, NOW, SETTINGS)
-    accepted = advance_opening(
-        started.state, proposal, NOW + timedelta(minutes=15), SETTINGS
+    result = advance_opening(initial_stability_state(current), proposal, NOW, SETTINGS)
+
+    assert result.blind_changed
+    assert result.state == OpeningStabilityState(
+        WindowState.TILT,
+        BlindOpening(20),
+        blind_direction=BlindDirection.RAISE,
     )
 
+
+def test_joint_opening_from_zero_blind_waits_and_changes_once() -> None:
+    """Coordinate window and blind so no non-closed/0% state is published."""
+    current = CandidateAction(WindowState.CLOSED, BlindOpening(0))
+    proposal = sample(current, WindowState.OPEN, 20)
+
+    started = advance_opening(initial_stability_state(current), proposal, NOW, SETTINGS)
+    waiting = advance_opening(
+        started.state, proposal, NOW + timedelta(minutes=10), SETTINGS
+    )
+    accepted = advance_opening(
+        waiting.state, proposal, NOW + timedelta(minutes=15), SETTINGS
+    )
+
+    assert not started.changed and not waiting.changed
+    assert started.state.pending_window == PendingWindow(WindowState.OPEN, NOW)
     assert started.state.pending_blind == PendingBlind(
         BlindDirection.RAISE,
         BlindOpening(20),
         NOW,
     )
-    assert accepted.blind_changed
-    assert accepted.state.window is WindowState.TILT
+    assert accepted.window_changed and accepted.blind_changed
+    assert accepted.state.window is WindowState.OPEN
     assert accepted.state.blind == BlindOpening(20)
 
 
