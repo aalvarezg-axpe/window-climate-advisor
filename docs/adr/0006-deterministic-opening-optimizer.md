@@ -8,8 +8,11 @@
 
 Enumerate the small action space for each opening: `closed/open` plus `tilt`
 when supported, crossed with blind opening from 0 to 100% in an integer step
-that divides 100. The initial 10% step produces 22 or 33 candidates. Do not add
-a numerical solver or optimization dependency.
+that divides 100. A non-closed window requires a blind opening above 0%; the
+initial 10% step therefore produces 21 or 31 feasible candidates. The observed
+current action is still scored separately when it is non-closed/0%, so the
+advisor can recommend correcting a real incoherent state without allowing it
+to win a tie. Do not add a numerical solver or optimization dependency.
 
 For each current or forecast horizon, derive intent from the selected profile:
 heat below the lower bound or preconditioning target minus hysteresis, cool

@@ -44,13 +44,17 @@ def request(
 
 
 def test_candidate_space_is_exhaustive_and_tilt_is_constrained() -> None:
-    """Enumerate 33 or 22 candidates at the frozen 10% resolution."""
+    """Enumerate all coherent candidates at the frozen 10% resolution."""
     with_tilt = enumerate_actions(ZERO_PENALTIES, supports_tilt=True)
     without_tilt = enumerate_actions(ZERO_PENALTIES, supports_tilt=False)
 
-    assert len(with_tilt) == 33
-    assert len(without_tilt) == 22
+    assert len(with_tilt) == 31
+    assert len(without_tilt) == 21
     assert {action.blind.percent for action in with_tilt} == set(range(0, 101, 10))
+    assert all(
+        action.window_state is WindowState.CLOSED or action.blind.percent > 0
+        for action in with_tilt
+    )
     assert {action.window_state for action in without_tilt} == {
         WindowState.CLOSED,
         WindowState.OPEN,
@@ -70,7 +74,7 @@ def test_optimizer_couples_cooling_and_solar_protection() -> None:
 
     assert cool.best.action == CandidateAction(WindowState.OPEN, BlindOpening(100))
     assert solar.best.action == CandidateAction(WindowState.CLOSED, BlindOpening(0))
-    assert cool.evaluated_candidates == solar.evaluated_candidates == 33
+    assert cool.evaluated_candidates == solar.evaluated_candidates == 31
     assert cool.avoided_cost_w > 0
     assert solar.avoided_cost_w > 0
 
@@ -146,6 +150,20 @@ def test_tie_breaking_is_repeatable_and_prefers_the_current_combination() -> Non
 
     assert first == second
     assert first.best.action == current_action
+
+
+def test_incoherent_current_action_is_compared_but_cannot_win() -> None:
+    """Correct non-closed/0% observations without rejecting real current state."""
+    current_action = CandidateAction(WindowState.TILT, BlindOpening(0))
+
+    result = optimize_opening(
+        request(ThermalConditions(23, 23, 0), current_action=current_action),
+        ZERO_PENALTIES,
+    )
+
+    assert result.current.action == current_action
+    assert result.best.action == CandidateAction(WindowState.TILT, BlindOpening(10))
+    assert result.avoided_cost_w == 0
 
 
 def test_optimizer_settings_and_current_state_are_validated() -> None:

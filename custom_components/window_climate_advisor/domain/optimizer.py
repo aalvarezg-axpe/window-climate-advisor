@@ -108,6 +108,7 @@ def enumerate_actions(
         CandidateAction(state, BlindOpening(percent))
         for state in states
         for percent in range(0, 101, settings.blind_step_percent)
+        if state is WindowState.CLOSED or percent > 0
     )
 
 
@@ -224,9 +225,7 @@ def optimize_opening(
             item.action.blind.percent,
         ),
     )
-    current = next(
-        item for item in evaluations if item.action == request.current_action
-    )
+    current = _evaluate(request, request.current_action, settings, calibration)
     return OptimizationResult(
         best=best,
         current=current,
