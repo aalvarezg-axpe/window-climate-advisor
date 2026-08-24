@@ -8,6 +8,7 @@ from homeassistant.config_entries import (
     ConfigFlow,
     ConfigFlowResult,
     ConfigSubentryFlow,
+    OptionsFlow,
     SubentryFlowResult,
 )
 from homeassistant.core import callback
@@ -27,7 +28,16 @@ from .const import (
     CONF_RAIN_ENTITY_ID,
     CONF_RAIN_PROTECTED,
     CONF_ROOM_SUBENTRY_ID,
+    CONF_SELECTION_MODE,
+    CONF_SHOULDER_HYSTERESIS_C,
+    CONF_SHOULDER_LOWER_C,
+    CONF_SHOULDER_PRECONDITIONING_TARGET_C,
+    CONF_SHOULDER_UPPER_C,
     CONF_SOLAR_RADIATION_ENTITY_ID,
+    CONF_SUMMER_HYSTERESIS_C,
+    CONF_SUMMER_LOWER_C,
+    CONF_SUMMER_PRECONDITIONING_TARGET_C,
+    CONF_SUMMER_UPPER_C,
     CONF_SUPPORTS_TILT,
     CONF_TEMPERATURE_ENTITY_ID,
     CONF_WEATHER_ENTITY_ID,
@@ -35,6 +45,10 @@ from .const import (
     CONF_WIND_DIRECTION_ENTITY_ID,
     CONF_WIND_GUST_ENTITY_ID,
     CONF_WIND_SPEED_ENTITY_ID,
+    CONF_WINTER_HYSTERESIS_C,
+    CONF_WINTER_LOWER_C,
+    CONF_WINTER_PRECONDITIONING_TARGET_C,
+    CONF_WINTER_UPPER_C,
     DOMAIN,
     SUBENTRY_TYPE_OPENING,
     SUBENTRY_TYPE_ROOM,
@@ -42,6 +56,7 @@ from .const import (
 from .const import (
     VERSION as CONFIG_VERSION,
 )
+from .domain.profiles import ComfortProfile, ComfortProfiles, SelectionMode
 
 
 def _entity_selector(domain: str) -> selector.EntitySelector:
@@ -89,17 +104,72 @@ ROOM_SCHEMA = vol.Schema(
 
 
 def _number_selector(
-    minimum: float, maximum: float, *, unit: str
+    minimum: float, maximum: float, *, unit: str, step: float = 0.01
 ) -> selector.NumberSelector:
     """Return a bounded numeric selector."""
     return selector.NumberSelector(
         selector.NumberSelectorConfig(
             min=minimum,
             max=maximum,
-            step=0.01,
+            step=step,
             mode=selector.NumberSelectorMode.BOX,
             unit_of_measurement=unit,
         )
+    )
+
+
+PROFILE_TEMPERATURE_SELECTOR = _number_selector(5, 35, unit="°C", step=0.1)
+PROFILE_HYSTERESIS_SELECTOR = _number_selector(0.1, 5, unit="°C", step=0.1)
+
+OPTIONS_SCHEMA = vol.Schema(
+    {
+        vol.Required(
+            CONF_SELECTION_MODE, default=SelectionMode.AUTO.value
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[mode.value for mode in SelectionMode],
+                translation_key="selection_mode",
+            )
+        ),
+        vol.Required(CONF_SUMMER_LOWER_C): PROFILE_TEMPERATURE_SELECTOR,
+        vol.Required(CONF_SUMMER_UPPER_C): PROFILE_TEMPERATURE_SELECTOR,
+        vol.Required(
+            CONF_SUMMER_PRECONDITIONING_TARGET_C
+        ): PROFILE_TEMPERATURE_SELECTOR,
+        vol.Required(CONF_SUMMER_HYSTERESIS_C): PROFILE_HYSTERESIS_SELECTOR,
+        vol.Required(CONF_SHOULDER_LOWER_C): PROFILE_TEMPERATURE_SELECTOR,
+        vol.Required(CONF_SHOULDER_UPPER_C): PROFILE_TEMPERATURE_SELECTOR,
+        vol.Required(
+            CONF_SHOULDER_PRECONDITIONING_TARGET_C
+        ): PROFILE_TEMPERATURE_SELECTOR,
+        vol.Required(CONF_SHOULDER_HYSTERESIS_C): PROFILE_HYSTERESIS_SELECTOR,
+        vol.Required(CONF_WINTER_LOWER_C): PROFILE_TEMPERATURE_SELECTOR,
+        vol.Required(CONF_WINTER_UPPER_C): PROFILE_TEMPERATURE_SELECTOR,
+        vol.Required(
+            CONF_WINTER_PRECONDITIONING_TARGET_C
+        ): PROFILE_TEMPERATURE_SELECTOR,
+        vol.Required(CONF_WINTER_HYSTERESIS_C): PROFILE_HYSTERESIS_SELECTOR,
+    }
+)
+
+
+def _profiles_from_input(user_input: dict[str, Any]) -> ComfortProfiles:
+    """Validate cross-field profile relationships through the domain model."""
+
+    def profile(prefix: str) -> ComfortProfile:
+        return ComfortProfile(
+            lower_c=float(user_input[f"{prefix}_lower_c"]),
+            upper_c=float(user_input[f"{prefix}_upper_c"]),
+            preconditioning_target_c=float(
+                user_input[f"{prefix}_preconditioning_target_c"]
+            ),
+            hysteresis_c=float(user_input[f"{prefix}_hysteresis_c"]),
+        )
+
+    return ComfortProfiles(
+        summer=profile("summer"),
+        shoulder=profile("shoulder"),
+        winter=profile("winter"),
     )
 
 
@@ -138,6 +208,13 @@ class WindowClimateAdvisorConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = CONFIG_VERSION
 
+    @staticmethod
+    @callback
+    @override
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Return the seasonal comfort options flow."""
+        return WindowClimateAdvisorOptionsFlow()
+
     @classmethod
     @callback
     @override
@@ -175,6 +252,31 @@ class WindowClimateAdvisorConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=self.add_suggested_values_to_schema(
                 CONFIG_SCHEMA, dict(entry.data)
             ),
+        )
+
+
+class WindowClimateAdvisorOptionsFlow(OptionsFlow):
+    """Configure seasonal comfort profiles without Home Assistant helpers."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Store one complete, cross-field validated profile set."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                _profiles_from_input(user_input)
+            except ValueError:
+                errors["base"] = "invalid_profile"
+            else:
+                return self.async_create_entry(title="", data=user_input)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(
+                OPTIONS_SCHEMA, dict(self.config_entry.options)
+            ),
+            errors=errors,
         )
 
 

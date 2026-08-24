@@ -34,6 +34,42 @@
       "reconfigure_successful": "The dwelling was reconfigured."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Comfort profiles",
+        "description": "Enter measured or chosen bounds for every season. No comfort defaults are assumed.",
+        "data": {
+          "selection_mode": "Profile selection",
+          "summer_lower_c": "Summer lower bound",
+          "summer_upper_c": "Summer upper bound",
+          "summer_preconditioning_target_c": "Summer preconditioning target",
+          "summer_hysteresis_c": "Summer hysteresis",
+          "shoulder_lower_c": "Shoulder-season lower bound",
+          "shoulder_upper_c": "Shoulder-season upper bound",
+          "shoulder_preconditioning_target_c": "Shoulder-season preconditioning target",
+          "shoulder_hysteresis_c": "Shoulder-season hysteresis",
+          "winter_lower_c": "Winter lower bound",
+          "winter_upper_c": "Winter upper bound",
+          "winter_preconditioning_target_c": "Winter preconditioning target",
+          "winter_hysteresis_c": "Winter hysteresis"
+        }
+      }
+    },
+    "error": {
+      "invalid_profile": "Each lower bound must be below its upper bound; targets must be inside the band and hysteresis must be positive and no wider than the band."
+    }
+  },
+  "selector": {
+    "selection_mode": {
+      "options": {
+        "auto": "Automatic",
+        "summer": "Summer",
+        "shoulder": "Shoulder season",
+        "winter": "Winter"
+      }
+    }
+  },
   "config_subentries": {
     "room": {
       "title": "Room",

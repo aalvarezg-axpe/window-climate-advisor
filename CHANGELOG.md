@@ -25,3 +25,5 @@ Semantic Versioning after the first distributable integration release.
   thermal heuristics, state stability, and unavailable-data handling.
 - Pure coupled opening/blind model with explicit geometry, solar transmission,
   unilateral airflow, thermal-load components, bounds, and assumption tests.
+- User-supplied Summer, Shoulder-season, and Winter comfort profiles with
+  deterministic automatic/manual selection and a translated options flow.

@@ -1,5 +1,7 @@
 """Tests for the parent dwelling configuration flow."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 import voluptuous as vol
 from homeassistant.config_entries import (
@@ -14,6 +16,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.window_climate_advisor.config_flow import (
     CONFIG_SCHEMA,
+    OPTIONS_SCHEMA,
     ROOM_SCHEMA,
 )
 from custom_components.window_climate_advisor.const import (
@@ -29,7 +32,16 @@ from custom_components.window_climate_advisor.const import (
     CONF_RAIN_ENTITY_ID,
     CONF_RAIN_PROTECTED,
     CONF_ROOM_SUBENTRY_ID,
+    CONF_SELECTION_MODE,
+    CONF_SHOULDER_HYSTERESIS_C,
+    CONF_SHOULDER_LOWER_C,
+    CONF_SHOULDER_PRECONDITIONING_TARGET_C,
+    CONF_SHOULDER_UPPER_C,
     CONF_SOLAR_RADIATION_ENTITY_ID,
+    CONF_SUMMER_HYSTERESIS_C,
+    CONF_SUMMER_LOWER_C,
+    CONF_SUMMER_PRECONDITIONING_TARGET_C,
+    CONF_SUMMER_UPPER_C,
     CONF_SUPPORTS_TILT,
     CONF_TEMPERATURE_ENTITY_ID,
     CONF_WEATHER_ENTITY_ID,
@@ -37,6 +49,10 @@ from custom_components.window_climate_advisor.const import (
     CONF_WIND_DIRECTION_ENTITY_ID,
     CONF_WIND_GUST_ENTITY_ID,
     CONF_WIND_SPEED_ENTITY_ID,
+    CONF_WINTER_HYSTERESIS_C,
+    CONF_WINTER_LOWER_C,
+    CONF_WINTER_PRECONDITIONING_TARGET_C,
+    CONF_WINTER_UPPER_C,
     DOMAIN,
     SUBENTRY_TYPE_OPENING,
     SUBENTRY_TYPE_ROOM,
@@ -57,6 +73,21 @@ ROOM_INPUT = {
     CONF_TEMPERATURE_ENTITY_ID: "sensor.living_room_temperature",
     CONF_HUMIDITY_ENTITY_ID: "sensor.living_room_humidity",
     CONF_CO2_ENTITY_ID: "sensor.living_room_co2",
+}
+VALID_OPTIONS = {
+    CONF_SELECTION_MODE: "auto",
+    CONF_SUMMER_LOWER_C: 22,
+    CONF_SUMMER_UPPER_C: 25,
+    CONF_SUMMER_PRECONDITIONING_TARGET_C: 23,
+    CONF_SUMMER_HYSTERESIS_C: 0.5,
+    CONF_SHOULDER_LOWER_C: 20,
+    CONF_SHOULDER_UPPER_C: 24,
+    CONF_SHOULDER_PRECONDITIONING_TARGET_C: 22,
+    CONF_SHOULDER_HYSTERESIS_C: 0.5,
+    CONF_WINTER_LOWER_C: 19,
+    CONF_WINTER_UPPER_C: 23,
+    CONF_WINTER_PRECONDITIONING_TARGET_C: 21,
+    CONF_WINTER_HYSTERESIS_C: 0.5,
 }
 
 
@@ -154,6 +185,51 @@ def test_room_schema_rejects_wrong_sensor_domain() -> None:
     """Reject non-sensor room sources through native selectors."""
     with pytest.raises(vol.Invalid):
         ROOM_SCHEMA({**ROOM_INPUT, CONF_TEMPERATURE_ENTITY_ID: "weather.living_room"})
+
+
+def test_options_schema_rejects_invalid_mode_and_numeric_bounds() -> None:
+    """Use native selectors for enum and individual numeric bounds."""
+    with pytest.raises(vol.Invalid):
+        OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_SELECTION_MODE: "legacy"})
+    with pytest.raises(vol.Invalid):
+        OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_SUMMER_LOWER_C: 4.9})
+
+
+async def test_options_flow_validates_and_stores_complete_profiles(
+    hass: HomeAssistant,
+) -> None:
+    """Reject cross-field errors and reload after storing valid options."""
+    entry = MockConfigEntry(domain=DOMAIN, data=VALID_INPUT, title="Casa")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+    assert result["step_id"] == "init"
+    assert set(result["data_schema"].schema) == set(VALID_OPTIONS)
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            **VALID_OPTIONS,
+            CONF_SUMMER_LOWER_C: 26,
+            CONF_SUMMER_UPPER_C: 25,
+        },
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "invalid_profile"}
+
+    with patch.object(
+        hass.config_entries, "async_reload", new_callable=AsyncMock
+    ) as async_reload:
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], user_input=VALID_OPTIONS
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == "create_entry"
+    assert entry.options == VALID_OPTIONS
+    async_reload.assert_awaited_once_with(entry.entry_id)
 
 
 async def test_room_subentry_create_and_reconfigure(hass: HomeAssistant) -> None:

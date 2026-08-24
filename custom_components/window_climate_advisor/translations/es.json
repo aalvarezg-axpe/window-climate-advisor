@@ -34,6 +34,42 @@
       "reconfigure_successful": "La vivienda se ha reconfigurado."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Perfiles de confort",
+        "description": "Introduce los límites medidos o elegidos para cada estación. No se presuponen valores de confort.",
+        "data": {
+          "selection_mode": "Selección de perfil",
+          "summer_lower_c": "Límite inferior de verano",
+          "summer_upper_c": "Límite superior de verano",
+          "summer_preconditioning_target_c": "Objetivo de preacondicionamiento de verano",
+          "summer_hysteresis_c": "Histéresis de verano",
+          "shoulder_lower_c": "Límite inferior de entretiempo",
+          "shoulder_upper_c": "Límite superior de entretiempo",
+          "shoulder_preconditioning_target_c": "Objetivo de preacondicionamiento de entretiempo",
+          "shoulder_hysteresis_c": "Histéresis de entretiempo",
+          "winter_lower_c": "Límite inferior de invierno",
+          "winter_upper_c": "Límite superior de invierno",
+          "winter_preconditioning_target_c": "Objetivo de preacondicionamiento de invierno",
+          "winter_hysteresis_c": "Histéresis de invierno"
+        }
+      }
+    },
+    "error": {
+      "invalid_profile": "Cada límite inferior debe ser menor que el superior; los objetivos deben quedar dentro de la banda y la histéresis debe ser positiva y no superar la banda."
+    }
+  },
+  "selector": {
+    "selection_mode": {
+      "options": {
+        "auto": "Automática",
+        "summer": "Verano",
+        "shoulder": "Entretiempo",
+        "winter": "Invierno"
+      }
+    }
+  },
   "config_subentries": {
     "room": {
       "title": "Estancia",
