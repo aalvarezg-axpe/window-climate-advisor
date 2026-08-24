@@ -110,7 +110,19 @@ def test_safety_is_kept_and_thermal_policy_is_not_frozen_as_legacy() -> None:
     assert all(case["disposition"] == "keep" for case in weather)
     assert thermal
     assert all(case["disposition"] in {"replace", "adapt"} for case in thermal)
-    assert next(case for case in cases if case["id"] == "C011")["owner"] == "P01-T05"
+    terrace_case = next(case for case in cases if case["id"] == "C011")
+    assert terrace_case["owner"] == "P01-T05"
+    assert terrace_case["disposition"] == "replace"
+
+
+def test_terrace_heat_flag_has_no_production_consumer() -> None:
+    """Retire the binary heuristic while real geometry remains available."""
+    production = CATALOG_PATH.parents[3] / "custom_components"
+    source = "".join(
+        path.read_text(encoding="utf-8") for path in production.rglob("*.py")
+    )
+
+    assert "terraza_caliente" not in source
 
 
 def test_catalog_contains_no_private_runtime_or_actuator_contract() -> None:
