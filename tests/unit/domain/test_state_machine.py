@@ -47,6 +47,7 @@ def sample(
     *,
     benefit_w: float = 100,
     reason: ReasonCode = ReasonCode.OPTIMIZER,
+    recommendation: Recommendation | None = None,
     gust_kmh: float | None = 0,
 ) -> StabilityInput:
     """Build an internally consistent stability sample."""
@@ -56,11 +57,14 @@ def sample(
         _evaluation(current, benefit_w),
         33,
     )
-    recommendation = {
-        WindowState.CLOSED: Recommendation.CLOSE,
-        WindowState.TILT: Recommendation.TILT,
-        WindowState.OPEN: Recommendation.OPEN,
-    }[target_state]
+    recommendation = (
+        recommendation
+        or {
+            WindowState.CLOSED: Recommendation.CLOSE,
+            WindowState.TILT: Recommendation.TILT,
+            WindowState.OPEN: Recommendation.OPEN,
+        }[target_state]
+    )
     if reason in {ReasonCode.MISSING_SAFETY_DATA, ReasonCode.STALE_SAFETY_DATA}:
         recommendation = Recommendation.DEGRADED
     return StabilityInput(
@@ -109,6 +113,47 @@ def test_minimum_avoided_cost_blocks_small_joint_changes() -> None:
         BlindOpening(80),
         NOW,
     )
+
+
+def test_hold_corrects_zero_blind_for_non_closed_window_after_confirmation() -> None:
+    """Do not let the cost gate preserve an incoherent hold recommendation."""
+    current = CandidateAction(WindowState.TILT, BlindOpening(0))
+    proposal = sample(
+        current,
+        WindowState.TILT,
+        20,
+        benefit_w=0,
+        recommendation=Recommendation.HOLD,
+    )
+
+    started = advance_opening(initial_stability_state(current), proposal, NOW, SETTINGS)
+    accepted = advance_opening(
+        started.state, proposal, NOW + timedelta(minutes=15), SETTINGS
+    )
+
+    assert started.state.pending_blind == PendingBlind(
+        BlindDirection.RAISE,
+        BlindOpening(20),
+        NOW,
+    )
+    assert accepted.blind_changed
+    assert accepted.state.window is WindowState.TILT
+    assert accepted.state.blind == BlindOpening(20)
+
+
+def test_low_benefit_close_can_resolve_non_closed_zero_blind() -> None:
+    """Allow closing to restore coherence even below the movement threshold."""
+    current = CandidateAction(WindowState.OPEN, BlindOpening(0))
+
+    result = advance_opening(
+        initial_stability_state(current),
+        sample(current, WindowState.CLOSED, 0, benefit_w=0),
+        NOW,
+        SETTINGS,
+    )
+
+    assert result.window_changed
+    assert result.state == OpeningStabilityState(WindowState.CLOSED, BlindOpening(0))
 
 
 def test_opening_improvement_requires_ten_continuous_minutes() -> None:

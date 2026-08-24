@@ -172,6 +172,11 @@ def _advance_window(
     if (
         sample.policy.reason is ReasonCode.OPTIMIZER
         and sample.optimized.avoided_cost_w < settings.minimum_benefit_w
+        and not (
+            state.window is not WindowState.CLOSED
+            and state.blind.percent == 0
+            and target is WindowState.CLOSED
+        )
     ):
         target = state.window
     if target is state.window:
@@ -205,7 +210,9 @@ def _advance_blind(
     settings: StabilitySettings,
 ) -> tuple[OpeningStabilityState, bool]:
     target = sample.policy.recommended_blind
-    if sample.optimized.avoided_cost_w < settings.minimum_benefit_w:
+    if sample.optimized.avoided_cost_w < settings.minimum_benefit_w and not (
+        state.window is not WindowState.CLOSED and state.blind.percent == 0
+    ):
         target = state.blind
     if abs(target.percent - state.blind.percent) <= settings.blind_deadband_percent:
         return replace(state, blind=target, pending_blind=None), False
