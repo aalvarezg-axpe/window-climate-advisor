@@ -12,7 +12,7 @@
           "wind_speed_entity_id": "Velocidad del viento",
           "wind_direction_entity_id": "Dirección del viento",
           "wind_gust_entity_id": "Ráfaga de viento",
-          "rain_entity_id": "Lluvia"
+          "rain_entity_id": "Intensidad de lluvia o sensor seco/mojado"
         }
       },
       "reconfigure": {
@@ -26,7 +26,7 @@
           "wind_speed_entity_id": "Velocidad del viento",
           "wind_direction_entity_id": "Dirección del viento",
           "wind_gust_entity_id": "Ráfaga de viento",
-          "rain_entity_id": "Lluvia"
+          "rain_entity_id": "Intensidad de lluvia o sensor seco/mojado"
         }
       }
     },
@@ -52,12 +52,19 @@
           "winter_lower_c": "Límite inferior de invierno",
           "winter_upper_c": "Límite superior de invierno",
           "winter_preconditioning_target_c": "Objetivo de preacondicionamiento de invierno",
-          "winter_hysteresis_c": "Histéresis de invierno"
+          "winter_hysteresis_c": "Histéresis de invierno",
+          "blind_step_percent": "Paso de recomendación de persiana",
+          "window_movement_penalty_w": "Penalización por mover la ventana",
+          "blind_full_travel_penalty_w": "Penalización por recorrido completo de persiana",
+          "missing_forecast_change_penalty_w": "Penalización por cambio sin previsión",
+          "minimum_benefit_w": "Beneficio mínimo aceptado",
+          "blind_deadband_percent": "Banda muerta de persiana",
+          "source_stale_minutes": "Antigüedad máxima de las fuentes"
         }
       }
     },
     "error": {
-      "invalid_profile": "Cada límite inferior debe ser menor que el superior; los objetivos deben quedar dentro de la banda y la histéresis debe ser positiva y no superar la banda."
+      "invalid_options": "Revisa las relaciones de los perfiles y los ajustes de ejecución. El paso de persiana debe dividir 100 y la antigüedad máxima debe ser positiva."
     }
   },
   "selector": {
@@ -102,11 +109,11 @@
           "data": {
             "name": "Nombre del hueco",
             "room_subentry_id": "Estancia",
-            "facade_azimuth": "Azimut de la fachada",
-            "width": "Anchura",
-            "height": "Altura",
-            "overhang_depth": "Profundidad del alero",
-            "overhang_gap": "Separación vertical del alero",
+            "facade_azimuth_deg": "Azimut de la fachada",
+            "width_m": "Anchura",
+            "height_m": "Altura",
+            "overhang_depth_m": "Profundidad del alero",
+            "overhang_gap_m": "Separación vertical del alero",
             "supports_tilt": "Admite posición oscilobatiente",
             "rain_protected": "Protegido de la lluvia directa",
             "contact_entity_id": "Contacto de ventana",
@@ -118,11 +125,11 @@
           "data": {
             "name": "Nombre del hueco",
             "room_subentry_id": "Estancia",
-            "facade_azimuth": "Azimut de la fachada",
-            "width": "Anchura",
-            "height": "Altura",
-            "overhang_depth": "Profundidad del alero",
-            "overhang_gap": "Separación vertical del alero",
+            "facade_azimuth_deg": "Azimut de la fachada",
+            "width_m": "Anchura",
+            "height_m": "Altura",
+            "overhang_depth_m": "Profundidad del alero",
+            "overhang_gap_m": "Separación vertical del alero",
             "supports_tilt": "Admite posición oscilobatiente",
             "rain_protected": "Protegido de la lluvia directa",
             "contact_entity_id": "Contacto de ventana",

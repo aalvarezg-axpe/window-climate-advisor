@@ -1,4 +1,4 @@
-# ADR 0003 — Minimal v1 configuration and entity contract
+# ADR 0003 — Configuration and entity contract
 
 - Status: accepted for P00-T03
 - Date: 2026-08-24
@@ -20,8 +20,9 @@ The user flow creates one dwelling entry. Multiple dwellings are allowed, so
 the manifest does not use `single_config_entry`. The entry title is mutable and
 is not used for identity. `ConfigEntry.entry_id` is the stable dwelling key.
 
-Version 1 entry data contains only structural inputs needed to assemble a
-future evaluation snapshot:
+Version 2 entry data contains only structural inputs needed to assemble an
+evaluation snapshot. Version 1 used unit-implicit opening geometry keys; the
+P01-T09 migration renames those keys without changing values or identity:
 
 | Key | Required | Selector / value |
 |---|---|---|
@@ -32,7 +33,7 @@ future evaluation snapshot:
 | `wind_speed_entity_id` | yes | `sensor` entity |
 | `wind_direction_entity_id` | yes | `sensor` entity |
 | `wind_gust_entity_id` | no | `sensor` entity |
-| `rain_entity_id` | yes | `binary_sensor` entity |
+| `rain_entity_id` | yes | `binary_sensor` wet/dry or `sensor` mm/h entity |
 
 The built-in `sun` integration will supply solar position once the evaluator
 consumes it; users do not select `sun.sun`. It is not a Phase 00 manifest
@@ -61,11 +62,11 @@ Subentry type `opening` stores:
 |---|---|---|
 | `name` | yes | non-empty text |
 | `room_subentry_id` | yes | existing `room` subentry ID |
-| `facade_azimuth` | yes | degrees, 0–359 |
-| `width` | yes | metres, greater than zero |
-| `height` | yes | metres, greater than zero |
-| `overhang_depth` | yes | metres, zero or greater |
-| `overhang_gap` | yes | vertical metres from overhang to opening top, zero or greater |
+| `facade_azimuth_deg` | yes | degrees, 0–359 |
+| `width_m` | yes | metres, greater than zero |
+| `height_m` | yes | metres, greater than zero |
+| `overhang_depth_m` | yes | metres, zero or greater |
+| `overhang_gap_m` | yes | vertical metres from overhang to opening top, zero or greater |
 | `supports_tilt` | yes | boolean |
 | `rain_protected` | yes | boolean calibration flag |
 | `contact_entity_id` | no | `binary_sensor` entity |
@@ -118,6 +119,11 @@ placeholder entities.
   `.env` or premature helpers.
 - English and Spanish translation files are maintained directly because custom
   integrations do not use Core's `strings.json` build pipeline.
+
+P01-T09 activates the frozen entity surface under ADR 0008 and extends the
+options flow with required optimizer, stability, and source-age settings. It
+does not infer values while migrating a v1 entry; incomplete options remain an
+explicit degraded configuration until completed in the UI.
 
 References:
 

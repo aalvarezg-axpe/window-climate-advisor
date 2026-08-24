@@ -12,7 +12,7 @@
           "wind_speed_entity_id": "Wind speed",
           "wind_direction_entity_id": "Wind direction",
           "wind_gust_entity_id": "Wind gust",
-          "rain_entity_id": "Rain"
+          "rain_entity_id": "Rain rate or wet/dry sensor"
         }
       },
       "reconfigure": {
@@ -26,7 +26,7 @@
           "wind_speed_entity_id": "Wind speed",
           "wind_direction_entity_id": "Wind direction",
           "wind_gust_entity_id": "Wind gust",
-          "rain_entity_id": "Rain"
+          "rain_entity_id": "Rain rate or wet/dry sensor"
         }
       }
     },
@@ -52,12 +52,19 @@
           "winter_lower_c": "Winter lower bound",
           "winter_upper_c": "Winter upper bound",
           "winter_preconditioning_target_c": "Winter preconditioning target",
-          "winter_hysteresis_c": "Winter hysteresis"
+          "winter_hysteresis_c": "Winter hysteresis",
+          "blind_step_percent": "Blind recommendation step",
+          "window_movement_penalty_w": "Window movement penalty",
+          "blind_full_travel_penalty_w": "Blind full-travel penalty",
+          "missing_forecast_change_penalty_w": "Missing-forecast change penalty",
+          "minimum_benefit_w": "Minimum accepted benefit",
+          "blind_deadband_percent": "Blind deadband",
+          "source_stale_minutes": "Maximum source age"
         }
       }
     },
     "error": {
-      "invalid_profile": "Each lower bound must be below its upper bound; targets must be inside the band and hysteresis must be positive and no wider than the band."
+      "invalid_options": "Check all profile relationships and runtime settings. Blind step must divide 100 and maximum source age must be positive."
     }
   },
   "selector": {
@@ -102,11 +109,11 @@
           "data": {
             "name": "Opening name",
             "room_subentry_id": "Room",
-            "facade_azimuth": "Façade azimuth",
-            "width": "Width",
-            "height": "Height",
-            "overhang_depth": "Overhang depth",
-            "overhang_gap": "Vertical overhang gap",
+            "facade_azimuth_deg": "Façade azimuth",
+            "width_m": "Width",
+            "height_m": "Height",
+            "overhang_depth_m": "Overhang depth",
+            "overhang_gap_m": "Vertical overhang gap",
             "supports_tilt": "Supports tilt position",
             "rain_protected": "Protected from direct rain",
             "contact_entity_id": "Window contact",
@@ -118,11 +125,11 @@
           "data": {
             "name": "Opening name",
             "room_subentry_id": "Room",
-            "facade_azimuth": "Façade azimuth",
-            "width": "Width",
-            "height": "Height",
-            "overhang_depth": "Overhang depth",
-            "overhang_gap": "Vertical overhang gap",
+            "facade_azimuth_deg": "Façade azimuth",
+            "width_m": "Width",
+            "height_m": "Height",
+            "overhang_depth_m": "Overhang depth",
+            "overhang_gap_m": "Vertical overhang gap",
             "supports_tilt": "Supports tilt position",
             "rain_protected": "Protected from direct rain",
             "contact_entity_id": "Window contact",

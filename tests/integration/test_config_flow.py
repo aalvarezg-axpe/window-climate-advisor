@@ -1,5 +1,6 @@
 """Tests for the parent dwelling configuration flow."""
 
+import math
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -18,17 +19,23 @@ from custom_components.window_climate_advisor.config_flow import (
     CONFIG_SCHEMA,
     OPTIONS_SCHEMA,
     ROOM_SCHEMA,
+    settings_from_options,
 )
 from custom_components.window_climate_advisor.const import (
+    CONF_BLIND_DEADBAND_PERCENT,
+    CONF_BLIND_FULL_TRAVEL_PENALTY_W,
+    CONF_BLIND_STEP_PERCENT,
     CONF_CO2_ENTITY_ID,
     CONF_CONTACT_ENTITY_ID,
     CONF_COVER_ENTITY_ID,
-    CONF_FACADE_AZIMUTH,
-    CONF_HEIGHT,
+    CONF_FACADE_AZIMUTH_DEG,
+    CONF_HEIGHT_M,
     CONF_HUMIDITY_ENTITY_ID,
+    CONF_MINIMUM_BENEFIT_W,
+    CONF_MISSING_FORECAST_CHANGE_PENALTY_W,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
-    CONF_OVERHANG_DEPTH,
-    CONF_OVERHANG_GAP,
+    CONF_OVERHANG_DEPTH_M,
+    CONF_OVERHANG_GAP_M,
     CONF_RAIN_ENTITY_ID,
     CONF_RAIN_PROTECTED,
     CONF_ROOM_SUBENTRY_ID,
@@ -38,6 +45,7 @@ from custom_components.window_climate_advisor.const import (
     CONF_SHOULDER_PRECONDITIONING_TARGET_C,
     CONF_SHOULDER_UPPER_C,
     CONF_SOLAR_RADIATION_ENTITY_ID,
+    CONF_SOURCE_STALE_MINUTES,
     CONF_SUMMER_HYSTERESIS_C,
     CONF_SUMMER_LOWER_C,
     CONF_SUMMER_PRECONDITIONING_TARGET_C,
@@ -45,10 +53,11 @@ from custom_components.window_climate_advisor.const import (
     CONF_SUPPORTS_TILT,
     CONF_TEMPERATURE_ENTITY_ID,
     CONF_WEATHER_ENTITY_ID,
-    CONF_WIDTH,
+    CONF_WIDTH_M,
     CONF_WIND_DIRECTION_ENTITY_ID,
     CONF_WIND_GUST_ENTITY_ID,
     CONF_WIND_SPEED_ENTITY_ID,
+    CONF_WINDOW_MOVEMENT_PENALTY_W,
     CONF_WINTER_HYSTERESIS_C,
     CONF_WINTER_LOWER_C,
     CONF_WINTER_PRECONDITIONING_TARGET_C,
@@ -88,6 +97,13 @@ VALID_OPTIONS = {
     CONF_WINTER_UPPER_C: 23,
     CONF_WINTER_PRECONDITIONING_TARGET_C: 21,
     CONF_WINTER_HYSTERESIS_C: 0.5,
+    CONF_BLIND_STEP_PERCENT: 10,
+    CONF_WINDOW_MOVEMENT_PENALTY_W: 20,
+    CONF_BLIND_FULL_TRAVEL_PENALTY_W: 10,
+    CONF_MISSING_FORECAST_CHANGE_PENALTY_W: 30,
+    CONF_MINIMUM_BENEFIT_W: 50,
+    CONF_BLIND_DEADBAND_PERCENT: 10,
+    CONF_SOURCE_STALE_MINUTES: 15,
 }
 
 
@@ -174,6 +190,13 @@ def test_invalid_entity_domain_is_rejected() -> None:
     with pytest.raises(vol.Invalid):
         CONFIG_SCHEMA(invalid_input)
 
+    assert (
+        CONFIG_SCHEMA({**VALID_INPUT, CONF_RAIN_ENTITY_ID: "sensor.rain_rate"})[
+            CONF_RAIN_ENTITY_ID
+        ]
+        == "sensor.rain_rate"
+    )
+
 
 def test_blank_dwelling_name_is_rejected() -> None:
     """Reject a dwelling name containing no visible text."""
@@ -193,6 +216,19 @@ def test_options_schema_rejects_invalid_mode_and_numeric_bounds() -> None:
         OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_SELECTION_MODE: "legacy"})
     with pytest.raises(vol.Invalid):
         OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_SUMMER_LOWER_C: 4.9})
+    with pytest.raises(vol.Invalid):
+        OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_SOURCE_STALE_MINUTES: 0})
+
+    for blind_step in (True, "10", 10.5):
+        with pytest.raises(ValueError):
+            settings_from_options(
+                {**VALID_OPTIONS, CONF_BLIND_STEP_PERCENT: blind_step}
+            )
+    for source_age in (0, math.nan):
+        with pytest.raises(ValueError):
+            settings_from_options(
+                {**VALID_OPTIONS, CONF_SOURCE_STALE_MINUTES: source_age}
+            )
 
 
 async def test_options_flow_validates_and_stores_complete_profiles(
@@ -217,7 +253,14 @@ async def test_options_flow_validates_and_stores_complete_profiles(
         },
     )
     assert result["type"] == "form"
-    assert result["errors"] == {"base": "invalid_profile"}
+    assert result["errors"] == {"base": "invalid_options"}
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={**VALID_OPTIONS, CONF_BLIND_STEP_PERCENT: 30},
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "invalid_options"}
 
     with patch.object(
         hass.config_entries, "async_reload", new_callable=AsyncMock
@@ -283,11 +326,11 @@ async def test_opening_subentry_create_validate_and_reconfigure(
     opening_input = {
         CONF_NAME: "Ventana sur",
         CONF_ROOM_SUBENTRY_ID: room.subentry_id,
-        CONF_FACADE_AZIMUTH: 180,
-        CONF_WIDTH: 1.6,
-        CONF_HEIGHT: 1.2,
-        CONF_OVERHANG_DEPTH: 0.5,
-        CONF_OVERHANG_GAP: 0.2,
+        CONF_FACADE_AZIMUTH_DEG: 180,
+        CONF_WIDTH_M: 1.6,
+        CONF_HEIGHT_M: 1.2,
+        CONF_OVERHANG_DEPTH_M: 0.5,
+        CONF_OVERHANG_GAP_M: 0.2,
         CONF_SUPPORTS_TILT: True,
         CONF_RAIN_PROTECTED: False,
         CONF_CONTACT_ENTITY_ID: "binary_sensor.south_window",
@@ -302,7 +345,7 @@ async def test_opening_subentry_create_validate_and_reconfigure(
     with pytest.raises(vol.Invalid):
         schema({**opening_input, CONF_ROOM_SUBENTRY_ID: "missing"})
     with pytest.raises(vol.Invalid):
-        schema({**opening_input, CONF_WIDTH: 0})
+        schema({**opening_input, CONF_WIDTH_M: 0})
 
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], user_input=opening_input

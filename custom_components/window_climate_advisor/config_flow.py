@@ -1,5 +1,6 @@
 """Config flow for the Window Climate Advisor integration."""
 
+from math import isfinite
 from typing import Any, override
 
 import voluptuous as vol
@@ -15,16 +16,21 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_BLIND_DEADBAND_PERCENT,
+    CONF_BLIND_FULL_TRAVEL_PENALTY_W,
+    CONF_BLIND_STEP_PERCENT,
     CONF_CO2_ENTITY_ID,
     CONF_CONTACT_ENTITY_ID,
     CONF_COVER_ENTITY_ID,
-    CONF_FACADE_AZIMUTH,
-    CONF_HEIGHT,
+    CONF_FACADE_AZIMUTH_DEG,
+    CONF_HEIGHT_M,
     CONF_HUMIDITY_ENTITY_ID,
+    CONF_MINIMUM_BENEFIT_W,
+    CONF_MISSING_FORECAST_CHANGE_PENALTY_W,
     CONF_NAME,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
-    CONF_OVERHANG_DEPTH,
-    CONF_OVERHANG_GAP,
+    CONF_OVERHANG_DEPTH_M,
+    CONF_OVERHANG_GAP_M,
     CONF_RAIN_ENTITY_ID,
     CONF_RAIN_PROTECTED,
     CONF_ROOM_SUBENTRY_ID,
@@ -34,6 +40,7 @@ from .const import (
     CONF_SHOULDER_PRECONDITIONING_TARGET_C,
     CONF_SHOULDER_UPPER_C,
     CONF_SOLAR_RADIATION_ENTITY_ID,
+    CONF_SOURCE_STALE_MINUTES,
     CONF_SUMMER_HYSTERESIS_C,
     CONF_SUMMER_LOWER_C,
     CONF_SUMMER_PRECONDITIONING_TARGET_C,
@@ -41,10 +48,11 @@ from .const import (
     CONF_SUPPORTS_TILT,
     CONF_TEMPERATURE_ENTITY_ID,
     CONF_WEATHER_ENTITY_ID,
-    CONF_WIDTH,
+    CONF_WIDTH_M,
     CONF_WIND_DIRECTION_ENTITY_ID,
     CONF_WIND_GUST_ENTITY_ID,
     CONF_WIND_SPEED_ENTITY_ID,
+    CONF_WINDOW_MOVEMENT_PENALTY_W,
     CONF_WINTER_HYSTERESIS_C,
     CONF_WINTER_LOWER_C,
     CONF_WINTER_PRECONDITIONING_TARGET_C,
@@ -56,7 +64,9 @@ from .const import (
 from .const import (
     VERSION as CONFIG_VERSION,
 )
+from .domain.optimizer import OptimizerSettings
 from .domain.profiles import ComfortProfile, ComfortProfiles, SelectionMode
+from .domain.state_machine import StabilitySettings
 
 
 def _entity_selector(domain: str) -> selector.EntitySelector:
@@ -89,7 +99,9 @@ CONFIG_SCHEMA = vol.Schema(
         vol.Required(CONF_WIND_SPEED_ENTITY_ID): _entity_selector("sensor"),
         vol.Required(CONF_WIND_DIRECTION_ENTITY_ID): _entity_selector("sensor"),
         vol.Optional(CONF_WIND_GUST_ENTITY_ID): _entity_selector("sensor"),
-        vol.Required(CONF_RAIN_ENTITY_ID): _entity_selector("binary_sensor"),
+        vol.Required(CONF_RAIN_ENTITY_ID): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=["binary_sensor", "sensor"])
+        ),
     }
 )
 
@@ -149,11 +161,32 @@ OPTIONS_SCHEMA = vol.Schema(
             CONF_WINTER_PRECONDITIONING_TARGET_C
         ): PROFILE_TEMPERATURE_SELECTOR,
         vol.Required(CONF_WINTER_HYSTERESIS_C): PROFILE_HYSTERESIS_SELECTOR,
+        vol.Required(CONF_BLIND_STEP_PERCENT): _number_selector(
+            1, 100, unit="%", step=1
+        ),
+        vol.Required(CONF_WINDOW_MOVEMENT_PENALTY_W): _number_selector(
+            0, 10_000, unit="W", step=1
+        ),
+        vol.Required(CONF_BLIND_FULL_TRAVEL_PENALTY_W): _number_selector(
+            0, 10_000, unit="W", step=1
+        ),
+        vol.Required(CONF_MISSING_FORECAST_CHANGE_PENALTY_W): _number_selector(
+            0, 10_000, unit="W", step=1
+        ),
+        vol.Required(CONF_MINIMUM_BENEFIT_W): _number_selector(
+            0, 10_000, unit="W", step=1
+        ),
+        vol.Required(CONF_BLIND_DEADBAND_PERCENT): _number_selector(
+            0, 100, unit="%", step=1
+        ),
+        vol.Required(CONF_SOURCE_STALE_MINUTES): _number_selector(
+            1, 1_440, unit="min", step=1
+        ),
     }
 )
 
 
-def _profiles_from_input(user_input: dict[str, Any]) -> ComfortProfiles:
+def profiles_from_options(user_input: dict[str, Any]) -> ComfortProfiles:
     """Validate cross-field profile relationships through the domain model."""
 
     def profile(prefix: str) -> ComfortProfile:
@@ -173,6 +206,33 @@ def _profiles_from_input(user_input: dict[str, Any]) -> ComfortProfiles:
     )
 
 
+def settings_from_options(
+    user_input: dict[str, Any],
+) -> tuple[OptimizerSettings, StabilitySettings, float]:
+    """Validate runtime tuning through the existing typed settings."""
+    blind_step = user_input[CONF_BLIND_STEP_PERCENT]
+    if (
+        isinstance(blind_step, bool)
+        or not isinstance(blind_step, int | float)
+        or not float(blind_step).is_integer()
+    ):
+        raise ValueError("blind step must be an integer")
+    optimizer = OptimizerSettings(
+        int(blind_step),
+        float(user_input[CONF_WINDOW_MOVEMENT_PENALTY_W]),
+        float(user_input[CONF_BLIND_FULL_TRAVEL_PENALTY_W]),
+        float(user_input[CONF_MISSING_FORECAST_CHANGE_PENALTY_W]),
+    )
+    stability = StabilitySettings(
+        float(user_input[CONF_MINIMUM_BENEFIT_W]),
+        float(user_input[CONF_BLIND_DEADBAND_PERCENT]),
+    )
+    source_stale_minutes = float(user_input[CONF_SOURCE_STALE_MINUTES])
+    if not isfinite(source_stale_minutes) or source_stale_minutes <= 0:
+        raise ValueError("source stale minutes must be finite and positive")
+    return optimizer, stability, source_stale_minutes
+
+
 def _opening_schema(entry: ConfigEntry) -> vol.Schema:
     """Build the opening schema from the entry's current room subentries."""
     rooms = [
@@ -190,11 +250,11 @@ def _opening_schema(entry: ConfigEntry) -> vol.Schema:
                     sort=True,
                 )
             ),
-            vol.Required(CONF_FACADE_AZIMUTH): _number_selector(0, 359, unit="°"),
-            vol.Required(CONF_WIDTH): _number_selector(0.01, 20, unit="m"),
-            vol.Required(CONF_HEIGHT): _number_selector(0.01, 20, unit="m"),
-            vol.Required(CONF_OVERHANG_DEPTH): _number_selector(0, 20, unit="m"),
-            vol.Required(CONF_OVERHANG_GAP): _number_selector(0, 20, unit="m"),
+            vol.Required(CONF_FACADE_AZIMUTH_DEG): _number_selector(0, 359, unit="°"),
+            vol.Required(CONF_WIDTH_M): _number_selector(0.01, 20, unit="m"),
+            vol.Required(CONF_HEIGHT_M): _number_selector(0.01, 20, unit="m"),
+            vol.Required(CONF_OVERHANG_DEPTH_M): _number_selector(0, 20, unit="m"),
+            vol.Required(CONF_OVERHANG_GAP_M): _number_selector(0, 20, unit="m"),
             vol.Required(CONF_SUPPORTS_TILT): selector.BooleanSelector(),
             vol.Required(CONF_RAIN_PROTECTED): selector.BooleanSelector(),
             vol.Optional(CONF_CONTACT_ENTITY_ID): _entity_selector("binary_sensor"),
@@ -265,9 +325,10 @@ class WindowClimateAdvisorOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                _profiles_from_input(user_input)
+                profiles_from_options(user_input)
+                settings_from_options(user_input)
             except ValueError:
-                errors["base"] = "invalid_profile"
+                errors["base"] = "invalid_options"
             else:
                 return self.async_create_entry(title="", data=user_input)
 
