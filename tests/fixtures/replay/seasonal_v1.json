@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "provenance": "Synthetic representative segments derived from predecessor F04-08 and catalog cases; not measured household history.",
+  "sample_minutes": 30,
+  "days": 3,
+  "opening": {
+    "width_m": 1.6,
+    "height_m": 1.2,
+    "facade_azimuth_deg": 0,
+    "overhang_depth_m": 0.5,
+    "overhang_gap_m": 0.5,
+    "rain_protected": true,
+    "supports_tilt": true
+  },
+  "optimizer": {
+    "blind_step_percent": 10,
+    "window_movement_penalty_w": 20,
+    "blind_full_travel_penalty_w": 10,
+    "missing_forecast_change_penalty_w": 30
+  },
+  "stability": {
+    "minimum_benefit_w": 50,
+    "blind_deadband_percent": 10
+  },
+  "profiles": {
+    "summer": {
+      "lower_c": 24,
+      "upper_c": 27,
+      "preconditioning_target_c": 25,
+      "hysteresis_c": 0.5
+    },
+    "shoulder": {
+      "lower_c": 20,
+      "upper_c": 25,
+      "preconditioning_target_c": 23,
+      "hysteresis_c": 0.5
+    },
+    "winter": {
+      "lower_c": 19,
+      "upper_c": 25.5,
+      "preconditioning_target_c": 24.8,
+      "hysteresis_c": 0.5
+    }
+  },
+  "scenarios": [
+    {
+      "id": "summer_preconditioning",
+      "season": "summer",
+      "initial": {"window": "closed", "blind": 100},
+      "requirements": [
+        "summer_outdoor_25_c",
+        "night_pre_cooling",
+        "adverse_forecast"
+      ],
+      "segments": [
+        {
+          "id": "night_pre_cooling",
+          "samples": 12,
+          "current": {"indoor_c": 26.5, "outdoor_c": 20, "irradiance_w_m2": 0, "wind_kmh": 5, "gust_kmh": 8},
+          "forecast": null,
+          "safety": {"rain_mm_h": 0, "gust_kmh": 8, "direction_deg": 0, "mean_direction_deg": 20},
+          "legacy_source": ["C014", "C015"],
+          "legacy": {"window": "open", "blind": 100}
+        },
+        {
+          "id": "summer_outdoor_25_c",
+          "samples": 8,
+          "current": {"indoor_c": 27, "outdoor_c": 25, "irradiance_w_m2": 0, "wind_kmh": 3, "gust_kmh": 5},
+          "forecast": null,
+          "safety": {"rain_mm_h": 0, "gust_kmh": 5, "direction_deg": 0, "mean_direction_deg": 20},
+          "legacy_source": ["C015"],
+          "legacy": {"window": "open", "blind": 100}
+        },
+        {
+          "id": "summer_solar_load",
+          "samples": 18,
+          "current": {"indoor_c": 27, "outdoor_c": 25, "irradiance_w_m2": 800, "wind_kmh": 3, "gust_kmh": 5},
+          "forecast": {"indoor_c": 27, "outdoor_c": 27, "irradiance_w_m2": 900, "wind_kmh": 3, "gust_kmh": 5},
+          "safety": {"rain_mm_h": 0, "gust_kmh": 5, "direction_deg": 0, "mean_direction_deg": 20},
+          "legacy_source": ["C008", "C013"],
+          "legacy": {"window": "closed", "blind": 20}
+        },
+        {
+          "id": "adverse_forecast",
+          "samples": 8,
+          "current": {"indoor_c": 26, "outdoor_c": 23, "irradiance_w_m2": 50, "wind_kmh": 3, "gust_kmh": 5},
+          "forecast": {"indoor_c": 27, "outdoor_c": 32, "irradiance_w_m2": 900, "wind_kmh": 3, "gust_kmh": 5},
+          "safety": {"rain_mm_h": 0, "gust_kmh": 5, "direction_deg": 0, "mean_direction_deg": 20},
+          "legacy_source": ["C013", "C015"],
+          "legacy": {"window": "closed", "blind": 0}
+        },
+        {
+          "id": "absolute_gust",
+          "samples": 2,
+          "current": {"indoor_c": 26, "outdoor_c": 22, "irradiance_w_m2": 0, "wind_kmh": 20, "gust_kmh": 45},
+          "forecast": null,
+          "safety": {"rain_mm_h": 0, "gust_kmh": 45, "direction_deg": 0, "mean_direction_deg": 20},
+          "legacy_source": ["C001"],
+          "legacy": {"window": "closed", "blind": 0}
+        }
+      ]
+    },
+    {
+      "id": "shoulder_partial_exposure",
+      "season": "shoulder",
+      "initial": {"window": "closed", "blind": 100},
+      "requirements": ["no_wind", "partial_solar_exposure"],
+      "segments": [
+        {
+          "id": "no_wind",
+          "samples": 12,
+          "current": {"indoor_c": 25, "outdoor_c": 20, "irradiance_w_m2": 0, "wind_kmh": 0, "gust_kmh": 0},
+          "forecast": null,
+          "safety": {"rain_mm_h": 0, "gust_kmh": 0, "direction_deg": 0, "mean_direction_deg": null},
+          "legacy_source": ["C014"],
+          "legacy": {"window": "open", "blind": 100}
+        },
+        {
+          "id": "partial_solar_exposure",
+          "samples": 12,
+          "current": {"indoor_c": 25, "outdoor_c": 21, "irradiance_w_m2": 300, "wind_kmh": 0, "gust_kmh": 0},
+          "forecast": null,
+          "safety": {"rain_mm_h": 0, "gust_kmh": 0, "direction_deg": 0, "mean_direction_deg": null},
+          "legacy_source": ["C008", "C014"],
+          "legacy": {"window": "closed", "blind": 50}
+        },
+        {
+          "id": "neutral_day",
+          "samples": 16,
+          "current": {"indoor_c": 23, "outdoor_c": 23, "irradiance_w_m2": 300, "wind_kmh": 0, "gust_kmh": 0},
+          "forecast": null,
+          "safety": {"rain_mm_h": 0, "gust_kmh": 0, "direction_deg": 0, "mean_direction_deg": null},
+          "legacy_source": ["C008"],
+          "legacy": {"window": "closed", "blind": 100}
+        },
+        {
+          "id": "light_rain",
+          "samples": 4,
+          "current": {"indoor_c": 24, "outdoor_c": 20, "irradiance_w_m2": 0, "wind_kmh": 0, "gust_kmh": 5},
+          "forecast": null,
+          "safety": {"rain_mm_h": 1, "gust_kmh": 5, "direction_deg": 0, "mean_direction_deg": null},
+          "legacy_source": ["C002", "C003"],
+          "legacy": {"window": "tilt", "blind": 100}
+        },
+        {
+          "id": "cool_evening",
+          "samples": 4,
+          "current": {"indoor_c": 24, "outdoor_c": 20, "irradiance_w_m2": 0, "wind_kmh": 0, "gust_kmh": 0},
+          "forecast": null,
+          "safety": {"rain_mm_h": 0, "gust_kmh": 0, "direction_deg": 0, "mean_direction_deg": null},
+          "legacy_source": ["C014"],
+          "legacy": {"window": "open", "blind": 100}
+        }
+      ]
+    },
+    {
+      "id": "winter_solar_gain",
+      "season": "winter",
+      "initial": {"window": "closed", "blind": 0},
+      "requirements": ["winter_solar_gain_above_24_c"],
+      "segments": [
+        {
+          "id": "cold_night",
+          "samples": 16,
+          "current": {"indoor_c": 20, "outdoor_c": 8, "irradiance_w_m2": 0, "wind_kmh": 2, "gust_kmh": 4},
+          "forecast": null,
+          "safety": {"rain_mm_h": 0, "gust_kmh": 4, "direction_deg": 0, "mean_direction_deg": 20},
+          "legacy_source": ["C010"],
+          "legacy": {"window": "closed", "blind": 0}
+        },
+        {
+          "id": "winter_solar_gain_above_24_c",
+          "samples": 20,
+          "current": {"indoor_c": 24.2, "outdoor_c": 10, "irradiance_w_m2": 800, "wind_kmh": 2, "gust_kmh": 4},
+          "forecast": {"indoor_c": 24.4, "outdoor_c": 11, "irradiance_w_m2": 700, "wind_kmh": 2, "gust_kmh": 4},
+          "safety": {"rain_mm_h": 0, "gust_kmh": 4, "direction_deg": 0, "mean_direction_deg": 20},
+          "legacy_source": ["C009", "C013"],
+          "legacy": {"window": "closed", "blind": 100}
+        },
+        {
+          "id": "winter_partial_sun",
+          "samples": 8,
+          "current": {"indoor_c": 23, "outdoor_c": 12, "irradiance_w_m2": 300, "wind_kmh": 2, "gust_kmh": 4},
+          "forecast": null,
+          "safety": {"rain_mm_h": 0, "gust_kmh": 4, "direction_deg": 0, "mean_direction_deg": 20},
+          "legacy_source": ["C009"],
+          "legacy": {"window": "closed", "blind": 100}
+        },
+        {
+          "id": "winter_absolute_gust",
+          "samples": 4,
+          "current": {"indoor_c": 22, "outdoor_c": 9, "irradiance_w_m2": 0, "wind_kmh": 20, "gust_kmh": 45},
+          "forecast": null,
+          "safety": {"rain_mm_h": 0, "gust_kmh": 45, "direction_deg": 0, "mean_direction_deg": 20},
+          "legacy_source": ["C001"],
+          "legacy": {"window": "closed", "blind": 0}
+        }
+      ]
+    }
+  ]
+}

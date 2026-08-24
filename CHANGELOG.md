@@ -37,3 +37,5 @@ Semantic Versioning after the first distributable integration release.
 - Cost/benefit and time-based recommendation stability with versioned UTC
   memory, blind-direction deduplication, and one delivery-free grouped
   notification candidate per evaluation.
+- Versioned synthetic Summer, Shoulder-season, and Winter replay evidence with
+  v4.17 action provenance, physical-model comparison, and bounded sensitivity.
