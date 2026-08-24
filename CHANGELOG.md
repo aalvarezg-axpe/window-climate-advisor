@@ -17,3 +17,5 @@ Semantic Versioning after the first distributable integration release.
 - Minimal installable custom-integration scaffold with typed dwelling, room,
   and opening configuration flows, lifecycle reload handling, and complete
   English/Spanish translations.
+- Exact v4.17_pre and v4.16_pre migration fixtures with executable integrity,
+  YAML/Jinja, version-independence, and recommendation-only characterization.

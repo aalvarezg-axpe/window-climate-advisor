@@ -7,7 +7,7 @@
 | Repositorio predecesor (solo lectura) | `C:\Users\aalvarezg\Documents\Home Assistant\Scripts Automatizaciones` |
 | Baseline operativo | `automation_versions/asesor_ventanas_automatizacion_v4_17_pre.yaml` |
 | Política | Mantener `v4.17_pre` inmutable; la integración nueva permanece en recomendación/sombra y no acciona persianas o ventanas |
-| Estado | Inventario terminado; no se ha copiado ni modificado ningún artefacto del predecesor |
+| Estado | Inventario terminado; A01/A02 se copiaron byte a byte a los fixtures de P00-T09 y el predecesor permanece sin modificaciones |
 
 Este documento es la frontera de importación para `P00-T09`. Todos los caminos
 de las tablas son relativos a la raíz del repositorio predecesor indicada arriba.
@@ -25,8 +25,8 @@ reutilizan como archivos de producción.
 - El predecesor no contiene un replay separado en CSV/JSON/Parquet. Las
   simulaciones disponibles son el bucle determinista embebido en
   `tests/test_v4_17_blind_percentage.py` y los resultados resumidos en los dos
-  documentos de modelo. P00-T09 debe conservar esos casos reproducibles sin
-  inventar un histórico ni presentar el resumen como una medición nueva.
+  documentos de modelo. Las tareas P01 propietarias deben derivar esos casos
+  sin inventar un histórico ni presentar el resumen como una medición nueva.
 
 ## Artefactos seleccionados para importación o derivación
 
@@ -41,14 +41,14 @@ evidencia y no entra en P00-T09.
 |---|---|---|---|---|
 | A01 | `automation_versions/asesor_ventanas_automatizacion_v4_17_pre.yaml` | `4f3cec8d2ba8ed0ffd037b2cc2ecb510ddc94a6a75007824d52c7c2f13b0b0ea` | Archivo propio de la baseline desplegada; contiene alias `v4.17_pre`, porcentaje recomendado, diagnóstico y política de aviso sin acción `cover.*`. | `COPY` exacto a `tests/fixtures/migration/v4_17_pre/automation.yaml`; verificar el mismo hash. |
 | A02 | `automation_versions/asesor_ventanas_automatizacion_v4_16_pre.yaml` | `974c46e340325f00f7d0d7c6b54afe963d99e58a14c7c13681368caf20fd6acc` | Baseline térmica inmediata contra la que la prueba de v4.17 verifica regresión e inmutabilidad. | `COPY` exacto a `tests/fixtures/migration/v4_16_pre/automation.yaml`; verificar el mismo hash. |
-| A03 | `tests/test_v4_17_blind_percentage.py` | `59ba6a7c0b4079b191020fdf570960f2db1bfc2c504fbf37d817012f1f9f6f9e` | Caracterización ejecutable del porcentaje 0–100 %, paso 10 %, monotonía, previsión conservadora, extremos físicos, simulación de 30 días y separación entre diagnóstico y aviso. | `DERIVE` a pruebas de caracterización del dominio; eliminar rutas al predecesor y aserciones sobre `PLAN.md`, conservar los casos y la referencia al hash A02. |
-| A04 | `tests/test_v4_16_thermal_balance.py` | `fbe1340b6ff05356a0abebedab3c25e86902a6e0cdb61a02e4da47d1b0036840` | Caracterización de área/caudal, balance solar-conducción, fallback sin previsión, histéresis, puertas de calidad Hyperlocal y prioridad meteorológica. | `DERIVE` a pruebas puras de geometría/thermal; no importar sensores ni plantillas como estado de Home Assistant. |
-| A05 | `tests/test_wind_exposure.py` | `4cbf57ca42aef5bd81354c2f2057df0b85fcd85d8ca19a0e0408757e276f15b7` | Casos puros de distancia angular, peor dirección entre instantánea y media, exposición continua y protección de lluvia por alero. | `DERIVE` a pruebas puras de seguridad/geometry; mantener unidades, límites y casos de borde. |
-| A06 | `tests/test_temperate_strategy.py` | `3a742912ee798a8f8599143ffdaf4425dc7cdc2a95778bb7943caef27783a585` | Política histórica del modo templado: previsión completa, historial caliente/frío, umbrales estrictos, datos ausentes y límite de estado compacto. | `DERIVE` a pruebas de selección estacional; no importar caché serializada en `input_text`. |
-| A07 | `tests/test_v4_15_aggregation_policy.py` | `dac8ff352709ae6c5d811fcc1d931ad77d0a20d3c1c18bafce295f29d1ec4714` | Evolución aceptada de cadencia `/30`, una notificación consolidada, disparos de seguridad separados, persistencia selectiva A/O y estados bajo 255 caracteres. | `DERIVE` solo de las funciones/casos de política; no copiar dependencias de v4.14/v4.15 ni identificadores de notificación. |
-| A08 | `tests/test_v4_13_notification_policy.py` | `749a1420d4a8e17b234ee1418a1f7884029c64804725b1bdd6de615a3e22d745` | Comportamiento heredado aceptado: estabilidad de persiana de 15 min, reapertura meteorológica de 30 min, histéresis solar, deduplicación y máximo una notificación. | `DERIVE` a pruebas de estado/recomendación; no copiar helpers `input_*`, destinatarios ni estado persistente de producción. |
-| A09 | `MODELO_PERSIANAS_v4_17_pre.md` | `f189c6d762d5d5bf96bb534624ba865684b05758581e2a46ca7ec807184ac59a` | Especificación de significado de 0/100 %, mezcla de áreas, residual 0,15 provisional, bandas 1,5/2,0 °C, prioridad de ventilación y política de ruido. | `DERIVE` casos y metadatos para las pruebas; no copiar el supuesto como dato medido ni importar el documento como configuración ejecutable. |
-| A10 | `MODELO_TERMICO_v4_16_pre.md` | `23130d55e2015524f3b300da6e3f11e09b66d45ee474a063611bfa58eb9f2c55` | Especificación de fuentes, ecuaciones, signos, fallback, histéresis, simulación de 835 evaluaciones y limitaciones de calibración. | `DERIVE` casos físicos y límites; conservar la incertidumbre explícita, sin inventar históricos. |
+| A03 | `tests/test_v4_17_blind_percentage.py` | `59ba6a7c0b4079b191020fdf570960f2db1bfc2c504fbf37d817012f1f9f6f9e` | Caracterización ejecutable del porcentaje 0–100 %, paso 10 %, monotonía, previsión conservadora, extremos físicos, simulación de 30 días y separación entre diagnóstico y aviso. | `REFERENCE`; P01-T01 inventaría los casos y P01-T02/P01-T04/P01-T07 crearán las aserciones junto a sus consumidores. |
+| A04 | `tests/test_v4_16_thermal_balance.py` | `fbe1340b6ff05356a0abebedab3c25e86902a6e0cdb61a02e4da47d1b0036840` | Caracterización de área/caudal, balance solar-conducción, fallback sin previsión, histéresis, puertas de calidad Hyperlocal y prioridad meteorológica. | `REFERENCE`; P01-T01 inventaría los casos y P01-T02/P01-T04/P01-T06/P01-T07 crearán las aserciones; no se importan estados de Home Assistant. |
+| A05 | `tests/test_wind_exposure.py` | `4cbf57ca42aef5bd81354c2f2057df0b85fcd85d8ca19a0e0408757e276f15b7` | Casos puros de distancia angular, peor dirección entre instantánea/media, exposición continua y protección de lluvia por alero. | `REFERENCE`; P01-T01 conserva la matriz y P01-T06 deriva las pruebas de seguridad/geometry con sus unidades y bordes. |
+| A06 | `tests/test_temperate_strategy.py` | `3a742912ee798a8f8599143ffdaf4425dc7cdc2a95778bb7943caef27783a585` | Política histórica del modo templado: previsión completa, historial caliente/frío, umbrales estrictos, datos ausentes y límite de estado compacto. | `REFERENCE`; P01-T01 conserva la matriz y P01-T03 deriva las pruebas de perfiles; no se importa serialización `input_text`. |
+| A07 | `tests/test_v4_15_aggregation_policy.py` | `dac8ff352709ae6c5d811fcc1d931ad77d0a20d3c1c18bafce295f29d1ec4714` | Evolución aceptada de cadencia `/30`, una notificación consolidada, disparos de seguridad separados, persistencia selectiva A/O y estados bajo 255 caracteres. | `REFERENCE`; P01-T01 conserva la matriz y P01-T07 deriva las pruebas de estabilidad/estado; no se copian destinatarios. |
+| A08 | `tests/test_v4_13_notification_policy.py` | `749a1420d4a8e17b234ee1418a1f7884029c64804725b1bdd6de615a3e22d745` | Comportamiento heredado aceptado: estabilidad de persiana de 15 min, reapertura meteorológica de 30 min, histéresis solar, deduplicación y máximo una notificación. | `REFERENCE`; P01-T01 conserva la matriz y P01-T07 deriva las transiciones; no se copian helpers `input_*` ni destinatarios. |
+| A09 | `MODELO_PERSIANAS_v4_17_pre.md` | `f189c6d762d5d5bf96bb534624ba865684b05758581e2a46ca7ec807184ac59a` | Especificación de significado de 0/100 %, mezcla de áreas, residual 0,15 provisional, bandas 1,5/2,0 °C, prioridad de ventilación y política de ruido. | `REFERENCE`; P01-T01 registra supuestos y P01-T02/P01-T04/P01-T07 los prueban sin presentarlos como datos medidos. |
+| A10 | `MODELO_TERMICO_v4_16_pre.md` | `23130d55e2015524f3b300da6e3f11e09b66d45ee474a063611bfa58eb9f2c55` | Especificación de fuentes, ecuaciones, signos, fallback, histéresis, simulación de 835 evaluaciones y limitaciones de calibración. | `REFERENCE`; P01-T01 registra los casos y P01-T02/P01-T04/P01-T07 los prueban con incertidumbre explícita. |
 
 ## Referencias históricas y de aceptación (no importar)
 
@@ -91,7 +91,7 @@ predecesor y sirven de ancla para que P00-T09 derive pruebas sin depender de
 | S11 | La cadencia ordinaria es `/30`, seguridad meteorológica tiene disparos independientes y cada evaluación agrupa como máximo una notificación; estados compactos quedan bajo 255 caracteres. | A07 `test_ordinary_cadence_is_thirty_minutes`, `test_safety_and_recovery_triggers_remain_independent`, `test_each_evaluation_has_one_consolidated_mobile_action`, `test_persisted_state_stays_below_input_text_limit`. | Derivar contratos de transición/estado y un límite de tamaño; no importar destinatario ni payload. |
 | S12 | La estabilidad heredada evita ruido: persiana 15 min, mejora A/O selectiva, reapertura seca 30 min, cierre meteorológico inmediato y no repetir recomendación igual. | A08 `test_blinds_require_fifteen_continuous_minutes`, `test_opposite_blind_action_rearms_after_stability`, `test_radiation_uses_entry_and_exit_hysteresis`, `test_open_to_tilt_is_immediate_but_tilt_to_open_is_stable`, `test_weather_recovery_does_not_clear_physical_memory`; A07; HANDOFF 7–20 y 35. | Derivar solo la máquina de estados necesaria; el contrato nuevo no hereda helpers `input_*`. |
 | S13 | Separar cierre de ventana y protección de persiana, agrupar por habitación y evitar duplicados; conservar cuerpos compactos si el contrato de notificación se activa tras sombra. | `tests/test_summer_notification_separation.py` (métodos `test_blind_protection_does_not_consume_window_closure` a `test_duplicate_room_names_are_suppressed_in_summaries`), pero sobre baseline `v4_sin_exceso_avisos`. | `REFERENCE`: derivar únicamente casos que el diseño de integración acepte después de la etapa de shadow; no copiar el YAML ni el test completo. |
-| S14 | Resiliencia: sensor interior ausente no se convierte en cero, previsión ausente degrada explícitamente, reinicio no repite categorías y estado compacto no se trunca. | HANDOFF escenarios 36–42; A04 fallback; A07/A08 límites de estado. | Cobertura parcial en P00-T09; reinicio, disponibilidad y entidades son trabajo de P00-T03/P01. No inventar fixtures de runtime. |
+| S14 | Resiliencia: sensor interior ausente no se convierte en cero, previsión ausente degrada explícitamente, reinicio no repite categorías y estado compacto no se trunca. | HANDOFF escenarios 36–42; A04 fallback; A07/A08 límites de estado. | No se cubre conductualmente en P00-T09; reinicio, disponibilidad y entidades son trabajo de P00-T03/P01. No inventar fixtures de runtime. |
 
 ### Escenarios heredados aún no demostrados por un artefacto ejecutable
 
@@ -135,24 +135,43 @@ privado en este inventario y no se copian al nuevo repositorio.
 
 El despliegue de la integración nueva, su `entity_id`, disponibilidad,
 configuración y rollback pertenecen al root manager y a las tareas
-`P00-T04`/`P00-T09` posteriores. Este executor no realizó ninguna mutación
+`P00-T04`/`P01-T10`. Este executor no realizó ninguna mutación
 externa.
 
 ## Manifest mínimo de importación para `P00-T09`
 
-No se copian artefactos durante `P00-T05`; esta tabla es una instrucción
-versionada para la ejecución posterior, una vez exista el scaffold mínimo.
+Esta tabla conserva la instrucción versionada de importación y distingue los
+dos `COPY` ya ejecutados de las derivaciones conductuales que P01-T01
+inventariará y sus tareas propietarias implementarán.
 
 | Acción | Fuente | Destino propuesto | Regla de integridad/alcance |
 |---|---|---|---|
 | `COPY` | A01 | `tests/fixtures/migration/v4_17_pre/automation.yaml` | Copiar bytes sin normalizar YAML; recalcular y exigir SHA-256 A01. Mantenerlo como rollback/characterization fixture, nunca como automatización desplegable. |
 | `COPY` | A02 | `tests/fixtures/migration/v4_16_pre/automation.yaml` | Copiar bytes sin normalizar; exigir SHA-256 A02. Solo baseline de regresión, no segunda automatización. |
-| `DERIVE` | A03 + A09 | `tests/characterization/test_v4_17_pre.py` | Extraer casos de porcentaje, monotonía, extremos, 30 días y aviso confirmado. Quitar `PLAN.md`, paths del predecesor, destinatarios y valores runtime. |
-| `DERIVE` | A04 + A10 | `tests/characterization/test_v4_16_thermal.py` | Extraer unidades, ecuaciones, fallback, histéresis y puertas de calidad. Usar dataclasses/fixtures del dominio cuando P00-T03 las defina; no simular estados de HA. |
-| `DERIVE` | A05 | `tests/characterization/test_wind_exposure.py` | Copiar solo funciones/casos puros de ángulos, exposición y alero; no copiar entidades ni llamadas de servicio. |
-| `DERIVE` | A06 | `tests/characterization/test_temperate_strategy.py` | Mantener los siete criterios de decisión y el caso neutral; no importar serialización `input_text`. |
-| `DERIVE` | A07 + A08 | `tests/characterization/test_recommendation_state.py` | Extraer estabilidad de persiana, reapertura, deduplicación, consolidación, límites de tamaño y seguridad inmediata. Sustituir notificación móvil por una salida tipada del advisor. |
+| `DEFER → P01-T02/T04/T07` | A03 + A09 | Pruebas de los módulos propietarios | Inventariar primero los casos en P01-T01; derivar porcentaje, monotonía, extremos, simulación y estabilidad solo junto al consumidor real. |
+| `DEFER → P01-T02/T04/T06/T07` | A04 + A10 | Pruebas de los módulos propietarios | Inventariar primero unidades, ecuaciones, fallback, histéresis y calidad; no simular estados de HA ni crear una implementación de legado. |
+| `DEFER → P01-T06` | A05 | `tests/unit/domain/test_policy.py` | Derivar ángulos, exposición y alero junto a la política de seguridad, sin entidades ni llamadas de servicio. |
+| `DEFER → P01-T03` | A06 | `tests/unit/domain/test_profiles.py` | Mantener los criterios de decisión y el caso neutral; no importar serialización `input_text`. |
+| `DEFER → P01-T07` | A07 + A08 | `tests/unit/domain/test_state_machine.py` | Derivar estabilidad, reapertura, deduplicación y límites de estado; sustituir notificación móvil por salida tipada. |
 | `REFERENCE` | `HANDOFF_asesor_ventanas_home_assistant.md:810-880` | No crear archivo todavía | Usar los escenarios 1–42 para completar P01; los casos sin fuente ejecutable quedan marcados como pendientes, no como fixtures inventados. |
+
+### Resultado ejecutable de P00-T09
+
+La importación ejecutada queda deliberadamente limitada a dos fixtures de
+integridad y a una prueba estructural:
+
+| Artefacto nuevo | Procedencia | Comprobaciones ejecutables | Alcance excluido |
+|---|---|---|---|
+| `tests/fixtures/migration/v4_17_pre/automation.yaml` | Copia byte a byte de A01 | SHA-256 `4f3cec8d2ba8ed0ffd037b2cc2ecb510ddc94a6a75007824d52c7c2f13b0b0ea`, YAML válido, alias versionado, plantillas Jinja compilables y ausencia de acciones de servicio `cover.*`. | No es automatización desplegable ni fuente de lógica nueva. |
+| `tests/fixtures/migration/v4_16_pre/automation.yaml` | Copia byte a byte de A02 | SHA-256 `974c46e340325f00f7d0d7c6b54afe963d99e58a14c7c13681368caf20fd6acc`, YAML válido, alias versionado, plantillas Jinja compilables y ausencia de acciones de servicio `cover.*`. | No es una segunda baseline operativa ni una implementación de v4.16. |
+| `tests/characterization/test_migration_fixtures.py` | Derivación estructural de A01/A02 y de la frontera de importación | Verifica hashes, parseo YAML, compilación de todas las plantillas embebidas, independencia de versiones y política recommendation-only. | No contiene aserciones de porcentaje, térmica, viento, estrategia, histéresis, notificación ni simulación de dominio. |
+
+P01-T01 convertirá S02–S14 y A03–A10 en una matriz versionada de casos y
+disposiciones. Las aserciones ejecutables se crearán después en P01-T02–P01-T07
+junto al consumidor propietario. Copiar ahora los tests heredados o inventar un
+evaluador habría creado una segunda fuente de verdad. P00-T09 demuestra la
+integridad y la importabilidad segura de la baseline, no la paridad funcional
+del futuro dominio.
 
 ### No copiar ni derivar en P00-T09
 
@@ -181,7 +200,8 @@ Resultado de la inspección local:
 - Todos los caminos A01–A10 y de referencia existen en la raíz predecesora.
 - Los SHA-256 de las tablas se recalcularon localmente; A01 y A02 coinciden
   con los hashes registrados por sus pruebas/documentación.
-- No se modificó ningún archivo del predecesor y no se copiaron fixtures.
+- No se modificó ningún archivo del predecesor; solo se copiaron A01 y A02 a
+  sus destinos versionados, con hashes idénticos a las fuentes.
 - `git diff --check` del repositorio destino pasa después de crear este archivo;
   los cambios ajenos de `P00-T02` (`docs/phases/00-bootstrap/PLAN.md` y
   `.python-version`) se conservan sin tocar.
