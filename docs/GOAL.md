@@ -4,7 +4,7 @@
 >
 > Document version: 0.3
 > Initial date: 2026-08-24
-> Last reviewed: 2026-08-24
+> Last reviewed: 2026-08-25
 > Current state: **active / Phase 01**
 > Home Assistant display timezone: `Europe/Madrid`
 > Internal operational timezone: UTC
@@ -46,6 +46,8 @@ recommends per opening whether to:
 - raise a blind to capture useful solar gain;
 - lower a blind to reduce solar load or night heat loss;
 - keep the current action when no meaningful advantage exists;
+- never pair a non-closed recommended window state, including holding that
+  state, with 0% blind opening;
 - recommend a blind opening percentage without creating noisy intermediate
   notifications.
 

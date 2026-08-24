@@ -386,6 +386,12 @@ def test_replays_improve_aggregate_comfort_without_safety_or_alert_regression() 
     assert all(item.unstable_transitions == 0 for item in metrics)
     assert all(item.notification_candidates == item.new_transitions for item in metrics)
     assert all(
+        action.window_state is WindowState.CLOSED or action.blind.percent > 0
+        for result in results
+        for actions in result.tagged_actions.values()
+        for action in actions
+    )
+    assert all(
         isfinite(value)
         for item in metrics
         for value in (
