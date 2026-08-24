@@ -14,3 +14,6 @@ Semantic Versioning after the first distributable integration release.
   with a locked `uv` dependency graph and one cross-platform verification gate.
 - Immutable v4.17_pre migration inventory, scenario provenance, verified
   hashes, and the minimal fixture-import manifest.
+- Minimal installable custom-integration scaffold with typed dwelling, room,
+  and opening configuration flows, lifecycle reload handling, and complete
+  English/Spanish translations.

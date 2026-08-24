@@ -23,6 +23,8 @@ must not be copied to a Home Assistant 2026 integration.
 - Commit dependency metadata and `uv.lock` together.
 - Expose all routine checks through
   `uv run --frozen python scripts/verify.py`; do not require GNU Make.
+- Run Home Assistant pytest inside local WSL 2 when invoked from Windows;
+  native Windows lacks Core's required POSIX `fcntl` module.
 - Separate fast domain tests from Home Assistant integration tests.
 - Do not add production dependencies unless the standard library and Home
   Assistant APIs are insufficient and an ADR or phase task records the need.

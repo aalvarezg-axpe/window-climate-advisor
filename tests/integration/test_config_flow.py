@@ -1,0 +1,255 @@
+"""Tests for the parent dwelling configuration flow."""
+
+import pytest
+import voluptuous as vol
+from homeassistant.config_entries import (
+    SOURCE_RECONFIGURE,
+    SOURCE_USER,
+    ConfigEntry,
+    ConfigSubentry,
+)
+from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.window_climate_advisor.config_flow import (
+    CONFIG_SCHEMA,
+    ROOM_SCHEMA,
+)
+from custom_components.window_climate_advisor.const import (
+    CONF_CO2_ENTITY_ID,
+    CONF_CONTACT_ENTITY_ID,
+    CONF_COVER_ENTITY_ID,
+    CONF_FACADE_AZIMUTH,
+    CONF_HEIGHT,
+    CONF_HUMIDITY_ENTITY_ID,
+    CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
+    CONF_OVERHANG_DEPTH,
+    CONF_OVERHANG_GAP,
+    CONF_RAIN_ENTITY_ID,
+    CONF_RAIN_PROTECTED,
+    CONF_ROOM_SUBENTRY_ID,
+    CONF_SOLAR_RADIATION_ENTITY_ID,
+    CONF_SUPPORTS_TILT,
+    CONF_TEMPERATURE_ENTITY_ID,
+    CONF_WEATHER_ENTITY_ID,
+    CONF_WIDTH,
+    CONF_WIND_DIRECTION_ENTITY_ID,
+    CONF_WIND_GUST_ENTITY_ID,
+    CONF_WIND_SPEED_ENTITY_ID,
+    DOMAIN,
+    SUBENTRY_TYPE_OPENING,
+    SUBENTRY_TYPE_ROOM,
+)
+
+VALID_INPUT = {
+    CONF_NAME: "Casa",
+    CONF_OUTDOOR_TEMPERATURE_ENTITY_ID: "sensor.outdoor_temperature",
+    CONF_WEATHER_ENTITY_ID: "weather.home",
+    CONF_SOLAR_RADIATION_ENTITY_ID: "sensor.solar_radiation",
+    CONF_WIND_SPEED_ENTITY_ID: "sensor.wind_speed",
+    CONF_WIND_DIRECTION_ENTITY_ID: "sensor.wind_direction",
+    CONF_WIND_GUST_ENTITY_ID: "sensor.wind_gust",
+    CONF_RAIN_ENTITY_ID: "binary_sensor.rain",
+}
+ROOM_INPUT = {
+    CONF_NAME: "Salón",
+    CONF_TEMPERATURE_ENTITY_ID: "sensor.living_room_temperature",
+    CONF_HUMIDITY_ENTITY_ID: "sensor.living_room_humidity",
+    CONF_CO2_ENTITY_ID: "sensor.living_room_co2",
+}
+
+
+async def _create_room(hass: HomeAssistant, entry: ConfigEntry) -> ConfigSubentry:
+    """Create and return one room through the production subentry flow."""
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_ROOM), context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], user_input=ROOM_INPUT
+    )
+    assert result["type"] == "create_entry"
+    return next(iter(entry.subentries.values()))
+
+
+async def test_user_flow_shows_typed_form_and_creates_entry(
+    hass: HomeAssistant,
+) -> None:
+    """Show the parent form and create a valid dwelling entry."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "user"
+    assert result["errors"] is None
+    assert set(result["data_schema"].schema) == {
+        CONF_NAME,
+        CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
+        CONF_WEATHER_ENTITY_ID,
+        CONF_SOLAR_RADIATION_ENTITY_ID,
+        CONF_WIND_SPEED_ENTITY_ID,
+        CONF_WIND_DIRECTION_ENTITY_ID,
+        CONF_WIND_GUST_ENTITY_ID,
+        CONF_RAIN_ENTITY_ID,
+    }
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=VALID_INPUT
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["title"] == "Casa"
+    assert result["data"] == VALID_INPUT
+
+
+async def test_reconfigure_flow_updates_existing_entry(hass: HomeAssistant) -> None:
+    """Reconfigure a dwelling without replacing its config-entry identity."""
+    entry = MockConfigEntry(domain=DOMAIN, data=VALID_INPUT, title="Casa")
+    entry.add_to_hass(hass)
+    updated_input = {
+        **VALID_INPUT,
+        CONF_NAME: "Casa actualizada",
+        CONF_OUTDOOR_TEMPERATURE_ENTITY_ID: "sensor.outdoor_temperature_2",
+    }
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": SOURCE_RECONFIGURE,
+            "entry_id": entry.entry_id,
+        },
+    )
+    assert result["type"] == "form"
+    assert result["step_id"] == "reconfigure"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=updated_input
+    )
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.title == "Casa actualizada"
+    assert entry.data == updated_input
+
+
+def test_invalid_entity_domain_is_rejected() -> None:
+    """Reject an entity that does not belong to its typed selector domain."""
+    invalid_input = {
+        **VALID_INPUT,
+        CONF_WEATHER_ENTITY_ID: "sensor.weather_home",
+    }
+
+    with pytest.raises(vol.Invalid):
+        CONFIG_SCHEMA(invalid_input)
+
+
+def test_blank_dwelling_name_is_rejected() -> None:
+    """Reject a dwelling name containing no visible text."""
+    with pytest.raises(vol.Invalid):
+        CONFIG_SCHEMA({**VALID_INPUT, CONF_NAME: "   "})
+
+
+def test_room_schema_rejects_wrong_sensor_domain() -> None:
+    """Reject non-sensor room sources through native selectors."""
+    with pytest.raises(vol.Invalid):
+        ROOM_SCHEMA({**ROOM_INPUT, CONF_TEMPERATURE_ENTITY_ID: "weather.living_room"})
+
+
+async def test_room_subentry_create_and_reconfigure(hass: HomeAssistant) -> None:
+    """Create and reconfigure a room without changing its stable ID."""
+    entry = MockConfigEntry(domain=DOMAIN, data=VALID_INPUT, title="Casa")
+    entry.add_to_hass(hass)
+    room = await _create_room(hass, entry)
+    room_id = room.subentry_id
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_ROOM),
+        context={"source": SOURCE_RECONFIGURE, "subentry_id": room_id},
+    )
+    assert result["type"] == "form"
+    assert result["step_id"] == "reconfigure"
+
+    updated = {**ROOM_INPUT, CONF_NAME: "Salón principal"}
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], user_input=updated
+    )
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.subentries[room_id].title == "Salón principal"
+    assert entry.subentries[room_id].data == updated
+
+
+async def test_opening_subentry_requires_an_existing_room(
+    hass: HomeAssistant,
+) -> None:
+    """Do not offer an opening with no stable room target."""
+    entry = MockConfigEntry(domain=DOMAIN, data=VALID_INPUT, title="Casa")
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_OPENING),
+        context={"source": SOURCE_USER},
+    )
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "no_rooms"
+
+
+async def test_opening_subentry_create_validate_and_reconfigure(
+    hass: HomeAssistant,
+) -> None:
+    """Validate geometry and preserve the room link while reconfiguring."""
+    entry = MockConfigEntry(domain=DOMAIN, data=VALID_INPUT, title="Casa")
+    entry.add_to_hass(hass)
+    room = await _create_room(hass, entry)
+    opening_input = {
+        CONF_NAME: "Ventana sur",
+        CONF_ROOM_SUBENTRY_ID: room.subentry_id,
+        CONF_FACADE_AZIMUTH: 180,
+        CONF_WIDTH: 1.6,
+        CONF_HEIGHT: 1.2,
+        CONF_OVERHANG_DEPTH: 0.5,
+        CONF_OVERHANG_GAP: 0.2,
+        CONF_SUPPORTS_TILT: True,
+        CONF_RAIN_PROTECTED: False,
+        CONF_CONTACT_ENTITY_ID: "binary_sensor.south_window",
+        CONF_COVER_ENTITY_ID: "cover.south_blind",
+    }
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_OPENING), context={"source": SOURCE_USER}
+    )
+    assert result["type"] == "form"
+    schema = result["data_schema"]
+    with pytest.raises(vol.Invalid):
+        schema({**opening_input, CONF_ROOM_SUBENTRY_ID: "missing"})
+    with pytest.raises(vol.Invalid):
+        schema({**opening_input, CONF_WIDTH: 0})
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], user_input=opening_input
+    )
+    assert result["type"] == "create_entry"
+    opening = next(
+        item
+        for item in entry.subentries.values()
+        if item.subentry_type == SUBENTRY_TYPE_OPENING
+    )
+    opening_id = opening.subentry_id
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_OPENING),
+        context={"source": SOURCE_RECONFIGURE, "subentry_id": opening_id},
+    )
+    assert result["type"] == "form"
+    updated = {**opening_input, CONF_NAME: "Ventana sur principal"}
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], user_input=updated
+    )
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.subentries[opening_id].title == "Ventana sur principal"
+    assert entry.subentries[opening_id].data == updated

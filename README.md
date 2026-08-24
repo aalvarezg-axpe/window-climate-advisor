@@ -50,8 +50,10 @@ uv run --frozen python scripts/verify.py
 ```
 
 The verification script is the canonical cross-platform gate. It runs artifact
-and secret checks, Ruff, strict mypy, and—once P00-T03 creates the scaffold—the
-Home Assistant pytest suite with branch coverage.
+and secret checks, Ruff, strict mypy, and the Home Assistant pytest suite with
+branch coverage. On the Windows workstation,
+the same command runs the Home Assistant tests in local WSL because Core
+requires POSIX modules such as `fcntl`.
 
 ## Environment
 

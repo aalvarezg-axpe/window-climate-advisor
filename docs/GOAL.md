@@ -102,8 +102,10 @@ implemented in the custom integration and traced as follows:
 - Reconfigurable opening subentries linked to rooms, including orientation,
   dimensions, overhang geometry, rain protection, optional contact sensor, and
   optional blind/cover entity.
-- Global weather, radiation, wind, rain, sun, and forecast source selection
-  through typed Home Assistant selectors.
+- Global outdoor-temperature, weather/forecast, radiation, wind, and rain
+  source selection through typed Home Assistant selectors; solar position comes
+  from Home Assistant's built-in `sun` integration when the evaluator consumes
+  it.
 - Pure Python domain models for geometry, solar exposure, ventilation, thermal
   balance, safety, strategy, hysteresis, and recommendation aggregation.
 - Deterministic joint evaluation of window state and recommended blind opening,
@@ -144,7 +146,7 @@ custom_components/window_climate_advisor/
   select.py                   # operational strategy control, if justified
   switch.py                   # operational feature toggles, if justified
   diagnostics.py              # redacted diagnostics
-  strings.json                # canonical translations
+  translations/en.json       # complete English custom-integration strings
   translations/es.json
   domain/
     models.py                 # typed input/output values
@@ -175,6 +177,9 @@ Home Assistant-required platform files stay at the integration root, but all
 non-trivial decisions live behind typed boundaries. Domain modules have no Home
 Assistant imports and no I/O, which allows fast deterministic tests and replay
 of the v4.17 baseline.
+
+Custom integrations ship complete language files under `translations/` and do
+not use Core's build-time `strings.json` pipeline.
 
 ### 5.2 Configuration ownership
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -92,8 +93,21 @@ def main() -> int:
         return 1
 
     tests = ROOT / "tests"
-    if any(tests.rglob("test_*.py")) and not run([sys.executable, "-m", "pytest"]):
-        return 1
+    if any(tests.rglob("test_*.py")):
+        pytest_command = [sys.executable, "-m", "pytest"]
+        if os.name == "nt":
+            pytest_command = [
+                "wsl",
+                "--cd",
+                str(ROOT),
+                "--",
+                "bash",
+                "-lc",
+                'UV_PROJECT_ENVIRONMENT="$HOME/.cache/window-climate-advisor/venv" '
+                '"$HOME/.local/bin/uv" run --frozen python -m pytest',
+            ]
+        if not run(pytest_command):
+            return 1
     if not tests.is_dir():
         print("- pytest: skipped until P00-T03 creates the test scaffold")
     return 0

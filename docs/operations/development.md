@@ -77,9 +77,15 @@ uv run --frozen python scripts/verify.py
 
 The repository pins Python 3.14.2 for the deployed Home Assistant 2026.8.2
 target. `scripts/verify.py` is the canonical cross-platform runner; GNU Make is
-not required. It checks artifacts/secrets, formatting, lint, strict typing and,
-when the scaffold exists, Home Assistant integration tests with branch
-coverage.
+not required. It checks artifacts/secrets, formatting, lint, strict typing, and
+the Home Assistant integration tests with branch coverage.
+
+Home Assistant Core 2026.8 does not execute its pytest plugin natively on
+Windows because it imports POSIX modules including `fcntl`. The canonical
+runner therefore executes static checks in the Windows `uv` environment and
+delegates pytest to the local default WSL 2 distribution. WSL uses the same
+`uv.lock`, Python 3.14.2, and an environment outside the repository at
+`$HOME/.cache/window-climate-advisor/venv`; no remote development host is used.
 
 Phase 00 must then:
 
