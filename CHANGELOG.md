@@ -19,3 +19,5 @@ Semantic Versioning after the first distributable integration release.
   English/Spanish translations.
 - Exact v4.17_pre and v4.16_pre migration fixtures with executable integrity,
   YAML/Jinja, version-independence, and recommendation-only characterization.
+- Frozen Phase 1 optimizer/shadow plan with all v4.18_pre requirements mapped,
+  exact local gates, bounded write sets, and deployment stop conditions.

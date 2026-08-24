@@ -48,16 +48,16 @@ def _iter_template_strings(value: object) -> Iterator[str]:
         yield value
 
 
-def _iter_keyed_strings(value: object, keys: frozenset[str]) -> Iterator[str]:
-    """Yield string values belonging to selected YAML mapping keys."""
+def _iter_action_strings(value: object) -> Iterator[str]:
+    """Yield service action strings from a YAML value tree."""
     if isinstance(value, Mapping):
         for key, child in value.items():
-            if isinstance(key, str) and key in keys and isinstance(child, str):
+            if key in {"action", "service"} and isinstance(child, str):
                 yield child
-            yield from _iter_keyed_strings(child, keys)
+            yield from _iter_action_strings(child)
     elif isinstance(value, list):
         for child in value:
-            yield from _iter_keyed_strings(child, keys)
+            yield from _iter_action_strings(child)
 
 
 @pytest.mark.parametrize("version", FIXTURES)
@@ -98,6 +98,6 @@ def test_v417_and_v416_remain_independent_versioned_baselines() -> None:
 def test_baseline_has_no_physical_cover_service_action(version: str) -> None:
     """Preserve the recommendation-only baseline invariant."""
     document = _load_yaml(FIXTURES[version])
-    actions = tuple(_iter_keyed_strings(document, frozenset({"action", "service"})))
+    actions = tuple(_iter_action_strings(document))
 
     assert not [action for action in actions if action.split(".", 1)[0] == "cover"]

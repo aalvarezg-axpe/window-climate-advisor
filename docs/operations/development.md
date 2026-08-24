@@ -48,8 +48,8 @@ print either value.
 
 Installing a custom integration additionally requires writing files below Home
 Assistant's `config/custom_components` directory. The REST API token does not by
-itself provide that file channel. Before deployed tests, P00-T04 must select one
-of these mutually exclusive contracts:
+itself provide that file channel. P00-T04 found no available route; before
+deployed tests, P01-T10 must select one of these mutually exclusive contracts:
 
 1. a server-visible mounted config path, represented by
    `WCA_HOME_ASSISTANT_CONFIG_PATH`; or
