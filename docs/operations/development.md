@@ -71,15 +71,21 @@ They belong in the Home Assistant config/reconfigure/options flows, not `.env`.
 
 ```powershell
 Set-Location 'C:\Users\aalvarezg\Documents\Home Assistant\window-climate-advisor'
-git diff --check
+uv sync --frozen --group dev
+uv run --frozen python scripts/verify.py
 ```
+
+The repository pins Python 3.14.2 for the deployed Home Assistant 2026.8.2
+target. `scripts/verify.py` is the canonical cross-platform runner; GNU Make is
+not required. It checks artifacts/secrets, formatting, lint, strict typing and,
+when the scaffold exists, Home Assistant integration tests with branch
+coverage.
 
 Phase 00 must then:
 
-1. provision the Home Assistant-compatible Python interpreter with local `uv`;
-2. select a cross-platform canonical command runner or install GNU Make;
-3. create and lock the development environment;
-4. expand the canonical verification gate before adding production code.
+1. keep `.python-version`, `pyproject.toml`, and `uv.lock` synchronized;
+2. run the canonical gate before accepting production code;
+3. add focused tests as each production path is introduced.
 
 ## Secret-safe checks
 

@@ -45,12 +45,13 @@ agent-profile folders are not used. See
 ## Bootstrap checks
 
 ```powershell
-git diff --check
-git status --short --ignored
+uv sync --frozen --group dev
+uv run --frozen python scripts/verify.py
 ```
 
-Phase 00 must add one cross-platform Python and Home Assistant verification
-command before production code is accepted.
+The verification script is the canonical cross-platform gate. It runs artifact
+and secret checks, Ruff, strict mypy, and—once P00-T03 creates the scaffold—the
+Home Assistant pytest suite with branch coverage.
 
 ## Environment
 
