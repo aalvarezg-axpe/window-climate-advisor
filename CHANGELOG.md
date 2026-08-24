@@ -21,3 +21,5 @@ Semantic Versioning after the first distributable integration release.
   YAML/Jinja, version-independence, and recommendation-only characterization.
 - Frozen Phase 1 optimizer/shadow plan with all v4.18_pre requirements mapped,
   exact local gates, bounded write sets, and deployment stop conditions.
+- Versioned v4.17_pre behaviour catalog separating weather safety, replaceable
+  thermal heuristics, state stability, and unavailable-data handling.
