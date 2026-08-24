@@ -12,6 +12,15 @@ GitFlow, and phase completion criteria. The active phase plan owns task status,
 write sets, acceptance commands, evidence, and deviations. If they conflict,
 `docs/GOAL.md` prevails.
 
+`AGENTS.md`, `docs/GOAL.md`, and every phase `PLAN.md` are living operational
+references, not write-once bootstrap artifacts. When work exposes an
+inefficiency, contradiction, stale assumption, or missing accepted
+requirement, the root manager updates the affected references in the same
+task and records the correction in the active phase log. Executors report the
+needed correction and wait for the root when a protected document is outside
+their write set. Documentation maintenance must not silently broaden product
+scope or weaken safety, privacy, rollback, or acceptance gates.
+
 ## Architecture invariants
 
 - Build a modular Python monolith distributed as the Home Assistant custom
@@ -46,6 +55,12 @@ write sets, acceptance commands, evidence, and deviations. If they conflict,
   command, result, files, assumptions, and deviations in the phase log.
 - Record out-of-scope work as `bloqueada`, `pendiente`, or `futura`; do not
   implement it partially or implicitly.
+- Use `bloqueada` only for a concrete dependency that the repository cannot
+  resolve locally. Tool installation, implementation, and other executable
+  local work remain `pendiente` until started.
+- A future phase plan may remain a clearly labelled draft. Preserve task IDs
+  and provenance when freezing or moving its rows; activation still requires
+  the gate declared by the active phase.
 - A production deployment and its Home Assistant verification are separate
   tasks from local implementation. Local success is not an operational
   delivery.
