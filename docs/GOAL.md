@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.4
+> Document version: 0.5
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-25
 > Current state: **active / Phase 01**
@@ -75,6 +75,10 @@ automation is the rollback until the new integration has:
 4. passed an agreed comparison period;
 5. been deployed and verified as a single available config entry without
    duplicate entities or configuration errors.
+
+The owner fixed the Phase 01 shadow period at four consecutive calendar days
+on 2026-08-25 because the expected interval includes rain, heat, and sun. Its
+UTC clock starts only after the deployed-entry verification gate passes.
 
 The predecessor also contains a planned but unimplemented v4.18_pre backlog.
 That backlog is a requirements source, not a second behavioural baseline and

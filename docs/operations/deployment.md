@@ -6,6 +6,7 @@
 - HACS category: Integration / custom repository
 - Candidate: GitHub prerelease `v0.1.0b1` from `release/0.1.0`
 - Minimum Home Assistant: 2026.8.0
+- Shadow duration: four consecutive calendar days after the verification gate
 - Operational baseline and rollback: deployed `v4.17_pre`
 
 The candidate is informational only. It must not own notifications, call a
@@ -50,7 +51,7 @@ service, or control a physical device.
 6. Confirm the integration registered no services, delivered no notification,
    and changed no window, blind, HVAC, or other actuator.
 7. Confirm `v4.17_pre` remains available and operational. Only then record the
-   shadow start time in UTC.
+   shadow start time in UTC and the end after four consecutive calendar days.
 
 ## Roll back
 
