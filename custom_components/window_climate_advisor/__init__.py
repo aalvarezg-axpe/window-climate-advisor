@@ -5,7 +5,9 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import (
+    CONF_COVER_ENTITY_ID,
     CONF_FACADE_AZIMUTH_DEG,
+    CONF_HAS_BLIND,
     CONF_HEIGHT_M,
     CONF_OVERHANG_DEPTH_M,
     CONF_OVERHANG_GAP_M,
@@ -30,19 +32,21 @@ _V1_GEOMETRY_KEYS = {
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Migrate unit-implicit v1 opening geometry without changing identity."""
+    """Migrate opening geometry and physical blind capability in place."""
     if entry.version == VERSION:
         return True
-    if entry.version != 1:
+    if entry.version not in (1, 2):
         return False
 
     for subentry in entry.subentries.values():
         if subentry.subentry_type != SUBENTRY_TYPE_OPENING:
             continue
         data = dict(subentry.data)
-        for old_key, new_key in _V1_GEOMETRY_KEYS.items():
-            if old_key in data:
-                data[new_key] = data.pop(old_key)
+        if entry.version == 1:
+            for old_key, new_key in _V1_GEOMETRY_KEYS.items():
+                if old_key in data:
+                    data[new_key] = data.pop(old_key)
+        data[CONF_HAS_BLIND] = isinstance(data.get(CONF_COVER_ENTITY_ID), str)
         hass.config_entries.async_update_subentry(entry, subentry, data=data)
     hass.config_entries.async_update_entry(entry, version=VERSION)
     return True

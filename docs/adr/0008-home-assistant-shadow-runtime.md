@@ -45,17 +45,20 @@ settings. Until a complete valid option set exists, the entry remains loaded
 and publishes explicit degraded recommendations so the user can configure it
 through the UI.
 
-Config-entry version 2 renames stored geometry keys to include units
-(`*_deg`, `*_m`). Migration changes keys only and preserves values, config-entry
-ID, subentry IDs, and entity identity. Runtime state remains the independently
-versioned application schema and fails explicitly when structurally invalid.
+Config-entry version 2 renamed stored geometry keys to include units
+(`*_deg`, `*_m`). Version 3 separates required physical `has_blind` capability
+from the optional automated `cover_entity_id`. Migration preserves config-entry
+ID, subentry IDs, and entity identity; for v1/v2 data, an existing cover is the
+only safe evidence from which to infer a blind. Runtime state remains the
+independently versioned application schema and fails explicitly when
+structurally invalid.
 
 ## Entity and diagnostics surface
 
 The only enabled platforms are `sensor` and `binary_sensor`:
 
 - per opening: recommendation enum and safe-to-open binary sensor;
-- per opening with a configured cover: recommended blind position sensor;
+- per opening with a physical blind: recommended blind position sensor;
 - per dwelling: active profile enum and last-evaluation timestamp sensor.
 
 Unique IDs follow ADR 0003 exactly. Opening entities share a device identified
@@ -63,8 +66,9 @@ by config-entry/subentry ID and dwelling entities share a config-entry device.
 Recommendation is relative to the observed contact when configured; without a
 contact, the persisted stable recommendation is the conservative reference and
 a new opening starts closed. A configured but unreadable cover position
-degrades that opening. An opening without a cover is evaluated with the blind
-fixed at 100% and does not create a blind-position entity.
+degrades that opening. Without a cover, a physical blind uses its persisted
+stable recommendation and starts at 100%. Only an opening explicitly configured
+without a physical blind is fixed at 100% and omits the blind-position entity.
 
 Home Assistant diagnostics return configuration shape, source quality,
 reason codes, timestamps, and accepted engine results. Entity IDs and config

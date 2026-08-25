@@ -38,6 +38,7 @@ from ..const import (
     CONF_CONTACT_ENTITY_ID,
     CONF_COVER_ENTITY_ID,
     CONF_FACADE_AZIMUTH_DEG,
+    CONF_HAS_BLIND,
     CONF_HEIGHT_M,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
     CONF_OVERHANG_DEPTH_M,
@@ -269,9 +270,10 @@ def _contact_window(
 def _cover_blind(
     hass: HomeAssistant,
     entity_id: str | None,
+    previous: BlindOpening,
 ) -> tuple[BlindOpening, InputIssue | None]:
     if entity_id is None:
-        return BlindOpening(100), None
+        return previous, None
     state = hass.states.get(entity_id)
     if state is None or state.state in _UNUSABLE_STATES:
         return BlindOpening(100), InputIssue.MISSING_INPUT
@@ -396,6 +398,10 @@ def build_snapshot(
         previous_window = (
             previous.window if previous is not None else WindowState.CLOSED
         )
+        has_blind = bool(data[CONF_HAS_BLIND])
+        previous_blind = (
+            previous.blind if previous is not None and has_blind else BlindOpening(100)
+        )
         contact_id = data.get(CONF_CONTACT_ENTITY_ID)
         cover_id = data.get(CONF_COVER_ENTITY_ID)
         window, contact_issue = _contact_window(
@@ -406,6 +412,7 @@ def build_snapshot(
         blind, cover_issue = _cover_blind(
             hass,
             cover_id if isinstance(cover_id, str) else None,
+            previous_blind,
         )
         if isinstance(contact_id, str):
             quality[f"opening:{opening_id}:contact"] = (
@@ -463,7 +470,7 @@ def build_snapshot(
                     bool(data[CONF_RAIN_PROTECTED]),
                 ),
                 bool(data[CONF_SUPPORTS_TILT]),
-                isinstance(cover_id, str),
+                has_blind,
                 CandidateAction(window, blind),
                 current_conditions,
                 None,

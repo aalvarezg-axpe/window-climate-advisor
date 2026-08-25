@@ -20,9 +20,13 @@ The user flow creates one dwelling entry. Multiple dwellings are allowed, so
 the manifest does not use `single_config_entry`. The entry title is mutable and
 is not used for identity. `ConfigEntry.entry_id` is the stable dwelling key.
 
-Version 2 entry data contains only structural inputs needed to assemble an
+Version 3 entry data contains only structural inputs needed to assemble an
 evaluation snapshot. Version 1 used unit-implicit opening geometry keys; the
-P01-T09 migration renames those keys without changing values or identity:
+P01-T09 migration renames those keys without changing values or identity.
+P01-T13 separates physical blind capability from optional Home Assistant
+automation: v1/v2 entries infer `has_blind=true` only when an existing
+`cover_entity_id` proves the capability, preserving identity and requiring UI
+reconfiguration for previously inexpressible manual blinds.
 
 | Key | Required | Selector / value |
 |---|---|---|
@@ -69,8 +73,9 @@ Subentry type `opening` stores:
 | `overhang_gap_m` | yes | vertical metres from overhang to opening top, zero or greater |
 | `supports_tilt` | yes | boolean |
 | `rain_protected` | yes | boolean calibration flag |
+| `has_blind` | yes | physical blind/shutter capability, including manual |
 | `contact_entity_id` | no | `binary_sensor` entity |
-| `cover_entity_id` | no | `cover` entity |
+| `cover_entity_id` | no | automated `cover` observation; requires `has_blind` |
 
 Room links store the immutable subentry ID, never the room title. Subentry IDs,
 not names or selected entity IDs, are the stable opening/room identities.
@@ -88,8 +93,8 @@ P01-T09 implements this frozen informational surface:
 
 - per opening: enum recommendation sensor with `open`, `tilt`, `close`, `hold`,
   and `degraded` states;
-- per opening with a configured cover: recommended blind-position sensor in
-  the 0–100% Home Assistant convention;
+- per opening with a physical blind: recommended blind-position sensor in the
+  0–100% Home Assistant convention, whether or not a `cover` is configured;
 - per opening: safety-to-open binary sensor;
 - per dwelling: active comfort-profile sensor and last-evaluation timestamp
   sensor;

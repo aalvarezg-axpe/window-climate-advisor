@@ -91,11 +91,11 @@ async def test_entities_publish_stable_advisor_results_and_devices(
     assert original_ids == set(registry.entities)
 
 
-async def test_incomplete_options_degrade_and_optional_cover_omits_sensor(
+async def test_incomplete_options_degrade_and_no_blind_omits_sensor(
     hass: HomeAssistant,
 ) -> None:
     """Keep repairable entities explicit and do not invent a blind target."""
-    config_entry = entry(cover=False)
+    config_entry = entry(cover=False, has_blind=False)
     config_entry.add_to_hass(hass)
     set_ready_states(hass)
 
@@ -124,3 +124,27 @@ async def test_incomplete_options_degrade_and_optional_cover_omits_sensor(
         )
         is None
     )
+
+
+async def test_manual_blind_without_cover_keeps_recommendation_sensor(
+    hass: HomeAssistant,
+) -> None:
+    """Expose the blind target for a physical manual blind."""
+    config_entry = entry(cover=False)
+    config_entry.add_to_hass(hass)
+    set_ready_states(hass)
+
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    opening_id = next(
+        subentry_id
+        for subentry_id, subentry in config_entry.subentries.items()
+        if subentry.subentry_type == SUBENTRY_TYPE_OPENING
+    )
+    registry = er.async_get(hass)
+    entity_id = _entity_id(
+        registry,
+        "sensor",
+        f"{config_entry.entry_id}:{opening_id}:recommended_blind_position",
+    )
+
+    assert hass.states.get(entity_id).state == "unavailable"

@@ -31,6 +31,7 @@ from custom_components.window_climate_advisor.const import (
     CONF_CONTACT_ENTITY_ID,
     CONF_COVER_ENTITY_ID,
     CONF_FACADE_AZIMUTH_DEG,
+    CONF_HAS_BLIND,
     CONF_HEIGHT_M,
     CONF_HUMIDITY_ENTITY_ID,
     CONF_MINIMUM_BENEFIT_W,
@@ -224,6 +225,7 @@ async def test_flows_reject_duplicate_entity_links(hass: HomeAssistant) -> None:
             CONF_OVERHANG_GAP_M: 0.2,
             CONF_SUPPORTS_TILT: True,
             CONF_RAIN_PROTECTED: False,
+            CONF_HAS_BLIND: False,
             CONF_CONTACT_ENTITY_ID: VALID_INPUT[CONF_RAIN_ENTITY_ID],
         },
     )
@@ -421,6 +423,7 @@ async def test_opening_subentry_create_validate_and_reconfigure(
         CONF_OVERHANG_GAP_M: 0.2,
         CONF_SUPPORTS_TILT: True,
         CONF_RAIN_PROTECTED: False,
+        CONF_HAS_BLIND: True,
         CONF_CONTACT_ENTITY_ID: "binary_sensor.south_window",
         CONF_COVER_ENTITY_ID: "cover.south_blind",
     }
@@ -429,11 +432,19 @@ async def test_opening_subentry_create_validate_and_reconfigure(
         (entry.entry_id, SUBENTRY_TYPE_OPENING), context={"source": SOURCE_USER}
     )
     assert result["type"] == "form"
+    assert convert(result["data_schema"], custom_serializer=cv.custom_serializer)
     schema = result["data_schema"]
     with pytest.raises(vol.Invalid):
         schema({**opening_input, CONF_ROOM_SUBENTRY_ID: "missing"})
     with pytest.raises(vol.Invalid):
         schema({**opening_input, CONF_WIDTH_M: 0})
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={**opening_input, CONF_HAS_BLIND: False},
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "cover_without_blind"}
 
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], user_input=opening_input
@@ -452,6 +463,13 @@ async def test_opening_subentry_create_validate_and_reconfigure(
     )
     assert result["type"] == "form"
     updated = {**opening_input, CONF_NAME: "Ventana sur principal"}
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={**updated, CONF_HAS_BLIND: False},
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "cover_without_blind"}
+
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], user_input=updated
     )

@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from .const import (
     CONF_CONTACT_ENTITY_ID,
     CONF_COVER_ENTITY_ID,
+    CONF_HAS_BLIND,
     SUBENTRY_TYPE_OPENING,
     SUBENTRY_TYPE_ROOM,
 )
@@ -65,6 +66,7 @@ async def async_get_config_entry_diagnostics(
             {
                 "alias": opening_aliases[opening_id],
                 "has_contact": CONF_CONTACT_ENTITY_ID in subentry.data,
+                "has_blind": bool(subentry.data[CONF_HAS_BLIND]),
                 "has_cover": CONF_COVER_ENTITY_ID in subentry.data,
                 "recommendation": evaluation.recommendation.value,
                 "recommended_window_state": evaluation.recommended_window_state.value,

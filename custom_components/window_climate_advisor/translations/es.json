@@ -155,8 +155,9 @@
             "overhang_gap_m": "Separación vertical del alero",
             "supports_tilt": "Admite posición oscilobatiente",
             "rain_protected": "Protegido de la lluvia directa",
+            "has_blind": "Tiene persiana o contraventana",
             "contact_entity_id": "Contacto de ventana",
-            "cover_entity_id": "Persiana o contraventana"
+            "cover_entity_id": "Entidad de persiana automatizada (opcional)"
           }
         },
         "reconfigure": {
@@ -171,8 +172,9 @@
             "overhang_gap_m": "Separación vertical del alero",
             "supports_tilt": "Admite posición oscilobatiente",
             "rain_protected": "Protegido de la lluvia directa",
+            "has_blind": "Tiene persiana o contraventana",
             "contact_entity_id": "Contacto de ventana",
-            "cover_entity_id": "Persiana o contraventana"
+            "cover_entity_id": "Entidad de persiana automatizada (opcional)"
           }
         }
       },
@@ -180,6 +182,7 @@
         "no_rooms": "Añade una estancia antes de añadir un hueco."
       },
       "error": {
+        "cover_without_blind": "Una entidad de persiana automatizada requiere que el hueco tenga persiana o contraventana.",
         "duplicate_entity_link": "Esta entidad ya está asignada a otra entrada de la vivienda."
       }
     }

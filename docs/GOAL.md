@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.6
+> Document version: 0.7
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-25
 > Current state: **active / Phase 01**
@@ -107,8 +107,8 @@ implemented in the custom integration and traced as follows:
 - Reconfigurable room subentries with temperature and optional humidity/CO2
   sources.
 - Reconfigurable opening subentries linked to rooms, including orientation,
-  dimensions, overhang geometry, rain protection, optional contact sensor, and
-  optional blind/cover entity.
+  dimensions, overhang geometry, rain protection, physical blind capability,
+  optional contact sensor, and optional automated blind/cover entity.
 - Global outdoor-temperature, weather/forecast, radiation, wind, and rain
   source selection through typed Home Assistant selectors; solar position comes
   from Home Assistant's built-in `sun` integration when the evaluator consumes

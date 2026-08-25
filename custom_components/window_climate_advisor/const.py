@@ -3,7 +3,7 @@
 from typing import Final
 
 DOMAIN: Final = "window_climate_advisor"
-VERSION: Final = 2
+VERSION: Final = 3
 
 SUBENTRY_TYPE_ROOM: Final = "room"
 SUBENTRY_TYPE_OPENING: Final = "opening"
@@ -29,6 +29,7 @@ CONF_OVERHANG_DEPTH_M: Final = "overhang_depth_m"
 CONF_OVERHANG_GAP_M: Final = "overhang_gap_m"
 CONF_SUPPORTS_TILT: Final = "supports_tilt"
 CONF_RAIN_PROTECTED: Final = "rain_protected"
+CONF_HAS_BLIND: Final = "has_blind"
 CONF_CONTACT_ENTITY_ID: Final = "contact_entity_id"
 CONF_COVER_ENTITY_ID: Final = "cover_entity_id"
 

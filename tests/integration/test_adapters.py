@@ -33,6 +33,7 @@ from custom_components.window_climate_advisor.const import (
     CONF_CONTACT_ENTITY_ID,
     CONF_COVER_ENTITY_ID,
     CONF_FACADE_AZIMUTH_DEG,
+    CONF_HAS_BLIND,
     CONF_HEIGHT_M,
     CONF_NAME,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
@@ -52,6 +53,7 @@ from custom_components.window_climate_advisor.const import (
     DOMAIN,
     SUBENTRY_TYPE_OPENING,
     SUBENTRY_TYPE_ROOM,
+    VERSION,
 )
 from custom_components.window_climate_advisor.domain.models import (
     BlindOpening,
@@ -70,8 +72,9 @@ def entry(
     gust_sensor: bool = True,
     cover: bool = True,
     contact: bool = True,
+    has_blind: bool = True,
 ) -> MockConfigEntry:
-    """Create a v2 dwelling with one room and opening."""
+    """Create a current-version dwelling with one room and opening."""
     data = {
         CONF_NAME: "Casa",
         CONF_OUTDOOR_TEMPERATURE_ENTITY_ID: "sensor.outdoor",
@@ -93,6 +96,7 @@ def entry(
         CONF_OVERHANG_GAP_M: 0.2,
         CONF_SUPPORTS_TILT: True,
         CONF_RAIN_PROTECTED: True,
+        CONF_HAS_BLIND: has_blind,
     }
     if contact:
         opening_data[CONF_CONTACT_ENTITY_ID] = "binary_sensor.window"
@@ -101,7 +105,7 @@ def entry(
     result = MockConfigEntry(
         domain=DOMAIN,
         data=data,
-        version=2,
+        version=VERSION,
         subentries_data=[
             {
                 "subentry_type": SUBENTRY_TYPE_ROOM,
@@ -219,7 +223,12 @@ def test_no_cover_uses_persisted_window_and_weather_gust(
     hass: HomeAssistant,
 ) -> None:
     """Use only real capabilities while keeping optional sources explicit."""
-    config_entry = entry(gust_sensor=False, cover=False, contact=False)
+    config_entry = entry(
+        gust_sensor=False,
+        cover=False,
+        contact=False,
+        has_blind=False,
+    )
     set_ready_states(hass, gust_sensor=False)
     opening_id = next(
         subentry_id
@@ -227,7 +236,7 @@ def test_no_cover_uses_persisted_window_and_weather_gust(
         if subentry.subentry_type == SUBENTRY_TYPE_OPENING
     )
     previous = AdvisorState(
-        {opening_id: OpeningStabilityState(WindowState.TILT, BlindOpening(100))}
+        {opening_id: OpeningStabilityState(WindowState.TILT, BlindOpening(60))}
     )
     opening = build_snapshot(
         hass,
@@ -242,6 +251,34 @@ def test_no_cover_uses_persisted_window_and_weather_gust(
     assert opening.current_action.blind == BlindOpening(100)
     assert opening.current_conditions is not None
     assert opening.current_conditions.gust_speed_kmh == 8
+
+
+def test_manual_blind_uses_persisted_position_without_cover(
+    hass: HomeAssistant,
+) -> None:
+    """Retain manual blind capability and memory without inventing a cover."""
+    config_entry = entry(cover=False, contact=False)
+    set_ready_states(hass)
+    opening_id = next(
+        subentry_id
+        for subentry_id, subentry in config_entry.subentries.items()
+        if subentry.subentry_type == SUBENTRY_TYPE_OPENING
+    )
+    previous = AdvisorState(
+        {opening_id: OpeningStabilityState(WindowState.CLOSED, BlindOpening(60))}
+    )
+
+    opening = build_snapshot(
+        hass,
+        config_entry,
+        previous,
+        dt_util.utcnow(),
+        None,
+    ).openings[0]
+
+    assert opening.has_blind
+    assert opening.current_action.blind == BlindOpening(60)
+    assert "cover.blind" not in configured_entity_ids(config_entry)
 
 
 def test_binary_rain_is_conservative_and_stale_thermal_data_is_explicit(

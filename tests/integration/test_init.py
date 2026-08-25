@@ -8,7 +8,9 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.window_climate_advisor import async_migrate_entry
 from custom_components.window_climate_advisor.const import (
+    CONF_COVER_ENTITY_ID,
     CONF_FACADE_AZIMUTH_DEG,
+    CONF_HAS_BLIND,
     CONF_HEIGHT_M,
     CONF_NAME,
     CONF_OVERHANG_DEPTH_M,
@@ -102,8 +104,45 @@ async def test_v1_geometry_migration_preserves_subentry_identity(
         CONF_HEIGHT_M: 1.2,
         CONF_OVERHANG_DEPTH_M: 0.5,
         CONF_OVERHANG_GAP_M: 0.2,
+        CONF_HAS_BLIND: False,
     }
     assert await async_migrate_entry(hass, entry)
 
     unsupported = MockConfigEntry(domain=DOMAIN, version=VERSION + 1)
     assert not await async_migrate_entry(hass, unsupported)
+
+
+async def test_v2_migration_derives_physical_blind_from_existing_cover(
+    hass: HomeAssistant,
+) -> None:
+    """Preserve legacy automated-cover capability while moving to v3."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        subentries_data=[
+            {
+                "subentry_type": SUBENTRY_TYPE_OPENING,
+                "title": "Con persiana",
+                "data": {
+                    CONF_NAME: "Con persiana",
+                    CONF_COVER_ENTITY_ID: "cover.blind",
+                },
+                "unique_id": None,
+            },
+            {
+                "subentry_type": SUBENTRY_TYPE_OPENING,
+                "title": "Sin persiana conocida",
+                "data": {CONF_NAME: "Sin persiana conocida"},
+                "unique_id": None,
+            },
+        ],
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_migrate_entry(hass, entry)
+    assert entry.version == VERSION
+    migrated = {
+        subentry.title: subentry.data[CONF_HAS_BLIND]
+        for subentry in entry.subentries.values()
+    }
+    assert migrated == {"Con persiana": True, "Sin persiana conocida": False}

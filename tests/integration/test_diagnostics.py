@@ -43,6 +43,7 @@ async def test_diagnostics_redact_household_identifiers_and_raw_state(
     assert all(str(value) not in serialized for value in private_values)
     assert report["config"]["opening_count"] == 1
     assert report["evaluation"]["openings"][0]["alias"] == "opening_1"
+    assert report["evaluation"]["openings"][0]["has_blind"] is True
     assert report["evaluation"]["openings"][0]["evaluated_candidates"] == 31
     assert report["source_quality"]["room_1:temperature"] == "ready"
     assert report["source_quality"]["opening_1:contact"] == "ready"

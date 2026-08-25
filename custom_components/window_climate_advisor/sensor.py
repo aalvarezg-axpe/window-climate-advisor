@@ -12,7 +12,7 @@ from homeassistant.const import PERCENTAGE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import CONF_COVER_ENTITY_ID, SUBENTRY_TYPE_OPENING
+from .const import CONF_HAS_BLIND, SUBENTRY_TYPE_OPENING
 from .coordinator import (
     WindowClimateAdvisorConfigEntry,
     WindowClimateAdvisorCoordinator,
@@ -65,7 +65,7 @@ async def async_setup_entry(
         entities: list[SensorEntity] = [
             OpeningRecommendationSensor(coordinator, opening_id)
         ]
-        if CONF_COVER_ENTITY_ID in subentry.data:
+        if bool(subentry.data[CONF_HAS_BLIND]):
             entities.append(RecommendedBlindPositionSensor(coordinator, opening_id))
         async_add_entities(entities, config_subentry_id=opening_id)
 

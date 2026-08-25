@@ -24,6 +24,7 @@ from .const import (
     CONF_CONTACT_ENTITY_ID,
     CONF_COVER_ENTITY_ID,
     CONF_FACADE_AZIMUTH_DEG,
+    CONF_HAS_BLIND,
     CONF_HEIGHT_M,
     CONF_HUMIDITY_ENTITY_ID,
     CONF_MINIMUM_BENEFIT_W,
@@ -278,6 +279,7 @@ def _opening_schema(entry: ConfigEntry) -> vol.Schema:
             vol.Required(CONF_OVERHANG_GAP_M): _number_selector(0, 20, unit="m"),
             vol.Required(CONF_SUPPORTS_TILT): selector.BooleanSelector(),
             vol.Required(CONF_RAIN_PROTECTED): selector.BooleanSelector(),
+            vol.Required(CONF_HAS_BLIND): selector.BooleanSelector(),
             vol.Optional(CONF_CONTACT_ENTITY_ID): _entity_selector("binary_sensor"),
             vol.Optional(CONF_COVER_ENTITY_ID): _entity_selector("cover"),
         }
@@ -450,11 +452,14 @@ class OpeningSubentryFlow(ConfigSubentryFlow):
             return self.async_abort(reason="no_rooms")
         schema = _opening_schema(entry)
         if user_input is not None:
-            if not has_duplicate_entity_links(*_entry_mappings(entry), user_input):
+            if CONF_COVER_ENTITY_ID in user_input and not user_input[CONF_HAS_BLIND]:
+                errors = {"base": "cover_without_blind"}
+            elif not has_duplicate_entity_links(*_entry_mappings(entry), user_input):
                 return self.async_create_entry(
                     title=user_input[CONF_NAME], data=user_input
                 )
-            errors = {"base": "duplicate_entity_link"}
+            else:
+                errors = {"base": "duplicate_entity_link"}
         else:
             errors = None
         return self.async_show_form(
@@ -471,7 +476,9 @@ class OpeningSubentryFlow(ConfigSubentryFlow):
         entry = self._get_entry()
         schema = _opening_schema(entry)
         if user_input is not None:
-            if not has_duplicate_entity_links(
+            if CONF_COVER_ENTITY_ID in user_input and not user_input[CONF_HAS_BLIND]:
+                errors = {"base": "cover_without_blind"}
+            elif not has_duplicate_entity_links(
                 *_entry_mappings(
                     entry,
                     exclude_subentry_id=subentry.subentry_id,
@@ -484,7 +491,8 @@ class OpeningSubentryFlow(ConfigSubentryFlow):
                     title=user_input[CONF_NAME],
                     data=user_input,
                 )
-            errors = {"base": "duplicate_entity_link"}
+            else:
+                errors = {"base": "duplicate_entity_link"}
         else:
             errors = None
         return self.async_show_form(

@@ -155,8 +155,9 @@
             "overhang_gap_m": "Vertical overhang gap",
             "supports_tilt": "Supports tilt position",
             "rain_protected": "Protected from direct rain",
+            "has_blind": "Has a blind or shutter",
             "contact_entity_id": "Window contact",
-            "cover_entity_id": "Blind or shutter"
+            "cover_entity_id": "Automated blind or shutter entity (optional)"
           }
         },
         "reconfigure": {
@@ -171,8 +172,9 @@
             "overhang_gap_m": "Vertical overhang gap",
             "supports_tilt": "Supports tilt position",
             "rain_protected": "Protected from direct rain",
+            "has_blind": "Has a blind or shutter",
             "contact_entity_id": "Window contact",
-            "cover_entity_id": "Blind or shutter"
+            "cover_entity_id": "Automated blind or shutter entity (optional)"
           }
         }
       },
@@ -180,6 +182,7 @@
         "no_rooms": "Add a room before adding an opening."
       },
       "error": {
+        "cover_without_blind": "An automated blind entity requires the opening to have a blind or shutter.",
         "duplicate_entity_link": "This entity is already assigned to another dwelling input."
       }
     }
