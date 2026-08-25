@@ -4,7 +4,8 @@
 
 - Repository: `https://github.com/aalvarezg-axpe/window-climate-advisor`
 - HACS category: Integration / custom repository
-- Candidate: GitHub prerelease `v0.1.0b1` from `release/0.1.0`
+- Candidate: GitHub prerelease `v0.1.0b2` from `release/0.1.0`
+- Beta bootstrap default branch: `release/0.1.0`; restore `main` after acceptance
 - Minimum Home Assistant: 2026.8.0
 - Shadow duration: four consecutive calendar days after the verification gate
 - Operational baseline and rollback: deployed `v4.17_pre`
@@ -15,11 +16,13 @@ service, or control a physical device.
 ## Preflight and backup
 
 1. Run `uv run --frozen python scripts/verify.py` at the candidate commit.
-2. Confirm the candidate commit is the head of remote `release/0.1.0` and the
-   GitHub prerelease points to that exact commit.
+2. Confirm the candidate commit is the head of remote `release/0.1.0`, the
+   GitHub prerelease points to that exact commit, and the beta-bootstrap default
+   branch exposes the same HACS structure without making `main` releasable.
 3. In Home Assistant, confirm `v4.17_pre` is available and unchanged.
-4. Create a Home Assistant backup named
-   `pre-window-climate-advisor-0.1.0b1` from **Settings → System → Backups**.
+4. Confirm the completed full baseline backup named
+   `pre-window-climate-advisor-0.1.0b1`; it predates both beta downloads. Create
+   a newer backup only if unrelated Home Assistant state changed meanwhile.
 5. Record the backup, candidate commit, and observed baseline in
    `docs/status/phase01-shadow.md` without storing private entity state.
 
@@ -27,7 +30,7 @@ service, or control a physical device.
 
 1. In HACS, open **Custom repositories** and add the frozen repository URL as
    type **Integration**.
-2. Select and download `v0.1.0b1`. Enable prerelease tracking for this
+2. Select and download `v0.1.0b2`. Enable prerelease tracking for this
    repository if HACS hides beta versions.
 3. Restart Home Assistant once; do not reload only the integration after a new
    custom-component install.

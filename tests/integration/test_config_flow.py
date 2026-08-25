@@ -13,7 +13,9 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from voluptuous_serialize import convert
 
 from custom_components.window_climate_advisor.config_flow import (
     CONFIG_SCHEMA,
@@ -282,6 +284,12 @@ def test_blank_dwelling_name_is_rejected() -> None:
     """Reject a dwelling name containing no visible text."""
     with pytest.raises(vol.Invalid):
         CONFIG_SCHEMA({**VALID_INPUT, CONF_NAME: "   "})
+
+
+def test_root_schemas_serialize_for_home_assistant_frontend() -> None:
+    """Keep config forms convertible by Home Assistant's HTTP flow API."""
+    for schema in (CONFIG_SCHEMA, ROOM_SCHEMA, OPTIONS_SCHEMA):
+        assert convert(schema, custom_serializer=cv.custom_serializer)
 
 
 def test_room_schema_rejects_wrong_sensor_domain() -> None:

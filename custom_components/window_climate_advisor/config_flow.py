@@ -75,14 +75,6 @@ def _entity_selector(domain: str) -> selector.EntitySelector:
     return selector.EntitySelector(selector.EntitySelectorConfig(domain=domain))
 
 
-def _non_empty_name(value: str) -> str:
-    """Reject names that contain no visible text."""
-    name = value.strip()
-    if not name:
-        raise vol.Invalid("Name must not be empty")
-    return name
-
-
 def has_duplicate_entity_links(*mappings: Mapping[str, Any]) -> bool:
     """Reject one Home Assistant entity assigned to multiple semantic inputs."""
     entity_ids = [
@@ -114,7 +106,8 @@ NAME_SELECTOR = vol.All(
     selector.TextSelector(
         selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
     ),
-    _non_empty_name,
+    vol.Strip,
+    vol.Length(min=1),
 )
 
 

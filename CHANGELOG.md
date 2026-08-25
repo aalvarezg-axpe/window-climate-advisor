@@ -52,4 +52,10 @@ Semantic Versioning after the first distributable integration release.
 - Bounded per-façade solar projection from global radiation, `sun.sun`,
   orientation, opening height, and overhang shade.
 - Public custom-HACS repository metadata, inline brand icon, and reversible
-  `0.1.0b1` shadow-candidate installation contract.
+  `0.1.0b2` shadow-candidate installation contract.
+
+### Fixed
+
+- Home Assistant 2026.8 can serialize every config-flow schema for its HTTP
+  frontend while empty and whitespace-only dwelling, room, and opening names
+  remain rejected.

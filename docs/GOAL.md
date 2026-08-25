@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.5
+> Document version: 0.6
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-25
 > Current state: **active / Phase 01**
@@ -297,6 +297,11 @@ migrations, deployment verification, or rollback.
 - HACS shadow candidates use numbered beta GitHub prereleases from the matching
   `release/<version>` branch. They do not make `main` releasable or replace the
   final annotated stable tag.
+- During the initial beta-only bootstrap, the public repository may temporarily
+  use that matching `release/<version>` branch as its GitHub default because
+  HACS validates custom-repository structure from the default branch before it
+  can expose a prerelease. `main` still contains accepted releases only; restore
+  it as the GitHub default when the first accepted release is merged there.
 
 No phase is complete until its plan records tests, review, artifact inventory,
 and relevant external verification. Deployment and Home Assistant mutation are
