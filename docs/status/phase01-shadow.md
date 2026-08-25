@@ -58,11 +58,16 @@ deliver a notification/action.
 | Checked UTC | Runtime and integrity | Weather/behaviour evidence |
 |---|---|---|
 | 2026-08-25T14:33:25Z | Candidate/schema, one loaded entry, 4 rooms, 5 openings, 6 devices, 17 unique entities, clean Repairs/logs/services/owned notifications, and the available baseline remain correct. One report-local room-temperature source exceeded the provisional 60-minute age: 11/12 source classes were ready, one of five recommendations degraded, and its recommendation/blind entities were unavailable as designed. | Solar source was ready and `sun.sun` remained above the horizon; Summer profile and forecast were active. Recorder since shadow start contains `open`, `tilt`, `close`, `hold`, and explicit `degraded` recommendation states. Seven degradation episodes were reconstructed: two whole-dwelling episodes recovered in under one minute, while five were partial; one partial episode was still open after about 178 minutes. Safety history contained `on` or explicit `unavailable`, never an unsafe observation presented as safe; current ready targets had zero non-closed/0%-blind violations. No explicit rain-safety event has occurred yet. |
+| 2026-08-25T20:32:04Z | The live gate recovered without intervention: 12/12 sources and 5/5 recommendations were ready, all 17 entities were available, and candidate/schema/structure plus clean Repairs/logs/services/owned notifications and baseline remained unchanged. All five public recommendations were stable `hold`; their resolved targets were three closed and two tilt with zero non-closed/0%-blind violations. | Daylight history now contains both above- and below-horizon states; Summer profile and forecast remain active. Cumulative Recorder evidence contains 13 degradation episodes: four whole-dwelling and nine partial, all recovered by this checkpoint. The longest partial interval lasted about 238 minutes and one whole-dwelling episode lasted about 63 minutes. Safety history still contains only `on` or explicit `unavailable`, with no false-safe state and no explicit rain-safety event yet. |
 
-The open partial episode proves that 60 minutes is not sufficient to keep this
+The observed partial episode proves that 60 minutes is not sufficient to keep this
 source continuously usable, but does not yet distinguish a healthy sparse
 report cadence from a sensor fault. Do not raise the threshold during the
-shadow period; record its recovery or persistence and assess it at closure.
+shadow period; record recurrence and assess it at closure.
+The recovered whole-dwelling interval also shows that a shared required source
+can exceed the strict 15-minute boundary for materially longer than a transient
+refresh. Recorder proves the affected scope and duration, but point-in-time
+diagnostics cannot safely assign a historical source class; do not invent one.
 
 Shadow start UTC: 2026-08-25T08:26:50Z
 
