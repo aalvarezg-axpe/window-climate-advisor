@@ -5,10 +5,11 @@ tilt positions, blinds, shutters, and solar protection from room conditions,
 outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
-The project is in **advisor/shadow deployment**. A beta is installed and its
-dwelling entry exists, but structural configuration and the four-day observed
-shadow period are still pending. It does not control physical actuators. The
-deployed automation `v4.17_pre` remains the operational baseline and rollback.
+The project is in **advisor/shadow deployment**. A beta is installed with its
+verified dwelling, room, and opening structure; owner-supplied comfort options
+and the four-day observed shadow period are still pending. It does not control
+physical actuators. The deployed automation `v4.17_pre` remains the operational
+baseline and rollback.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
 tracked in
