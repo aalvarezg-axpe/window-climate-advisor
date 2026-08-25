@@ -53,6 +53,17 @@ and publish only redacted observation evidence on the feature branch; it must
 not change Home Assistant options, reload/restart Core, call a service, or
 deliver a notification/action.
 
+## Checkpoints
+
+| Checked UTC | Runtime and integrity | Weather/behaviour evidence |
+|---|---|---|
+| 2026-08-25T14:33:25Z | Candidate/schema, one loaded entry, 4 rooms, 5 openings, 6 devices, 17 unique entities, clean Repairs/logs/services/owned notifications, and the available baseline remain correct. One report-local room-temperature source exceeded the provisional 60-minute age: 11/12 source classes were ready, one of five recommendations degraded, and its recommendation/blind entities were unavailable as designed. | Solar source was ready and `sun.sun` remained above the horizon; Summer profile and forecast were active. Recorder since shadow start contains `open`, `tilt`, `close`, `hold`, and explicit `degraded` recommendation states. Seven degradation episodes were reconstructed: two whole-dwelling episodes recovered in under one minute, while five were partial; one partial episode was still open after about 178 minutes. Safety history contained `on` or explicit `unavailable`, never an unsafe observation presented as safe; current ready targets had zero non-closed/0%-blind violations. No explicit rain-safety event has occurred yet. |
+
+The open partial episode proves that 60 minutes is not sufficient to keep this
+source continuously usable, but does not yet distinguish a healthy sparse
+report cadence from a sensor fault. Do not raise the threshold during the
+shadow period; record its recovery or persistence and assess it at closure.
+
 Shadow start UTC: 2026-08-25T08:26:50Z
 
 Scheduled shadow end UTC: 2026-08-29T08:26:50Z
