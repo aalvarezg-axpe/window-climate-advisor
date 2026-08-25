@@ -5,12 +5,13 @@ tilt positions, blinds, shutters, and solar protection from room conditions,
 outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
-The project is in **advisor/shadow deployment**. Its dwelling, room, opening,
-comfort, and runtime configuration are verified; candidate `v0.1.0b4` separates
-slow room-temperature freshness from safety/environmental freshness before the
-four-day observed shadow period starts. It does not control physical actuators.
-The deployed automation `v4.17_pre` remains the operational baseline and
-rollback.
+The project is in **advisor/shadow observation**. Its dwelling, room, opening,
+comfort, and runtime configuration are verified; installed candidate
+`v0.1.0b4` separates slow room-temperature freshness from
+safety/environmental freshness. The four-day period runs from
+2026-08-25 08:26:50 UTC through 2026-08-29 08:26:50 UTC. It does not control
+physical actuators. The deployed automation `v4.17_pre` remains the operational
+baseline and rollback.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
 tracked in
