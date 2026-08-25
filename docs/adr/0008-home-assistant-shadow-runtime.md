@@ -38,7 +38,8 @@ have no hidden operational defaults:
 - missing-forecast change penalty in watt-equivalent units;
 - minimum accepted benefit in watts;
 - blind deadband percentage;
-- maximum source age in minutes.
+- maximum safety/environmental-source age in minutes;
+- maximum room-temperature age in minutes.
 
 The options validator constructs the existing typed optimizer and stability
 settings. Until a complete valid option set exists, the entry remains loaded
@@ -52,6 +53,13 @@ ID, subentry IDs, and entity identity; for v1/v2 data, an existing cover is the
 only safe evidence from which to infer a blind. Runtime state remains the
 independently versioned application schema and fails explicitly when
 structurally invalid.
+
+Version 4 gives slow room-temperature observations their own maximum age while
+leaving the stricter safety/environmental boundary unchanged. The v3→v4
+migration copies the old shared source age into the new room key so deployment
+cannot silently weaken or strengthen an existing entry. Phase 01 explicitly
+sets the room key to a provisional 60 minutes after migration; this is one
+dwelling-wide option, not a per-entity exception system.
 
 ## Entity and diagnostics surface
 

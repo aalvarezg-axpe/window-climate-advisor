@@ -20,13 +20,16 @@ The user flow creates one dwelling entry. Multiple dwellings are allowed, so
 the manifest does not use `single_config_entry`. The entry title is mutable and
 is not used for identity. `ConfigEntry.entry_id` is the stable dwelling key.
 
-Version 3 entry data contains only structural inputs needed to assemble an
+Version 4 entry data contains only structural inputs needed to assemble an
 evaluation snapshot. Version 1 used unit-implicit opening geometry keys; the
 P01-T09 migration renames those keys without changing values or identity.
 P01-T13 separates physical blind capability from optional Home Assistant
 automation: v1/v2 entries infer `has_blind=true` only when an existing
 `cover_entity_id` proves the capability, preserving identity and requiring UI
-reconfiguration for previously inexpressible manual blinds.
+reconfiguration for previously inexpressible manual blinds. P01-T14 separates
+room-temperature age from safety/environmental-source age. The v3→v4 migration
+copies the prior shared age to both keys, preserving behaviour until the owner
+confirms a distinct room value.
 
 | Key | Required | Selector / value |
 |---|---|---|
@@ -130,7 +133,8 @@ placeholder entities.
   integrations do not use Core's `strings.json` build pipeline.
 
 P01-T09 activates the frozen entity surface under ADR 0008 and extends the
-options flow with required optimizer, stability, and source-age settings. It
+options flow with required optimizer, stability, safety/environmental-age, and
+room-temperature-age settings. It
 does not infer values while migrating a v1 entry; incomplete options remain an
 explicit degraded configuration until completed in the UI.
 

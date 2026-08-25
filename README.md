@@ -5,11 +5,12 @@ tilt positions, blinds, shutters, and solar protection from room conditions,
 outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
-The project is in **advisor/shadow deployment**. A beta is installed with its
-verified dwelling, room, and opening structure; owner-supplied comfort options
-and the four-day observed shadow period are still pending. It does not control
-physical actuators. The deployed automation `v4.17_pre` remains the operational
-baseline and rollback.
+The project is in **advisor/shadow deployment**. Its dwelling, room, opening,
+comfort, and runtime configuration are verified; candidate `v0.1.0b4` separates
+slow room-temperature freshness from safety/environmental freshness before the
+four-day observed shadow period starts. It does not control physical actuators.
+The deployed automation `v4.17_pre` remains the operational baseline and
+rollback.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
 tracked in
@@ -47,7 +48,7 @@ Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
 1. In HACS, open the menu and select **Custom repositories**.
 2. Add `https://github.com/aalvarezg-axpe/window-climate-advisor` as type
    **Integration**.
-3. Download the explicit prerelease `v0.1.0b3`; enable prerelease tracking for
+3. Download the explicit prerelease `v0.1.0b4`; enable prerelease tracking for
    this repository if HACS does not initially show it.
 4. Restart Home Assistant.
 5. Go to **Settings → Devices & services → Add integration**, search for

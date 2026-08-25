@@ -1,8 +1,8 @@
 # Phase 01 shadow status
 
 - Status: pre-shadow gate incomplete; clock not started
-- Candidate: `v0.1.0b3` / commit `28a1d46`
-- Candidate route: public GitHub prerelease installed through custom HACS
+- Candidate: `v0.1.0b4` / commit pending publication
+- Candidate route: public GitHub prerelease through custom HACS
 - Target: Home Assistant Core 2026.8.2
 - Baseline: one available `v4.17_pre` automation
 - Observation duration after the gate: four consecutive calendar days
@@ -13,7 +13,8 @@
 - Home Assistant configuration validation passed before the candidate restart.
 - HACS reports the exact candidate installed.
 - Restart unavailability and successful Core recovery were observed.
-- Exactly one config entry is loaded at schema version 3.
+- Exactly one config entry is loaded at schema version 3 pending the v4
+  migration.
 - Four verified rooms and five accepted openings are configured.
 - All five openings declare a physical manual blind; no nonexistent contact or
   automated cover entity was invented.
@@ -27,11 +28,14 @@
 
 ## Open gate
 
-The owner has not yet supplied the required Summer, Shoulder-season, and Winter
-comfort bounds, preconditioning targets, hysteresis, or the seven runtime
-optimizer/stability/source-age settings. The integration intentionally exposes
-five degraded recommendations and unavailable dependent values until these
-options are completed through the UI/API. No default will be inferred.
+The owner approved and the supported options flow accepted all comfort and
+runtime values. The first complete evaluation exposed one valid slow
+room-temperature observation older than the shared 15-minute boundary while
+all safety/environmental inputs were ready. Candidate `v0.1.0b4` must be
+published, installed, migrated, and explicitly configured with the provisional
+60-minute room boundary while retaining 15 minutes for safety/environmental
+sources. The reload/restart and clean-runtime checks must then pass before the
+clock starts.
 
 Shadow start UTC: not started
 

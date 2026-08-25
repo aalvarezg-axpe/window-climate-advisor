@@ -36,6 +36,7 @@ from .const import (
     CONF_RAIN_ENTITY_ID,
     CONF_RAIN_PROTECTED,
     CONF_ROOM_SUBENTRY_ID,
+    CONF_ROOM_TEMPERATURE_STALE_MINUTES,
     CONF_SELECTION_MODE,
     CONF_SHOULDER_HYSTERESIS_C,
     CONF_SHOULDER_LOWER_C,
@@ -204,6 +205,9 @@ OPTIONS_SCHEMA = vol.Schema(
         vol.Required(CONF_SOURCE_STALE_MINUTES): _number_selector(
             1, 1_440, unit="min", step=1
         ),
+        vol.Required(CONF_ROOM_TEMPERATURE_STALE_MINUTES): _number_selector(
+            1, 1_440, unit="min", step=1
+        ),
     }
 )
 
@@ -230,7 +234,7 @@ def profiles_from_options(user_input: dict[str, Any]) -> ComfortProfiles:
 
 def settings_from_options(
     user_input: dict[str, Any],
-) -> tuple[OptimizerSettings, StabilitySettings, float]:
+) -> tuple[OptimizerSettings, StabilitySettings, float, float]:
     """Validate runtime tuning through the existing typed settings."""
     blind_step = user_input[CONF_BLIND_STEP_PERCENT]
     if (
@@ -250,9 +254,13 @@ def settings_from_options(
         float(user_input[CONF_BLIND_DEADBAND_PERCENT]),
     )
     source_stale_minutes = float(user_input[CONF_SOURCE_STALE_MINUTES])
-    if not isfinite(source_stale_minutes) or source_stale_minutes <= 0:
-        raise ValueError("source stale minutes must be finite and positive")
-    return optimizer, stability, source_stale_minutes
+    room_stale_minutes = float(user_input[CONF_ROOM_TEMPERATURE_STALE_MINUTES])
+    if any(
+        not isfinite(minutes) or minutes <= 0
+        for minutes in (source_stale_minutes, room_stale_minutes)
+    ):
+        raise ValueError("source ages must be finite and positive")
+    return optimizer, stability, source_stale_minutes, room_stale_minutes
 
 
 def _opening_schema(entry: ConfigEntry) -> vol.Schema:

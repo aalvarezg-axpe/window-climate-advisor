@@ -3,7 +3,7 @@
 from typing import Final
 
 DOMAIN: Final = "window_climate_advisor"
-VERSION: Final = 3
+VERSION: Final = 4
 
 SUBENTRY_TYPE_ROOM: Final = "room"
 SUBENTRY_TYPE_OPENING: Final = "opening"
@@ -54,3 +54,4 @@ CONF_MISSING_FORECAST_CHANGE_PENALTY_W: Final = "missing_forecast_change_penalty
 CONF_MINIMUM_BENEFIT_W: Final = "minimum_benefit_w"
 CONF_BLIND_DEADBAND_PERCENT: Final = "blind_deadband_percent"
 CONF_SOURCE_STALE_MINUTES: Final = "source_stale_minutes"
+CONF_ROOM_TEMPERATURE_STALE_MINUTES: Final = "room_temperature_stale_minutes"

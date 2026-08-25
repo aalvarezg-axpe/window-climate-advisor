@@ -101,13 +101,18 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
         settings: EvaluationSettings | None = None
         profiles = None
         source_max_age: timedelta | None = None
+        room_temperature_max_age: timedelta | None = None
         try:
             profiles = profiles_from_options(dict(self.config_entry.options))
-            optimizer, stability, source_age_minutes = settings_from_options(
-                dict(self.config_entry.options)
-            )
+            (
+                optimizer,
+                stability,
+                source_age_minutes,
+                room_age_minutes,
+            ) = settings_from_options(dict(self.config_entry.options))
             settings = EvaluationSettings(optimizer, stability)
             source_max_age = timedelta(minutes=source_age_minutes)
+            room_temperature_max_age = timedelta(minutes=room_age_minutes)
         except KeyError, ValueError:
             pass
 
@@ -118,6 +123,7 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 self._state,
                 now,
                 source_max_age,
+                room_temperature_max_age,
             )
         except (KeyError, TypeError, ValueError) as error:
             raise UpdateFailed("Invalid stored advisor configuration") from error

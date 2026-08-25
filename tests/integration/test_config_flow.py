@@ -42,6 +42,7 @@ from custom_components.window_climate_advisor.const import (
     CONF_RAIN_ENTITY_ID,
     CONF_RAIN_PROTECTED,
     CONF_ROOM_SUBENTRY_ID,
+    CONF_ROOM_TEMPERATURE_STALE_MINUTES,
     CONF_SELECTION_MODE,
     CONF_SHOULDER_HYSTERESIS_C,
     CONF_SHOULDER_LOWER_C,
@@ -107,6 +108,7 @@ VALID_OPTIONS = {
     CONF_MINIMUM_BENEFIT_W: 50,
     CONF_BLIND_DEADBAND_PERCENT: 10,
     CONF_SOURCE_STALE_MINUTES: 15,
+    CONF_ROOM_TEMPERATURE_STALE_MINUTES: 60,
 }
 
 
@@ -308,17 +310,21 @@ def test_options_schema_rejects_invalid_mode_and_numeric_bounds() -> None:
         OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_SUMMER_LOWER_C: 4.9})
     with pytest.raises(vol.Invalid):
         OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_SOURCE_STALE_MINUTES: 0})
+    with pytest.raises(vol.Invalid):
+        OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_ROOM_TEMPERATURE_STALE_MINUTES: 0})
 
     for blind_step in (True, "10", 10.5):
         with pytest.raises(ValueError):
             settings_from_options(
                 {**VALID_OPTIONS, CONF_BLIND_STEP_PERCENT: blind_step}
             )
-    for source_age in (0, math.nan):
-        with pytest.raises(ValueError):
-            settings_from_options(
-                {**VALID_OPTIONS, CONF_SOURCE_STALE_MINUTES: source_age}
-            )
+    for age_key in (
+        CONF_SOURCE_STALE_MINUTES,
+        CONF_ROOM_TEMPERATURE_STALE_MINUTES,
+    ):
+        for source_age in (0, math.nan):
+            with pytest.raises(ValueError):
+                settings_from_options({**VALID_OPTIONS, age_key: source_age})
 
 
 async def test_options_flow_validates_and_stores_complete_profiles(

@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.7
+> Document version: 0.8
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-25
 > Current state: **active / Phase 01**
@@ -217,6 +217,14 @@ availability, and entity updates.
 Missing or stale safety inputs do not become zero wind, no rain, or favourable
 temperature. Degradation is explicit in recommendation, availability, reason
 code, and diagnostics.
+
+Safety and environmental observations use an independent, strict maximum age.
+Slow battery room-temperature observations may use one separately configured
+maximum age; changing that room boundary must never relax wind, gust, rain,
+outdoor-temperature, radiation, or solar-position freshness. The initial
+60-minute room boundary is a bounded Phase 01 shadow assumption, not a hidden
+default or a measured long-term cadence, and must be reviewed against the
+four-day evidence.
 
 ## 6. Entity contract
 

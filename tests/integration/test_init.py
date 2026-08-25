@@ -15,6 +15,8 @@ from custom_components.window_climate_advisor.const import (
     CONF_NAME,
     CONF_OVERHANG_DEPTH_M,
     CONF_OVERHANG_GAP_M,
+    CONF_ROOM_TEMPERATURE_STALE_MINUTES,
+    CONF_SOURCE_STALE_MINUTES,
     CONF_WIDTH_M,
     DOMAIN,
     SUBENTRY_TYPE_OPENING,
@@ -115,7 +117,7 @@ async def test_v1_geometry_migration_preserves_subentry_identity(
 async def test_v2_migration_derives_physical_blind_from_existing_cover(
     hass: HomeAssistant,
 ) -> None:
-    """Preserve legacy automated-cover capability while moving to v3."""
+    """Preserve legacy automated-cover capability through current schema."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         version=2,
@@ -146,3 +148,22 @@ async def test_v2_migration_derives_physical_blind_from_existing_cover(
         for subentry in entry.subentries.values()
     }
     assert migrated == {"Con persiana": True, "Sin persiana conocida": False}
+
+
+async def test_v3_migration_preserves_shared_source_age_semantics(
+    hass: HomeAssistant,
+) -> None:
+    """Copy the old shared age into the new room boundary without guessing."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=3,
+        options={CONF_SOURCE_STALE_MINUTES: 15},
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_migrate_entry(hass, entry)
+    assert entry.version == VERSION
+    assert entry.options == {
+        CONF_SOURCE_STALE_MINUTES: 15,
+        CONF_ROOM_TEMPERATURE_STALE_MINUTES: 15,
+    }

@@ -204,6 +204,7 @@ def test_ready_snapshot_normalizes_sources_and_current_action(
         AdvisorState(),
         now,
         timedelta(minutes=15),
+        timedelta(minutes=60),
     )
     opening = built.openings[0]
 
@@ -244,6 +245,7 @@ def test_no_cover_uses_persisted_window_and_weather_gust(
         previous,
         dt_util.utcnow(),
         None,
+        None,
     ).openings[0]
 
     assert not opening.has_blind
@@ -273,6 +275,7 @@ def test_manual_blind_uses_persisted_position_without_cover(
         config_entry,
         previous,
         dt_util.utcnow(),
+        None,
         None,
     ).openings[0]
 
@@ -308,6 +311,7 @@ def test_binary_rain_is_conservative_and_stale_thermal_data_is_explicit(
         AdvisorState(),
         now,
         timedelta(minutes=15),
+        timedelta(minutes=60),
     ).openings[0]
 
     assert opening.safety.rain_rate_mm_h is not None
@@ -344,6 +348,7 @@ def test_malformed_required_sources_degrade_opening(
         AdvisorState(),
         dt_util.utcnow(),
         timedelta(minutes=15),
+        timedelta(minutes=60),
     ).openings[0]
 
     if entity_id == "sensor.direction":
@@ -352,6 +357,43 @@ def test_malformed_required_sources_degrade_opening(
     else:
         assert opening.input_issue is InputIssue.MISSING_INPUT
         assert opening.current_conditions is None
+
+
+def test_room_temperature_has_independent_stale_age(
+    hass: HomeAssistant,
+) -> None:
+    """Allow slower room reports without relaxing environmental freshness."""
+    config_entry = entry()
+    set_ready_states(hass)
+    now = dt_util.utcnow()
+    hass.states.async_set(
+        "sensor.indoor",
+        "27",
+        {ATTR_UNIT_OF_MEASUREMENT: UnitOfTemperature.CELSIUS},
+        timestamp=(now - timedelta(minutes=30)).timestamp(),
+    )
+
+    ready = build_snapshot(
+        hass,
+        config_entry,
+        AdvisorState(),
+        now,
+        timedelta(minutes=15),
+        timedelta(minutes=60),
+    ).openings[0]
+    stale = build_snapshot(
+        hass,
+        config_entry,
+        AdvisorState(),
+        now,
+        timedelta(minutes=15),
+        timedelta(minutes=15),
+    ).openings[0]
+
+    assert ready.input_issue is None
+    assert ready.current_conditions is not None
+    assert stale.input_issue is InputIssue.STALE_INPUT
+    assert stale.current_conditions is None
 
 
 async def test_daily_forecast_handles_service_success_failure_and_shape(

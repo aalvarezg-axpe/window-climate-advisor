@@ -308,51 +308,52 @@ def build_snapshot(
     entry: ConfigEntry,
     previous_state: AdvisorState,
     now: datetime,
-    max_age: timedelta | None,
+    source_max_age: timedelta | None,
+    room_temperature_max_age: timedelta | None,
 ) -> SnapshotBuild:
     """Build one coherent typed dwelling snapshot without retaining HA state."""
     outdoor = _numeric_state(
         hass,
         entry.data[CONF_OUTDOOR_TEMPERATURE_ENTITY_ID],
         now,
-        max_age,
+        source_max_age,
         _temperature,
     )
     irradiance = _numeric_state(
         hass,
         entry.data[CONF_SOLAR_RADIATION_ENTITY_ID],
         now,
-        max_age,
+        source_max_age,
         _irradiance,
     )
-    sun_azimuth, sun_elevation = _sun_position(hass, now, max_age)
+    sun_azimuth, sun_elevation = _sun_position(hass, now, source_max_age)
     sun_issue = _merge_issue(sun_azimuth, sun_elevation)
     wind = _numeric_state(
         hass,
         entry.data[CONF_WIND_SPEED_ENTITY_ID],
         now,
-        max_age,
+        source_max_age,
         _speed,
     )
     direction = _numeric_state(
         hass,
         entry.data[CONF_WIND_DIRECTION_ENTITY_ID],
         now,
-        max_age,
+        source_max_age,
         _direction,
     )
     gust_entity_id = entry.data.get(CONF_WIND_GUST_ENTITY_ID)
     gust = (
-        _numeric_state(hass, gust_entity_id, now, max_age, _speed)
+        _numeric_state(hass, gust_entity_id, now, source_max_age, _speed)
         if isinstance(gust_entity_id, str)
         else _weather_gust(
             hass,
             entry.data[CONF_WEATHER_ENTITY_ID],
             now,
-            max_age,
+            source_max_age,
         )
     )
-    rain = _rain(hass, entry.data[CONF_RAIN_ENTITY_ID], now, max_age)
+    rain = _rain(hass, entry.data[CONF_RAIN_ENTITY_ID], now, source_max_age)
 
     quality = {
         "outdoor_temperature": _quality(outdoor),
@@ -382,7 +383,7 @@ def build_snapshot(
             hass,
             room.data[CONF_TEMPERATURE_ENTITY_ID],
             now,
-            max_age,
+            room_temperature_max_age,
             _temperature,
         )
         quality[f"room:{room_id}:temperature"] = _quality(room_temperatures[room_id])

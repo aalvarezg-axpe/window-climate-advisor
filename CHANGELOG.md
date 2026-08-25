@@ -52,7 +52,7 @@ Semantic Versioning after the first distributable integration release.
 - Bounded per-façade solar projection from global radiation, `sun.sun`,
   orientation, opening height, and overhang shade.
 - Public custom-HACS repository metadata, inline brand icon, and reversible
-  `0.1.0b3` shadow-candidate installation contract.
+  `0.1.0b4` shadow-candidate installation contract.
 
 ### Fixed
 
@@ -62,3 +62,6 @@ Semantic Versioning after the first distributable integration release.
 - Manual blinds are represented independently from optional automated Home
   Assistant cover entities, retaining recommendations and persisted position
   without introducing an actuator path.
+- Slow room-temperature observations have one explicit maximum age independent
+  from the stricter safety/environmental-source age. Version-3 entries migrate
+  without changing behaviour until the new option is confirmed.

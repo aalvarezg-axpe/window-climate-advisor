@@ -62,12 +62,13 @@
           "missing_forecast_change_penalty_w": "Missing-forecast change penalty",
           "minimum_benefit_w": "Minimum accepted benefit",
           "blind_deadband_percent": "Blind deadband",
-          "source_stale_minutes": "Maximum source age"
+          "source_stale_minutes": "Maximum safety and environmental source age",
+          "room_temperature_stale_minutes": "Maximum room temperature age"
         }
       }
     },
     "error": {
-      "invalid_options": "Check all profile relationships and runtime settings. Blind step must divide 100 and maximum source age must be positive."
+      "invalid_options": "Check all profile relationships and runtime settings. Blind step must divide 100 and maximum source ages must be positive."
     }
   },
   "selector": {
