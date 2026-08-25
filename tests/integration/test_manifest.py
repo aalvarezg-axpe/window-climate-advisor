@@ -10,6 +10,8 @@ MANIFEST_PATH = (
     / "manifest.json"
 )
 INTEGRATION_PATH = MANIFEST_PATH.parent
+HACS_PATH = MANIFEST_PATH.parents[2] / "hacs.json"
+BRAND_ICON_PATH = INTEGRATION_PATH / "brand" / "icon.png"
 
 
 def _translation_keys(value: object) -> object:
@@ -26,14 +28,30 @@ def test_manifest_declares_a_calculated_helper() -> None:
     assert manifest == {
         "domain": "window_climate_advisor",
         "name": "Window Climate Advisor",
-        "version": "0.1.0",
+        "version": "0.1.0b1",
         "config_flow": True,
         "dependencies": ["sun"],
+        "documentation": (
+            "https://github.com/aalvarezg-axpe/window-climate-advisor#readme"
+        ),
         "integration_type": "helper",
         "iot_class": "calculated",
-        "codeowners": [],
+        "issue_tracker": (
+            "https://github.com/aalvarezg-axpe/window-climate-advisor/issues"
+        ),
+        "codeowners": ["@aalvarezg-axpe"],
     }
     assert not (MANIFEST_PATH.parent / "strings.json").exists()
+
+
+def test_hacs_distribution_metadata_is_complete() -> None:
+    """The shadow candidate has the minimum versioned HACS contract."""
+    assert json.loads(HACS_PATH.read_text(encoding="utf-8")) == {
+        "name": "Window Climate Advisor",
+        "homeassistant": "2026.8.0",
+        "hide_default_branch": True,
+    }
+    assert BRAND_ICON_PATH.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
 
 
 def test_custom_integration_translations_are_complete() -> None:

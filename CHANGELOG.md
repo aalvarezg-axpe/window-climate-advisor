@@ -51,3 +51,5 @@ Semantic Versioning after the first distributable integration release.
   entity IDs, raw states, tokens, coordinates, and household history.
 - Bounded per-façade solar projection from global radiation, `sun.sun`,
   orientation, opening height, and overhang shade.
+- Public custom-HACS repository metadata, inline brand icon, and reversible
+  `0.1.0b1` shadow-candidate installation contract.

@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.3
+> Document version: 0.4
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-25
 > Current state: **active / Phase 01**
@@ -127,8 +127,10 @@ implemented in the custom integration and traced as follows:
   Assistant config-flow forms and subentries are sufficient initially.
 - Cloud services, multi-user accounts, external databases, MQTT publication, or
   a standalone web service.
-- Submission to Home Assistant Core, public HACS distribution, or a public
-  license before local stability and ownership decisions.
+- Submission to Home Assistant Core, inclusion in HACS's default catalog, or a
+  public license before shadow stability and ownership decisions. The owner
+  approved a public GitHub custom repository on 2026-08-25 solely as the
+  versioned installation channel for the local HACS shadow deployment.
 - Inventing missing room sensors, cover entities, positions, or geometry.
 
 ## 5. Architecture
@@ -288,10 +290,19 @@ migrations, deployment verification, or rollback.
 - Completed phases merge `--no-ff` to `develop`.
 - Releases merge to `main`, receive an annotated tag, and merge back to
   `develop`.
+- HACS shadow candidates use numbered beta GitHub prereleases from the matching
+  `release/<version>` branch. They do not make `main` releasable or replace the
+  final annotated stable tag.
 
 No phase is complete until its plan records tests, review, artifact inventory,
 and relevant external verification. Deployment and Home Assistant mutation are
 root-owned and require exact target verification.
+
+The authorized public remote is
+`https://github.com/aalvarezg-axpe/window-climate-advisor`. It is a custom HACS
+repository, not a request for inclusion in HACS's default catalog. Public
+visibility does not grant a public license; that remains a separate owner
+decision.
 
 ## 10. Initial milestone criteria
 

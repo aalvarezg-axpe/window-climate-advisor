@@ -40,6 +40,24 @@ The initial entity surface is informational:
 There are no services, notifications, helpers, YAML automations, or actuator
 platforms in the integration.
 
+## Install the shadow candidate with HACS
+
+Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
+
+1. In HACS, open the menu and select **Custom repositories**.
+2. Add `https://github.com/aalvarezg-axpe/window-climate-advisor` as type
+   **Integration**.
+3. Download the explicit prerelease `v0.1.0b1`; enable prerelease tracking for
+   this repository if HACS does not initially show it.
+4. Restart Home Assistant.
+5. Go to **Settings → Devices & services → Add integration**, search for
+   **Window Climate Advisor**, and complete its UI flows.
+
+This installs an informational shadow advisor beside `v4.17_pre`; it does not
+replace that automation or create notifications or physical actions. Follow
+the backup, verification, and rollback procedure in
+[`docs/operations/deployment.md`](docs/operations/deployment.md).
+
 ## Local development
 
 The canonical checkout is:
@@ -69,12 +87,12 @@ requires POSIX modules such as `fcntl`.
 ## Environment
 
 Copy `.env.example` to the ignored `.env`. Live Home Assistant API checks need
-`HOME_ASSISTANT_URL` and `HOME_ASSISTANT_ACCESS_TOKEN`. A separate safe route
-for installing files into Home Assistant's `config/custom_components` directory
-must be selected before deployed integration testing.
+`HOME_ASSISTANT_URL` and `HOME_ASSISTANT_ACCESS_TOKEN`. HACS is the selected
+file-installation route and needs no additional `.env` variables.
 
 ## Safety and publication
 
-No license or public distribution channel has been selected. Do not publish the
-repository or enable physical actions until the corresponding decisions and
-safety gates are explicitly approved.
+The owner approved this public GitHub repository only as a custom HACS
+installation channel. No public license or default HACS catalog submission has
+been selected. Do not enable physical actions until the separate safety gate is
+explicitly approved.

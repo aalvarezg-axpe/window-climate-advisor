@@ -194,6 +194,9 @@ entities for hypothetical consumers.
 - Merge completed phases into `develop` with `--no-ff` after all gates pass.
 - Create `release/<version>` only for a release candidate; merge it to `main`,
   create an annotated tag, and merge it back to `develop`.
+- A HACS shadow candidate may use a `v<version>bN` GitHub prerelease from its
+  `release/<version>` branch. It is not an accepted release: stable annotated
+  tags still originate from `main` only after the shadow gate passes.
 - Do not commit directly to `main`, force-push, rewrite shared history, or
   change branches unless the active plan assigns that action.
 
