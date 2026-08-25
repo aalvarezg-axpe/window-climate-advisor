@@ -47,6 +47,12 @@ boundary remains provisional and must be assessed from this evidence. Do not
 change options, deliver notifications, or introduce physical actions during
 the period without stopping and restarting the comparison explicitly.
 
+Codex heartbeat `seguimiento-shadow-window-climate-advisor` performs a
+read-only checkpoint every six hours through the scheduled end. It may update
+and publish only redacted observation evidence on the feature branch; it must
+not change Home Assistant options, reload/restart Core, call a service, or
+deliver a notification/action.
+
 Shadow start UTC: 2026-08-25T08:26:50Z
 
 Scheduled shadow end UTC: 2026-08-29T08:26:50Z
