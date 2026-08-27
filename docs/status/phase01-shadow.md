@@ -73,6 +73,7 @@ clipped there, and the first run at/after that time must stop this heartbeat.
 | 2026-08-26T20:47:51Z | The same two report-local room-temperature classes remain `stale_input`: 10/12 source classes are ready, three recommendations are `hold`/`optimizer`, two are explicitly `degraded`, and 13/17 entities are available. The degraded blind/safety pairs remain unavailable and do not report safe. The three ready resolved targets are one open and two tilt; all have numeric, bounded, positive blind targets. Candidate b4/schema v4, one loaded entry, 4 rooms, 5 openings, 6 devices, 17 unique entities, zero duplicates/disabled entities/Repairs/integration-attributable error logs/services/active owned persistent notifications, and available v4.17_pre remain correct. The system log also contains the standard global loader warning that groups unverified custom integrations; it has no candidate exception or traceback and is not an integration-attributable error record. | Both intervals open at 14:44 recovered without intervention after 212.2/34.2 minutes. Eleven new degraded intervals form five partial cohorts; nine recovered and two are open for 246.5/4.5 minutes. Two four-opening cohorts recovered in at most 1.8/1.0 minutes, and another partial interval recovered after 59.8 minutes. Cumulative totals are 86 intervals in 38 cohorts (five with all openings and 33 partial), with two open; maximum duration remains 468.7 minutes. New recommendation records: three `open`, five `tilt`, 18 `hold`, 11 `degraded`; safety: 11 `on`, 11 `unavailable`. Partial Day 2 now has 104/195 numeric exterior records at/above 27 °C, 644/645 positive irradiance records, and no positive rainfall in one numeric record; no unusable records. Source/unit/start checks and the existing identity/cadence/direct-sun limits still apply. No Home Assistant mutation. |
 | 2026-08-27T02:44:44Z | The same two report-local room-temperature classes remain `stale_input`: 10/12 source classes are ready, three recommendations are `hold`/`optimizer`, two are explicitly `degraded`, and 13/17 entities are available. The degraded blind/safety pairs remain unavailable and do not report safe. The three ready resolved targets remain one open and two tilt with numeric, bounded, positive blind targets. Candidate b4/schema v4, one loaded entry, 4 rooms, 5 openings, 6 devices, 17 unique entities, zero duplicates/disabled entities/Repairs/integration-attributable error logs/services/active owned persistent notifications, available v4.17_pre, and the previously classified global loader warning remain unchanged. | Of the two intervals open at 20:47, one recovered without intervention after 60.2 minutes and one remains open for 603.4 minutes. Seven new degraded intervals form five partial cohorts; six recovered and one remains open for 15.4 minutes. The recovered intervals include one further 60.2-minute episode. Cumulative totals are 93 intervals in 43 cohorts (five with all openings and 38 partial), with two open; the new maximum duration is 603.4 minutes. New recommendation records: one `open`, one `tilt`, nine `hold`, seven `degraded`; safety: seven `on`, seven `unavailable`. Partial Day 2 has 104/251 numeric exterior records at/above 27 °C, 644/645 positive irradiance records, and no positive rainfall in one numeric record; no unusable records. Source/unit/start checks and the existing identity/cadence/direct-sun limits still apply. No Home Assistant mutation. |
 | 2026-08-27T08:45:51Z | Recovery passed without intervention: 12/12 source classes, five `hold`/`optimizer` recommendations, all five blind/safety pairs, and 17/17 entities are available. Resolved targets are two closed and three tilt; all five blind targets are numeric, bounded, and coherent, including `hold`. Candidate b4/schema v4, one loaded entry, 4 rooms, 5 openings, 6 devices, 17 unique entities, zero duplicates/disabled entities/Repairs/integration-attributable error logs/services/active owned persistent notifications, available v4.17_pre, and the previously classified global loader warning remain unchanged. | Both intervals open at 02:44 recovered without intervention after 803.7/263.2 minutes. Eleven new degraded intervals in five partial cohorts also recovered; their longest duration was 58.9 minutes. Cumulative totals are 104 intervals in 48 cohorts (five with all openings and 43 partial), none open; maximum duration is 803.7 minutes. New recommendation records: three `close`, two `open`, 18 `hold`, 11 `degraded`; safety: 13 `on`, 11 `unavailable`. Summer/forecast remain available. The completed second-day weather and availability evidence is summarized below. No Home Assistant mutation. |
+| 2026-08-27T14:45:04Z | One report-local room-temperature class is `stale_input`: 11/12 source classes are ready, four recommendations are `hold`/`optimizer`, one is explicitly `degraded`, and 15/17 entities are available. Its blind/safety pair is unavailable and does not report safe. The four ready resolved targets are one open and three closed; all have numeric, bounded, coherent blind targets. Candidate b4/schema v4, one loaded entry, 4 rooms, 5 openings, 6 devices, 17 unique entities, zero duplicates/disabled entities/Repairs/integration-attributable error logs/services/active owned persistent notifications, available v4.17_pre, and the previously classified global loader warning remain unchanged. | Seven new degraded intervals form six partial cohorts; six recovered and one remains open for 81.7 minutes. Cumulative totals are 111 intervals in 54 cohorts (five with all openings and 49 partial), with one open; maximum duration remains 803.7 minutes. New recommendation records: three `close`, four `open`, one `tilt`, 12 `hold`, seven `degraded`; safety: three `off`, nine `on`, seven `unavailable`. Partial Day 3 contains the first positive-rain evidence: three of five numeric rainfall records are positive; all three new safety-`off` records and two of three new `close` records occur within one minute of a positive-rain record. This is temporal alignment, not historical reason attribution: current reasons are four `optimizer` and one `stale_input`. Irradiance is positive in 377/377 numeric records, no exterior record among 108 meets 27 °C, and no weather record is unusable. No Home Assistant mutation. |
 
 The observed partial episode proves that 60 minutes is not sufficient to keep this
 source continuously usable, but does not yet distinguish a healthy sparse
@@ -90,14 +91,16 @@ boundary was exceeded. Historical source quality and reason codes were not
 recorded by those entity histories; point-in-time diagnostics cannot supply
 them retroactively.
 
-Evidence limits: safety `on`/`unavailable` counts alone cannot establish the
-absence of every historical false-safe result or rain event. The 02:34 UTC
-diagnostic confirmed that neither degraded opening reported safe. Above/below
-horizon confirms day/night coverage, not direct solar irradiance; an active
-Summer profile does not prove heat exposure. Direct rain/heat/solar coverage
-and the approved baseline comparison remain required at closure. These
-clarifications correct the earlier overbroad safety and shared-source claims;
-they do not change the observed counts or weaken acceptance gates.
+Evidence limits: safety-state counts alone cannot establish the absence of
+every historical false-safe result or attribute a recommendation reason. The
+02:34 UTC diagnostic confirmed that neither degraded opening reported safe.
+Above/below horizon confirms day/night coverage, not direct solar irradiance;
+an active Summer profile does not prove heat exposure. Baseline-source history
+now covers positive irradiance on Days 1–3, heat on Day 2, and positive rain on
+partial Day 3; the rain/safety/close alignment is temporal, not a retained
+reason code. The approved baseline comparison remains required at closure.
+These clarifications do not change the observed counts or weaken acceptance
+gates.
 
 ## Completed daily evidence
 
@@ -132,8 +135,10 @@ histories do not prove continuous freshness or absence of rain/heat between
 reports. These are baseline-selected sources; the integration's redacted
 diagnostics do not independently expose source identity. Day 1 establishes
 positive irradiance; Day 2 establishes exterior heat and positive irradiance.
-Rain coverage and paired behavioural comparison remain open. The 60-minute
-room boundary is unchanged and not accepted.
+Partial Day 3 now establishes positive rainfall with temporally aligned
+safety-`off` and `close` records; its exact daily totals and historical reason
+attribution are not yet complete. The paired behavioural comparison remains
+open. The 60-minute room boundary is unchanged and not accepted.
 
 Shadow start UTC: 2026-08-25T08:26:50Z
 
