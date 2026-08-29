@@ -71,10 +71,15 @@ def opening(
     )
 
 
-def snapshot(item: OpeningSnapshot, *, configured: bool = True) -> EvaluationSnapshot:
-    """Build one Summer snapshot or an explicitly incomplete configuration."""
+def snapshot(
+    item: OpeningSnapshot,
+    *,
+    configured: bool = True,
+    season: Season = Season.SUMMER,
+) -> EvaluationSnapshot:
+    """Build one seasonal snapshot or an explicitly incomplete configuration."""
     return EvaluationSnapshot(
-        Season.SUMMER if configured else None,
+        season if configured else None,
         PROFILE if configured else None,
         (item,),
     )
@@ -123,6 +128,28 @@ def test_weather_restrictions_publish_stable_close_or_tilt(
 
     assert result.openings["opening"].recommendation is expected
     assert result.openings["opening"].recommended_window_state is state
+
+
+def test_evaluator_delivers_explicit_season_to_optimizer() -> None:
+    """Keep Summer neutral where the same profile lets Winter seek heat."""
+    item = opening(conditions=ThermalConditions(18, 25, 600))
+
+    summer = evaluate_snapshot(snapshot(item), AdvisorState(), NOW, SETTINGS)
+    winter = evaluate_snapshot(
+        snapshot(item, season=Season.WINTER),
+        AdvisorState(),
+        NOW,
+        SETTINGS,
+    )
+
+    summer_result = summer.openings["opening"].optimization
+    winter_result = winter.openings["opening"].optimization
+    assert summer_result is not None
+    assert winter_result is not None
+    assert summer_result.best.thermal_cost_w == abs(
+        summer_result.best.current_load.total_w
+    )
+    assert winter_result.best.thermal_cost_w == -winter_result.best.current_load.total_w
 
 
 def test_missing_safety_and_thermal_inputs_degrade_without_favourable_defaults() -> (

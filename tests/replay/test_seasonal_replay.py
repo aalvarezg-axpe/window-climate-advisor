@@ -23,6 +23,7 @@ from custom_components.window_climate_advisor.domain.models import (
 from custom_components.window_climate_advisor.domain.optimizer import (
     CandidateAction,
     OptimizationRequest,
+    OptimizationResult,
     OptimizerSettings,
     optimize_opening,
 )
@@ -115,17 +116,22 @@ def _conditions(value: dict[str, Any]) -> ThermalConditions:
 
 
 def _comfort_cost(
-    load: ThermalLoad, temperature_c: float, profile: ComfortProfile
+    load: ThermalLoad,
+    temperature_c: float,
+    profile: ComfortProfile,
+    season: Season,
 ) -> float:
-    if (
+    heating_required = (
         temperature_c <= profile.lower_c
         or temperature_c < profile.preconditioning_target_c - profile.hysteresis_c
-    ):
+    )
+    if heating_required and season is not Season.SUMMER:
         return -load.total_w
-    if (
+    cooling_required = (
         temperature_c >= profile.upper_c
         or temperature_c > profile.preconditioning_target_c + profile.hysteresis_c
-    ):
+    )
+    if cooling_required and season is not Season.WINTER:
         return load.total_w
     return abs(load.total_w)
 
@@ -136,12 +142,13 @@ def _horizon_cost(
     forecast: ThermalConditions | None,
     dimensions: OpeningDimensions,
     profile: ComfortProfile,
+    season: Season,
     calibration: ThermalCalibration,
 ) -> float:
     current_load = candidate_thermal_load(
         dimensions, action.window_state, action.blind, current, calibration
     )
-    cost = _comfort_cost(current_load, current.indoor_temperature_c, profile)
+    cost = _comfort_cost(current_load, current.indoor_temperature_c, profile, season)
     if forecast is None:
         return cost
     forecast_load = candidate_thermal_load(
@@ -149,7 +156,7 @@ def _horizon_cost(
     )
     return max(
         cost,
-        _comfort_cost(forecast_load, forecast.indoor_temperature_c, profile),
+        _comfort_cost(forecast_load, forecast.indoor_temperature_c, profile, season),
     )
 
 
@@ -177,6 +184,7 @@ def run_replay(
         opening["rain_protected"],
     )
     profile = ComfortProfile(**data["profiles"][scenario["season"]])
+    season = Season(scenario["season"])
     optimizer_settings = OptimizerSettings(**data["optimizer"])
     stability_settings = StabilitySettings(**data["stability"])
     sample_duration_h = data["sample_minutes"] / 60
@@ -234,6 +242,7 @@ def run_replay(
                     OptimizationRequest(
                         dimensions,
                         profile,
+                        season,
                         current,
                         forecast,
                         current_action,
@@ -293,13 +302,25 @@ def run_replay(
                 )
                 values["new_comfort"] += (
                     _horizon_cost(
-                        new, current, forecast, dimensions, profile, calibration
+                        new,
+                        current,
+                        forecast,
+                        dimensions,
+                        profile,
+                        season,
+                        calibration,
                     )
                     * sample_duration_h
                 )
                 values["legacy_comfort"] += (
                     _horizon_cost(
-                        legacy, current, forecast, dimensions, profile, calibration
+                        legacy,
+                        current,
+                        forecast,
+                        dimensions,
+                        profile,
+                        season,
+                        calibration,
                     )
                     * sample_duration_h
                 )
@@ -436,6 +457,76 @@ def test_required_boundaries_have_the_expected_stable_recommendations() -> None:
     assert (
         CandidateAction(WindowState.CLOSED, BlindOpening(100))
         in winter["winter_solar_gain_above_24_c"]
+    )
+
+
+def test_redacted_shadow_boundaries_do_not_reverse_seasonal_intent() -> None:
+    """Cover derived hot-sun and cool-air ranges without household raw data."""
+    dimensions = OpeningDimensions(1.6, 1.2)
+    settings = OptimizerSettings(10, 0, 0, 0)
+    current_action = CandidateAction(WindowState.CLOSED, BlindOpening(100))
+
+    def result(
+        profile: ComfortProfile,
+        season: Season,
+        conditions: ThermalConditions,
+    ) -> OptimizationResult:
+        return optimize_opening(
+            OptimizationRequest(
+                dimensions,
+                profile,
+                season,
+                conditions,
+                None,
+                current_action,
+                True,
+            ),
+            settings,
+        )
+
+    summer_profile = ComfortProfile(24, 27, 25, 0.5)
+    hot_sun = result(
+        summer_profile,
+        Season.SUMMER,
+        ThermalConditions(23.5, 29, 500),
+    )
+    hot_sun_symmetric = result(
+        summer_profile,
+        Season.SHOULDER,
+        ThermalConditions(23.5, 29, 500),
+    )
+    cool_evening = result(
+        summer_profile,
+        Season.SUMMER,
+        ThermalConditions(24.4, 17, 0),
+    )
+    warm_winter = result(
+        ComfortProfile(19, 25.5, 24.8, 0.5),
+        Season.WINTER,
+        ThermalConditions(26, 15, 0),
+    )
+    warm_winter_symmetric = result(
+        ComfortProfile(19, 25.5, 24.8, 0.5),
+        Season.SHOULDER,
+        ThermalConditions(26, 15, 0),
+    )
+
+    assert hot_sun.best.action == CandidateAction(WindowState.CLOSED, BlindOpening(0))
+    assert hot_sun_symmetric.best.action == CandidateAction(
+        WindowState.OPEN, BlindOpening(100)
+    )
+    assert cool_evening.best.action == CandidateAction(
+        WindowState.CLOSED, BlindOpening(100)
+    )
+    assert warm_winter.best.action == CandidateAction(
+        WindowState.CLOSED, BlindOpening(100)
+    )
+    assert warm_winter_symmetric.best.action == CandidateAction(
+        WindowState.OPEN, BlindOpening(100)
+    )
+    assert all(
+        item.best.thermal_cost_w == abs(item.best.current_load.total_w)
+        for item in (hot_sun, cool_evening, warm_winter)
     )
 
 

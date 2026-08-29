@@ -16,12 +16,21 @@ to win a tie. When an opening has no configured blind, only 100% is feasible;
 the optimizer must not invent unavailable solar protection. Do not add a
 numerical solver or optimization dependency.
 
-For each current or forecast horizon, derive intent from the selected profile:
-heat below the lower bound or preconditioning target minus hysteresis, cool
-above the upper bound or target plus hysteresis, otherwise hold. Candidate
-thermal cost is `-load` for heating, `load` for cooling, and `abs(load)` for
-hold; lower is better. When a valid forecast exists, use the worse of current
-and forecast cost.
+For each current or forecast horizon, derive intent from the selected profile
+and explicit season. Shoulder season remains symmetric: heat below the lower
+bound or preconditioning target minus hysteresis, cool above the upper bound or
+target plus hysteresis, otherwise neutral. Summer keeps cooling but maps the
+heating side to neutral; Winter keeps heating but maps the cooling side to
+neutral. Candidate thermal cost is `-load` for heating, `load` for cooling, and
+`abs(load)` for neutrality; lower is better. The profile boundaries and
+hysteresis are unchanged. When a valid forecast exists, use the worse of the
+current and forecast costs under the same season.
+
+This P01-T18 amendment prevents deliberate Summer gain from hotter outdoor air
+or sun once cooling is unnecessary, and deliberate Winter loss to colder air
+once heating is unnecessary. Neutrality minimizes signed-load magnitude; it
+does not prescribe a window or blind position. Shoulder behaviour, physical
+calibration, and downstream absolute weather safety are unchanged.
 
 The total score in watt-equivalent comparison units is:
 

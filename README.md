@@ -30,6 +30,11 @@ Current solar load is projected per opening from global radiation,
 position data degrades the recommendation instead of inventing a favourable
 value.
 
+Seasonal intent is explicit at the optimizer boundary. Summer may cool but is
+neutral when heating would otherwise be requested; Winter may heat but is
+neutral when cooling would otherwise be requested. Shoulder season retains the
+symmetric heat/cool/neutral objective. Weather safety remains absolute.
+
 The initial entity surface is informational:
 
 - resolved `open`/`tilt`/`close` recommendation per opening, or explicit

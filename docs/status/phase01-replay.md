@@ -1,8 +1,8 @@
 # Phase 01 seasonal replay
 
-- Task: `P01-T08`
-- Date: 2026-08-25
-- Local status: verified; owner decisions recorded
+- Tasks: `P01-T08`, `P01-T18`
+- Dates: 2026-08-25; one-sided seasonal correction 2026-08-30
+- Local status: verified; owner decisions and correction recorded
 - Fixture: `tests/fixtures/replay/seasonal_v1.json`, schema 1
 - Baseline: characterized v4.17 actions stored per segment with Cxxx sources
 
@@ -67,8 +67,9 @@ the shadow period and must not be described as measured.
    owner accepted this difference on 2026-08-25.
 2. The owner rejected the former adverse-forecast `tilt/0%` result. P01-T04
    removed non-closed/0% candidates, and P01-T07 coordinated stable joint
-   transitions and `hold`. The adverse segment now yields `closed/0%`, matching
-   v4.17, and the replay asserts the invariant over every observed action.
+   transitions and resolved stable targets. The adverse segment now yields
+   `closed/0%`, matching v4.17, and the replay asserts the invariant over every
+   observed action.
 3. The owner accepted 33 stable transitions/candidates versus 28 raw v4.17
    transitions on 2026-08-25 because they had zero churn or duplicates. The
    coherence correction groups three intermediate transitions, reducing the
@@ -80,6 +81,31 @@ These decisions permit P01-T09 to connect the engine as informational entities
 only. They do not approve a notification delivery path, actuator control, or
 deployment; v4.17 remains unchanged and is still the rollback.
 
+## P01-T18 one-sided seasonal correction
+
+The owner subsequently rejected the symmetric objective on the inactive side
+of Summer and Winter. `OptimizationRequest` now carries its typed season to
+both current and forecast horizons. Summer maps would-be heating to neutral
+absolute-load minimization; Winter maps would-be cooling to the same neutral
+objective. Shoulder season retains the original symmetric objective and the
+profile boundaries/hysteresis are unchanged.
+
+Three redacted derived-boundary regressions cover the shadow observations
+without retaining entity IDs, names, coordinates, or raw household history:
+
+| Season and derived boundary | Corrected optimum | Symmetric comparison |
+|---|---|---|
+| Summer, below cooling switch with hotter exterior and direct sun | `closed/0%`, minimizing gain | `open/100%`, deliberately seeking gain |
+| Summer, below cooling switch near night with materially cooler exterior | `closed/100%`, minimizing loss | Same action, but the symmetric branch framed it as heating rather than neutrality |
+| Winter, above heating need with materially cooler exterior | `closed/100%`, minimizing loss | `open/100%`, deliberately seeking cooling |
+
+The versioned three-season fixture already exercised only the active or neutral
+side of these policies, so its nominal table and safety/stability counts remain
+unchanged. P01-T18 adds explicit Summer/Winter boundary, adverse-forecast,
+Shoulder-symmetry, and application-delivery tests rather than rewriting that
+immutable synthetic fixture. It does not validate the separate provisional
+blind-airflow relation owned by P01-T19.
+
 ## Verification
 
 Focused command:
@@ -90,3 +116,7 @@ wsl --cd "$PWD" -- bash -lc 'UV_PROJECT_ENVIRONMENT="$HOME/.cache/window-climate
 
 Result: 5 passed. The canonical repository gate passed 100 tests with 684
 statements and 214 branches at 100% coverage.
+
+P01-T18 focused result: 36 passed. The canonical repository gate passed 149
+tests at 96.98% coverage, including Ruff, format, strict mypy, artifacts,
+secrets, replay, and safety checks.

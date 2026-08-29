@@ -128,9 +128,10 @@ def evaluate_snapshot(
     evaluated: dict[str, tuple[OpeningSnapshot, OptimizationResult, PolicyResult]] = {}
     results: dict[str, OpeningEvaluation] = {}
     profile = snapshot.profile
+    season = snapshot.season
 
     for opening in snapshot.openings:
-        if profile is None or settings is None:
+        if profile is None or season is None or settings is None:
             results[opening.opening_id] = _degraded(InputIssue.CONFIGURATION_REQUIRED)
             continue
         issue = opening.input_issue
@@ -142,6 +143,7 @@ def evaluate_snapshot(
             OptimizationRequest(
                 opening.dimensions,
                 profile,
+                season,
                 opening.current_conditions,
                 opening.forecast_conditions,
                 opening.current_action,

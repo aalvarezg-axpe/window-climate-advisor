@@ -167,9 +167,10 @@ Code tracing found two acceptance gaps beyond calibration:
    an initial `hold` target.
 
 P01-T15 records this audit. P01-T16 separately owns the missing live forecast
-horizon, P01-T17 owns Recorder-visible target/reason evidence, and P01-T18 is
-blocked on the owner's Summer-policy and blind-calibration decision. No code or
-Home Assistant configuration is changed by this audit.
+horizon and P01-T17 owns Recorder-visible target/reason evidence. After this
+audit, the owner approved the one-sided Summer/Winter contract implemented by
+P01-T18; blind-airflow evidence remains isolated in P01-T19. No code or Home
+Assistant configuration was changed by the audit itself.
 
 ## Four-day evidence
 

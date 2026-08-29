@@ -17,7 +17,10 @@ from custom_components.window_climate_advisor.domain.optimizer import (
     enumerate_actions,
     optimize_opening,
 )
-from custom_components.window_climate_advisor.domain.profiles import ComfortProfile
+from custom_components.window_climate_advisor.domain.profiles import (
+    ComfortProfile,
+    Season,
+)
 
 DIMENSIONS = OpeningDimensions(1.6, 1.2)
 PROFILE = ComfortProfile(20, 25, 23, 0.5)
@@ -29,6 +32,7 @@ def request(
     current: ThermalConditions,
     *,
     forecast: ThermalConditions | None = None,
+    season: Season = Season.SHOULDER,
     current_action: CandidateAction = DEFAULT_CURRENT_ACTION,
     supports_tilt: bool = True,
     has_blind: bool = True,
@@ -37,6 +41,7 @@ def request(
     return OptimizationRequest(
         dimensions=DIMENSIONS,
         profile=PROFILE,
+        season=season,
         current_conditions=current,
         forecast_conditions=forecast,
         current_action=current_action,
@@ -140,6 +145,107 @@ def test_heating_and_hold_objectives_cover_all_profile_intents() -> None:
     assert heating.best.thermal_cost_w == -heating.best.current_load.total_w
     assert hold.best.action == hold_action
     assert hold.best.total_cost_w == 0
+
+
+@pytest.mark.parametrize(
+    ("season", "conditions", "expected_neutral", "expected_symmetric"),
+    [
+        (
+            Season.SUMMER,
+            ThermalConditions(18, 29, 500),
+            CandidateAction(WindowState.CLOSED, BlindOpening(0)),
+            CandidateAction(WindowState.OPEN, BlindOpening(100)),
+        ),
+        (
+            Season.WINTER,
+            ThermalConditions(26, 15, 0),
+            CandidateAction(WindowState.CLOSED, BlindOpening(100)),
+            CandidateAction(WindowState.OPEN, BlindOpening(100)),
+        ),
+    ],
+)
+def test_inactive_seasonal_direction_seeks_neutrality(
+    season: Season,
+    conditions: ThermalConditions,
+    expected_neutral: CandidateAction,
+    expected_symmetric: CandidateAction,
+) -> None:
+    """Stop unwanted seasonal gain or loss instead of reversing intent."""
+    neutral = optimize_opening(
+        request(conditions, season=season),
+        ZERO_PENALTIES,
+    )
+    symmetric = optimize_opening(
+        request(conditions, season=Season.SHOULDER),
+        ZERO_PENALTIES,
+    )
+
+    assert neutral.best.action == expected_neutral
+    assert symmetric.best.action == expected_symmetric
+    assert neutral.best.thermal_cost_w == abs(neutral.best.current_load.total_w)
+    assert abs(neutral.best.current_load.total_w) < abs(
+        symmetric.best.current_load.total_w
+    )
+
+
+@pytest.mark.parametrize(
+    ("season", "conditions"),
+    [
+        (Season.SUMMER, ThermalConditions(25, 20, 0)),
+        (Season.WINTER, ThermalConditions(20, 25, 400)),
+    ],
+)
+def test_active_seasonal_direction_still_uses_profile_boundaries(
+    season: Season,
+    conditions: ThermalConditions,
+) -> None:
+    """Keep Summer cooling and Winter heating active at exact outer bounds."""
+    result = optimize_opening(
+        request(conditions, season=season),
+        ZERO_PENALTIES,
+    )
+
+    load = result.best.current_load.total_w
+    assert result.best.action == CandidateAction(WindowState.OPEN, BlindOpening(100))
+    assert result.best.thermal_cost_w == (load if season is Season.SUMMER else -load)
+
+
+@pytest.mark.parametrize(
+    ("season", "current", "forecast"),
+    [
+        (
+            Season.SUMMER,
+            ThermalConditions(27, 20, 0),
+            ThermalConditions(23.5, 29, 500),
+        ),
+        (
+            Season.WINTER,
+            ThermalConditions(19, 25, 400),
+            ThermalConditions(26, 15, 0),
+        ),
+    ],
+)
+def test_forecast_uses_the_same_one_sided_seasonal_contract(
+    season: Season,
+    current: ThermalConditions,
+    forecast: ThermalConditions,
+) -> None:
+    """Score an inactive forecast direction as neutral, not opposite intent."""
+    result = optimize_opening(
+        request(current, forecast=forecast, season=season),
+        ZERO_PENALTIES,
+    )
+
+    assert result.best.forecast_load is not None
+    current_cost = (
+        result.best.current_load.total_w
+        if season is Season.SUMMER
+        else -result.best.current_load.total_w
+    )
+    assert result.best.thermal_cost_w == max(
+        current_cost,
+        abs(result.best.forecast_load.total_w),
+    )
 
 
 def test_tie_breaking_is_repeatable_and_prefers_the_current_combination() -> None:

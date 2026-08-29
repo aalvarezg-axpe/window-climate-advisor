@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from math import isfinite
 
 from .models import BlindOpening, OpeningDimensions, ThermalConditions, WindowState
-from .profiles import ComfortProfile
+from .profiles import ComfortProfile, Season
 from .thermal import (
     DEFAULT_THERMAL_CALIBRATION,
     ThermalCalibration,
@@ -62,6 +62,7 @@ class OptimizationRequest:
 
     dimensions: OpeningDimensions
     profile: ComfortProfile
+    season: Season
     current_conditions: ThermalConditions
     forecast_conditions: ThermalConditions | None
     current_action: CandidateAction
@@ -114,18 +115,23 @@ def enumerate_actions(
 
 
 def _thermal_cost_w(
-    load: ThermalLoad, temperature_c: float, profile: ComfortProfile
+    load: ThermalLoad,
+    temperature_c: float,
+    profile: ComfortProfile,
+    season: Season,
 ) -> float:
     """Return lower-is-better thermal cost for the horizon's comfort intent."""
-    if (
+    heating_required = (
         temperature_c <= profile.lower_c
         or temperature_c < profile.preconditioning_target_c - profile.hysteresis_c
-    ):
+    )
+    if heating_required and season is not Season.SUMMER:
         return -load.total_w
-    if (
+    cooling_required = (
         temperature_c >= profile.upper_c
         or temperature_c > profile.preconditioning_target_c + profile.hysteresis_c
-    ):
+    )
+    if cooling_required and season is not Season.WINTER:
         return load.total_w
     return abs(load.total_w)
 
@@ -148,6 +154,7 @@ def _evaluate(
         current_load,
         request.current_conditions.indoor_temperature_c,
         request.profile,
+        request.season,
     )
 
     forecast_load: ThermalLoad | None = None
@@ -166,6 +173,7 @@ def _evaluate(
                 forecast_load,
                 request.forecast_conditions.indoor_temperature_c,
                 request.profile,
+                request.season,
             ),
         )
 

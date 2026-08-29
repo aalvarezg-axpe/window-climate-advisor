@@ -56,6 +56,10 @@ Semantic Versioning after the first distributable integration release.
 
 ### Fixed
 
+- Seasonal optimization is one-sided by explicit profile season: Summer no
+  longer seeks heat and Winter no longer seeks cooling on their inactive side;
+  each seeks minimum absolute thermal load there, while Shoulder season remains
+  symmetric and weather safety is unchanged.
 - Recommendation entities expose the resolved stable `open`, `tilt`, or
   `close` target instead of the ambiguous public `hold` state. A translated,
   bounded reason attribute preserves Recorder reconstruction without changing

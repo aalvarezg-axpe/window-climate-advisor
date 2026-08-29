@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.11
+> Document version: 0.12
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-30
 > Current state: **active / Phase 01**
