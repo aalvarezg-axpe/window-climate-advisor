@@ -2,9 +2,9 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.8
+> Document version: 0.9
 > Initial date: 2026-08-24
-> Last reviewed: 2026-08-25
+> Last reviewed: 2026-08-29
 > Current state: **active / Phase 01**
 > Home Assistant display timezone: `Europe/Madrid`
 > Internal operational timezone: UTC
@@ -221,10 +221,12 @@ code, and diagnostics.
 Safety and environmental observations use an independent, strict maximum age.
 Slow battery room-temperature observations may use one separately configured
 maximum age; changing that room boundary must never relax wind, gust, rain,
-outdoor-temperature, radiation, or solar-position freshness. The initial
-60-minute room boundary is a bounded Phase 01 shadow assumption, not a hidden
-default or a measured long-term cadence, and must be reviewed against the
-four-day evidence.
+outdoor-temperature, radiation, or solar-position freshness. Four-day shadow
+evidence rejected the initial 60-minute room boundary for continuous
+availability. The owner selected 125 minutes—two expected 60-minute report
+cycles plus five minutes of margin—for later deployment through supported
+options and live verification. It is not deployed by the read-only shadow; the
+independent 15-minute safety/environmental boundary remains unchanged.
 
 ## 6. Entity contract
 

@@ -1,6 +1,6 @@
 # Phase 01 shadow status
 
-- Status: shadow observation running
+- Status: four-day observation closed; acceptance blocked on comparison scope
 - Candidate: `v0.1.0b4` / commit `f9d91aa`
 - Candidate route: public GitHub prerelease installed through custom HACS
 - Target: Home Assistant Core 2026.8.2
@@ -39,19 +39,18 @@
 - Final Repairs, system-log, integration-service, and owned persistent-
   notification counts are zero.
 
-## Observation in progress
+## Observation closed
 
-Record rain, heat, and sun coverage; recommendation/reason changes; source
-degradation and recovery; and comparison with `v4.17_pre`. The 60-minute room
-boundary remains provisional and must be assessed from this evidence. Do not
-change options, deliver notifications, or introduce physical actions during
-the period without stopping and restarting the comparison explicitly.
+The exact four-day window closed with positive rain, exterior heat, and solar
+irradiance evidence. Home Assistant remained read-only throughout. The
+deployed 60-minute room-temperature age was rejected from the evidence; the
+owner selected 125 minutes for later supported-options deployment and live
+verification. The independent 15-minute safety/environmental age is unchanged.
 
-Codex heartbeat `seguimiento-shadow-window-climate-advisor` performs a
-read-only checkpoint every six hours through the scheduled end. It may update
-and publish only redacted observation evidence on the feature branch; it must
-not change Home Assistant options, reload/restart Core, call a service, or
-deliver a notification/action.
+Codex heartbeat `seguimiento-shadow-window-climate-advisor` performed
+read-only checkpoints every six hours. This closing checkpoint records the
+final evidence and removes the heartbeat; it does not change options,
+reload/restart Core, call a service, or deliver a notification/action.
 
 The schedule audit on 2026-08-26 found that its expiry excluded the first
 post-deadline run needed to compile the report and stop the heartbeat. Only
@@ -80,23 +79,16 @@ clipped there, and the first run at/after that time must stop this heartbeat.
 | 2026-08-28T14:48:04Z | One report-local room-temperature class is again `stale_input`: 11/12 source classes are ready, four recommendations are `hold`/`optimizer`, one is explicitly `degraded`, and 15/17 entities are available. Its blind/safety pair is unavailable and does not report safe. All ready targets remain numeric, bounded, and coherent. Candidate b4/schema v4, one loaded entry, 4 rooms, 5 openings, 6 devices, 17 unique entities, zero duplicates/disabled entities/Repairs/integration-attributable error logs/services/active owned persistent notifications, available v4.17_pre, and the previously classified global loader warning remain unchanged. | Six new degraded intervals form five partial cohorts; five recovered without intervention in at most 59.9 minutes and one remains open after 185.7 minutes. Cumulative totals are 152 intervals in 76 cohorts (eight with all openings and 68 partial), with one open; maximum duration remains 803.7 minutes. New recommendation records: three `open`, eight `hold`, and six `degraded`; safety: five `on` and six `unavailable`, with no new `off` or `close`. Partial Day 4 has 8/100 numeric exterior records at/above 27 °C and 380/380 positive irradiance records; no numeric rainfall record or unusable weather record appears. Source/unit/start checks and the existing identity/cadence/direct-sun limits still apply. No Home Assistant mutation. |
 | 2026-08-28T20:46:32Z | Full recovery passed without intervention: 12/12 source classes, five `hold`/`optimizer` recommendations, all five blind/safety pairs, and 17/17 entities are available. Resolved targets are two open and three tilt; all five blind targets are numeric, bounded, and positive as required. Candidate b4/schema v4, one loaded entry, 4 rooms, 5 openings, 6 devices, 17 unique entities, zero duplicates/disabled entities/Repairs/integration-attributable error logs/services/active owned persistent notifications, available v4.17_pre, and the previously classified global loader warning remain unchanged. | The interval open at 14:48 recovered after 234.3 minutes. Nineteen new degraded intervals form eight cohorts—one with all openings and seven partial—and all recovered, with a longest duration of 204.6 minutes. Cumulative totals are 171 intervals in 84 cohorts (nine with all openings and 75 partial), none open; maximum duration remains 803.7 minutes. New recommendation records: one `close`, two `open`, three `tilt`, 25 `hold`, and 19 `degraded`; safety: 20 `on` and 19 `unavailable`, with no new `off`. Partial Day 4 has 10/170 numeric exterior records at/above 27 °C and 660/661 positive irradiance records; no numeric rainfall record or unusable weather record appears. No rain alignment is inferred for the isolated `close` record. Source/unit/start checks and the existing identity/cadence/direct-sun limits still apply. No Home Assistant mutation. |
 | 2026-08-29T02:46:08Z | Two report-local room-temperature classes are `stale_input` and affect three openings: 10/12 source classes are ready, two recommendations are `hold`/`optimizer`, three are explicitly `degraded`, and 11/17 entities are available. The three degraded blind/safety pairs are unavailable and do not report safe. The two ready resolved targets are one open and one tilt, both with numeric, bounded, positive blind targets. Candidate b4/schema v4, one loaded entry, 4 rooms, 5 openings, 6 devices, 17 unique entities, zero duplicates/disabled entities/Repairs/integration-attributable error logs/services/active owned persistent notifications, available v4.17_pre, and the previously classified global loader warning remain unchanged. | Twenty-two new degraded intervals form nine partial cohorts; 19 recovered in at most 136.0 minutes and three remain open for 172.7/37.5/37.5 minutes. Cumulative totals are 193 intervals in 93 cohorts (nine with all openings and 84 partial), with three open; maximum duration remains 803.7 minutes. New recommendation records: one `open`, one `tilt`, 20 `hold`, and 22 `degraded`; safety: 19 `on` and 22 `unavailable`, with no new `off` or `close`. Partial Day 4 retains 10/195 numeric exterior records at/above 27 °C and 660/661 positive irradiance records; no numeric rainfall record or unusable weather record appears. No Home Assistant mutation. |
+| 2026-08-29T08:50:44Z | Closing read-only gate retains installed `v0.1.0b4`/schema v4, one loaded entry, 4 rooms, 5 openings, 6 devices, 17 unique entities, and 11/12 ready source classes. Four recommendations are `hold`/`optimizer`; one is explicitly `degraded`/`stale_input`, leaving 15/17 entities available. The degraded blind/safety pair is unavailable and does not report safe. Four ready targets are one closed and three tilt, all numeric, bounded, and coherent. Zero duplicates/disabled entities/Repairs/integration-attributable error logs/services/owned persistent notifications; `v4.17_pre` remains available. | The three intervals open at 02:46 recovered without intervention after 241.3/59.2/59.2 minutes. Eleven new degraded intervals formed ten partial cohorts: ten recovered, with a 299.3-minute maximum, and one was open for 100.3 minutes at the checkpoint. Cumulative evidence through 08:50 is 204 intervals in 99 cohorts, with one open and an 803.7-minute maximum. New recommendation records are two `close`, 14 `hold`, and 11 `degraded`; safety records are 13 `on` and 11 `unavailable`, with no `off`. Exact Day 4 and the four-day comparison are clipped to 08:26:50Z below. No Home Assistant mutation. |
 
-The observed partial episode proves that 60 minutes is not sufficient to keep this
-source continuously usable, but does not yet distinguish a healthy sparse
-report cadence from a sensor fault. Do not raise the threshold during the
-shadow period; record recurrence and assess it at closure.
-The overnight recurrence shows that this is not confined to the first
-daytime incident or a single room source. The deployed 60-minute threshold
-remains unchanged through the fixed comparison window; its post-shadow
-replacement is recorded below.
-
-The owner subsequently identified the relevant installed sensor cadence as
-exactly 60 minutes and selected 125 minutes as the post-shadow room-temperature
-boundary: two expected report cycles plus five minutes of scheduling margin.
-This owner-supplied cadence is not inferred from Recorder history. The deployed
-value remains 60 minutes until the four-day comparison closes, so the evidence
-windows stay comparable; the independent 15-minute safety/environmental limit
-is unchanged.
+Repeated daytime and overnight episodes prove that 60 minutes is insufficient
+for continuous availability. The owner identified an exact 60-minute device
+cadence and selected 125 minutes as the post-shadow room-temperature boundary:
+two expected cycles plus five minutes of scheduling margin. This cadence is
+owner-supplied, not inferred from Recorder history. All comparison metrics use
+the unchanged deployed 60-minute value; 125 minutes is not deployed yet and
+must be applied through supported options and verified live. The independent
+15-minute safety/environmental limit remains unchanged.
 
 Recorder cohorts group per-opening degradation starts within the same UTC
 minute; they are not proven causal incidents or exact simultaneous-outage
@@ -108,19 +100,18 @@ them retroactively.
 
 Evidence limits: safety-state counts alone cannot establish the absence of
 every historical false-safe result or attribute a recommendation reason. The
-02:34 UTC diagnostic confirmed that neither degraded opening reported safe.
-Above/below horizon confirms day/night coverage, not direct solar irradiance;
-an active Summer profile does not prove heat exposure. Baseline-source history
-now covers positive irradiance on Days 1–3, heat on Day 2, and positive rain on
-Day 3; the rain/safety/close alignment is temporal, not a retained
-reason code. The approved baseline comparison remains required at closure.
-These clarifications do not change the observed counts or weaken acceptance
-gates.
+point-in-time diagnostics confirmed that degraded openings did not report
+safe. Above/below horizon confirms day/night coverage, not direct solar
+irradiance; an active Summer profile does not prove heat exposure.
+Baseline-source history covers positive irradiance on Days 1–4, heat on Days 2
+and 4, and positive rain on Day 3. The rain/safety/close alignment is temporal,
+not a retained reason code. These clarifications do not change the observed
+counts or weaken acceptance gates.
 
-## Completed daily evidence
+## Four-day evidence
 
-Days 1–3 span consecutive exact windows from 2026-08-25T08:26:50Z through
-2026-08-28T08:26:50Z. All five Recorder recommendation series cover every
+Days 1–4 span consecutive exact windows from 2026-08-25T08:26:50Z through
+2026-08-29T08:26:50Z. All five Recorder recommendation series cover every
 start and contain only expected enum values. Intervals are clipped to each
 exact daily window, not to the later checkpoint.
 
@@ -129,34 +120,64 @@ exact daily window, not to the later checkpoint.
 | 1 | 70.23% | 974.2 min | 33.8 min | 468.7 min |
 | 2 | 71.36% | 1,198.6 min | 10.1 min | 803.7 min |
 | 3 | 74.45% | 986.1 min | 55.1 min | 350.2 min |
+| 4 | 66.50% | 1,206.6 min | 140.3 min | 299.3 min |
+| Four-day aggregate | 70.63% | 4,365.5 min | 239.3 min | 803.7 min |
 
 The percentages are time-weighted over five openings. Day 1 contains 2,143.6
 degraded opening-minutes, Day 2 contains 2,062.2, and Day 3 contains 1,839.9,
-each out of 7,200 possible. Simultaneous duration is computed from interval
-overlap, independently of minute-grouped cohorts. This measures recorded
-recommendation availability, not physical safety or report cadence.
+and Day 4 contains 2,412.3, each out of 7,200 possible. The four-day total is
+8,458.0 degraded opening-minutes out of 28,800. Simultaneous duration is
+computed from interval overlap, independently of minute-grouped cohorts. This
+measures recorded recommendation availability, not physical safety or report
+cadence.
 
 Weather provenance: read-only retrieval of the deployed baseline's explicit
 source selectors, followed by Recorder history for the same exact daily
 windows; current source units were validated. No identifiers or raw readings
 are stored.
 
-| Coverage criterion | Day 1 baseline-source evidence | Day 2 baseline-source evidence | Day 3 baseline-source evidence |
-|---|---|---|---|
-| Positive rainfall | Not observed among three numeric records; two unusable records. | Not observed in one numeric record; no unusable records. | Observed in four of six numeric records; no unusable records. |
-| Positive global irradiance | Observed in 856 of 857 numeric records; two unusable records. | Observed in 842 of 843 numeric records; no unusable records. | Observed in 856 of 857 numeric records; no unusable records. |
-| Outdoor temperature at/above the approved Summer upper bound (27 °C) | Not observed among 201 numeric records; two unusable records. | Observed in 104 of 304 numeric records; no unusable records. | Not observed among 291 numeric records; no unusable records. |
+| Coverage criterion | Day 1 baseline-source evidence | Day 2 baseline-source evidence | Day 3 baseline-source evidence | Day 4 baseline-source evidence |
+|---|---|---|---|---|
+| Positive rainfall | Not observed among three numeric records; two unusable records. | Not observed in one numeric record; no unusable records. | Observed in four of six numeric records; no unusable records. | No numeric records; no unusable records. |
+| Positive global irradiance | Observed in 856 of 857 numeric records; two unusable records. | Observed in 842 of 843 numeric records; no unusable records. | Observed in 856 of 857 numeric records; no unusable records. | Observed in 819 of 820 numeric records; no unusable records. |
+| Outdoor temperature at/above the approved Summer upper bound (27 °C) | Not observed among 201 numeric records; two unusable records. | Observed in 104 of 304 numeric records; no unusable records. | Not observed among 291 numeric records; no unusable records. | Observed in 10 of 255 numeric records; no unusable records. |
 
-All three weather series cover the start of all three days, but state-change
+All three weather series cover the start of all four days, but state-change
 histories do not prove continuous freshness or absence of rain/heat between
 reports. These are baseline-selected sources; the integration's redacted
 diagnostics do not independently expose source identity. Day 1 establishes
 positive irradiance; Day 2 establishes exterior heat and positive irradiance;
 Day 3 establishes positive rainfall and irradiance, but not heat. Its
 rain/safety/close alignment remains temporal rather than retained historical
-reason attribution. The paired behavioural comparison remains open. The
-60-minute room boundary is unchanged and not accepted.
+reason attribution. Day 4 establishes exterior heat and positive irradiance,
+but contains no numeric rain record. The 60-minute room boundary is unchanged
+in the deployed entry and rejected for subsequent operation.
+
+## Baseline comparison and closure
+
+The baseline compact helper covers the complete four-day window and contains
+71 structurally valid records, including 70 recorded whole-dwelling changes.
+The candidate recommendation histories also cover the complete window, and all
+five candidate openings were simultaneously non-degraded for 1,394.6 minutes.
+The existing accepted P01-T08 replays remain valid model-level comparisons.
+
+A direct historical per-opening behaviour match cannot be computed validly:
+the baseline stores persistent resolved window/blind codes, while the candidate
+Recorder series stores the public recommendation enum. Candidate `hold` means
+that no new transition is requested; the resolved stable target exists only in
+current diagnostics and was not retained historically. Treating `hold` as a
+resolved baseline hold would therefore compare different semantics. The
+missing resolved-target history cannot be reconstructed retroactively, so no
+behaviour-match percentage is asserted.
+
+All structural, integrity, ready-target, fail-safe, error/action, release, and
+weather-coverage gates pass. P01-T10 remains blocked because its approved live
+comparison scope is unresolved: the owner must either accept the operational
+four-day evidence together with the existing replays, or require a new shadow
+with resolved-target instrumentation. In either case, the selected 125-minute
+room age still requires supported-options deployment and a live gate before
+P01-T10 can complete.
 
 Shadow start UTC: 2026-08-25T08:26:50Z
 
-Scheduled shadow end UTC: 2026-08-29T08:26:50Z
+Shadow end UTC: 2026-08-29T08:26:50Z
