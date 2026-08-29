@@ -2,9 +2,9 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.9
+> Document version: 0.10
 > Initial date: 2026-08-24
-> Last reviewed: 2026-08-29
+> Last reviewed: 2026-08-30
 > Current state: **active / Phase 01**
 > Home Assistant display timezone: `Europe/Madrid`
 > Internal operational timezone: UTC
@@ -125,7 +125,8 @@ implemented in the custom integration and traced as follows:
   and manual override.
 - Native informational entities and diagnostics.
 - Supported config-entry schema migrations and restart-safe state.
-- Stable, consolidated recommendation notifications only after shadow parity.
+- Stable, consolidated, presence-aware recommendation notifications only after
+  shadow parity, as the separately activated Phase 02 delivery.
 
 ### 4.2 Explicitly outside the initial release
 
@@ -225,14 +226,17 @@ coverage did not detect that disconnect. Phase 01 cannot close until the
 forecast contract is either implemented end to end or deliberately narrowed in
 the public product contract.
 
-The measured audit also exposed an unresolved Summer-policy boundary. The
-current symmetric objective deliberately seeks positive heat whenever indoor
-temperature is below `preconditioning_target - hysteresis`, even if outdoor air
-is hotter and the façade is sunny. This is internally consistent but was not
-covered by the accepted replay and may conflict with the owner's intended
-cooling-only Summer behaviour. Do not silently change it: Phase 01 requires an
-owner decision, redacted measured regression cases, and renewed comparison of
-the provisional linear blind-airflow assumption.
+The owner froze one-sided seasonal intent on 2026-08-30. Summer may actively
+remove heat, but once cooling is no longer required it must seek thermal
+neutrality rather than deliberately admit hotter outdoor air or solar gain to
+heat a cool room. Winter is the inverse: it may actively add heat, but once
+heating is no longer required it must stop further gains and seek neutrality
+rather than deliberately admit colder outdoor air to cool a warm room. Weather
+safety remains absolute. Shoulder-season keeps the existing symmetric comfort
+objective until separately reviewed; this decision does not silently alter it.
+Phase 01 must encode these directions explicitly, cover the measured hot-sun
+and cool-evening cases, and keep the provisional blind-airflow relation as a
+separate bounded calibration task.
 
 Missing or stale safety inputs do not become zero wind, no rain, or favourable
 temperature. Degradation is explicit in recommendation, availability, reason
@@ -255,9 +259,12 @@ initial design favours:
 
 - one enum-like recommendation sensor per opening;
 - one recommended blind-position sensor per opening when a blind exists;
-- a Recorder-visible resolved stable window target and current reason before a
-  renewed behavioural shadow; `hold` may remain the user-facing transition but
-  cannot be the only retained historical state;
+- the existing recommendation sensor always exposes its resolved stable window
+  target; `hold` is not a public state, and unchanged evaluations produce no
+  notification candidate;
+- the current reason is Recorder-visible through the smallest verified surface,
+  preferably a bounded attribute on that same sensor rather than another
+  entity;
 - explicit safety/availability state;
 - global strategy and last-evaluation sensors;
 - redacted downloadable diagnostics for reason codes, source quality, and
@@ -266,6 +273,22 @@ initial design favours:
 Avoid large or rapidly changing attributes that inflate Recorder. Configuration
 belongs in config entries; detailed troubleshooting belongs in redacted
 diagnostics.
+
+### 6.1 Presence-aware notification contract
+
+Notification delivery is deferred to the draft
+[`Phase 02 plan`](phases/02-contextual-notifications/PLAN.md) and remains outside
+the active Phase 01 build. Each recipient maps one configured `person` entity to
+an explicitly selected and runtime-validated notification action; names are
+never inferred from a person or device.
+
+An accepted stable window or blind target change is delivered only to
+recipients whose person is `home` at delivery time. If everybody is away, the
+integration sends nothing and stores no backlog of messages. When a configured
+person later enters `home`, the integration performs a fresh evaluation and
+sends only that arriving recipient any recommendation that is still current and
+actionable. It does not replay obsolete away-time transitions. Arrival delivery
+is deduplicated per real away-to-home transition and remains restart-safe.
 
 ## 7. Safety and privacy gates
 
