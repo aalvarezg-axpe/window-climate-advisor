@@ -4,7 +4,7 @@
 
 - Repository: `https://github.com/aalvarezg-axpe/window-climate-advisor`
 - HACS category: Integration / custom repository
-- Candidate: GitHub prerelease `v0.1.0b4` from `release/0.1.0`
+- Candidate: GitHub prerelease `v0.1.0b5` from `release/0.1.0`
 - Beta bootstrap default branch: `release/0.1.0`; restore `main` after acceptance
 - Minimum Home Assistant: 2026.8.0
 - Shadow duration: four consecutive calendar days after the verification gate
@@ -30,7 +30,7 @@ service, or control a physical device.
 
 1. In HACS, open **Custom repositories** and add the frozen repository URL as
    type **Integration**.
-2. Select and download `v0.1.0b4`. Enable prerelease tracking for this
+2. Select and download `v0.1.0b5`. Enable prerelease tracking for this
    repository if HACS hides beta versions.
 3. Restart Home Assistant once; do not reload only the integration after a new
    custom-component install.
@@ -70,5 +70,5 @@ service, or control a physical device.
    return Home Assistant to the verified baseline.
 
 For a later candidate, HACS **Redownload** may select the last verified version;
-`v0.1.0b3` is the last live-verified configuration fallback. Full removal while
+`v0.1.0b4` is the last live-verified configuration fallback. Full removal while
 retaining `v4.17_pre` remains the clean rollback for the integration.

@@ -7,10 +7,10 @@ comfort policy.
 
 The project is in the **post-shadow Phase 01 correction wave**. The completed
 four-day observation identified explicit forecast, seasonal-policy, public
-state, and blind-airflow follow-ups. Installed candidate `v0.1.0b4` remains the
-last live shadow build while those corrections are developed and verified. It
-does not control physical actuators. The deployed automation `v4.17_pre`
-remains the operational baseline and rollback.
+state, and blind-airflow follow-ups. Candidate `v0.1.0b5` contains the accepted
+corrections; installed `v0.1.0b4` remains the live fallback until the candidate
+is verified. Neither build controls physical actuators. The deployed automation
+`v4.17_pre` remains the operational baseline and rollback.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
 tracked in
@@ -60,7 +60,7 @@ Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
 1. In HACS, open the menu and select **Custom repositories**.
 2. Add `https://github.com/aalvarezg-axpe/window-climate-advisor` as type
    **Integration**.
-3. Download the explicit prerelease `v0.1.0b4`; enable prerelease tracking for
+3. Download the explicit prerelease `v0.1.0b5`; enable prerelease tracking for
    this repository if HACS does not initially show it.
 4. Restart Home Assistant.
 5. Go to **Settings → Devices & services → Add integration**, search for
