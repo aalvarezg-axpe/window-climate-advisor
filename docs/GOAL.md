@@ -112,7 +112,10 @@ implemented in the custom integration and traced as follows:
 - Global outdoor-temperature, weather/forecast, radiation, wind, and rain
   source selection through typed Home Assistant selectors; solar position comes
   from Home Assistant's built-in `sun` integration when the evaluator consumes
-  it.
+  it. A forecast is not considered consumed merely because it selected the
+  seasonal profile or an availability flag is true: a typed, time-aligned
+  thermal horizon must reach each opening's optimizer, or the result must state
+  explicitly that no such horizon was available.
 - Pure Python domain models for geometry, solar exposure, ventilation, thermal
   balance, safety, strategy, hysteresis, and recommendation aggregation.
 - Deterministic joint evaluation of window state and recommended blind opening,
@@ -214,6 +217,23 @@ result set. Relevant entity changes trigger a debounced evaluation; a bounded
 periodic evaluation provides recovery. One coordinator owns scheduling,
 availability, and entity updates.
 
+Boundary tests must prove that every advertised decision input reaches the
+typed domain request used in production. The four-day follow-up audit found
+that the live coordinator could report forecast availability while the adapter
+supplied `None` as every opening's thermal forecast horizon; domain-only replay
+coverage did not detect that disconnect. Phase 01 cannot close until the
+forecast contract is either implemented end to end or deliberately narrowed in
+the public product contract.
+
+The measured audit also exposed an unresolved Summer-policy boundary. The
+current symmetric objective deliberately seeks positive heat whenever indoor
+temperature is below `preconditioning_target - hysteresis`, even if outdoor air
+is hotter and the façade is sunny. This is internally consistent but was not
+covered by the accepted replay and may conflict with the owner's intended
+cooling-only Summer behaviour. Do not silently change it: Phase 01 requires an
+owner decision, redacted measured regression cases, and renewed comparison of
+the provisional linear blind-airflow assumption.
+
 Missing or stale safety inputs do not become zero wind, no rain, or favourable
 temperature. Degradation is explicit in recommendation, availability, reason
 code, and diagnostics.
@@ -235,6 +255,9 @@ initial design favours:
 
 - one enum-like recommendation sensor per opening;
 - one recommended blind-position sensor per opening when a blind exists;
+- a Recorder-visible resolved stable window target and current reason before a
+  renewed behavioural shadow; `hold` may remain the user-facing transition but
+  cannot be the only retained historical state;
 - explicit safety/availability state;
 - global strategy and last-evaluation sensors;
 - redacted downloadable diagnostics for reason codes, source quality, and
@@ -276,6 +299,8 @@ The integration aims beyond the minimum custom-integration skeleton:
 - deterministic domain tests independent of Home Assistant;
 - full config-flow and migration coverage;
 - setup, unload, reload, restart, entity identity, and availability tests;
+- production-boundary tests that distinguish an input-availability indicator
+  from actual delivery of that input to the optimizer;
 - at least 90% branch coverage overall and near-complete useful coverage for
   safety/state transitions;
 - Ruff formatting/lint, mypy strict, pytest, coverage, manifest/translation

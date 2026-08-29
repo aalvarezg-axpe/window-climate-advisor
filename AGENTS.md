@@ -176,6 +176,15 @@ entities for hypothetical consumers.
 - Test behaviour, failure modes, stale/unavailable inputs, DST/UTC boundaries,
   config migrations, entity identity, setup/unload/reload, and external
   contracts affected by a change.
+- For every advertised runtime input, include one production-boundary test that
+  proves the normalized value reaches the actual domain request. A source
+  availability flag, successful provider call, or domain-only unit test is not
+  evidence that the live evaluator consumed it.
+- Before starting a behavioural shadow, verify that Recorder can retain the
+  resolved target and reason needed by its acceptance comparison. A transient
+  `hold`/change indicator or point-in-time diagnostic is not a historical
+  substitute; if the public surface cannot retain the required evidence, stop
+  before deployment and correct the contract.
 - Target at least 90% branch coverage for owned code and near-complete useful
   coverage for safety, availability, state transitions, and config flows.
 - Do not hide failures with broad exception handlers, silent fallbacks, skipped

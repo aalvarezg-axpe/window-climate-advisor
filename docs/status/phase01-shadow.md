@@ -109,6 +109,68 @@ and 4, and positive rain on Day 3. The rain/safety/close alignment is temporal,
 not a retained reason code. These clarifications do not change the observed
 counts or weaken acceptance gates.
 
+## Post-window behavioural audit
+
+On 2026-08-29 the owner reported apparently contradictory hot-sun/open-blind
+and cool-evening/closed recommendations. A subsequent read-only audit covered
+the fixed shadow plus Recorder data available through 2026-08-29T22:08Z. It
+used only derived temperature differences, projected façade-irradiance ranges,
+public recommendation/blind/safety histories, and repository code; no source
+identifier, private display name, coordinate, raw household state, option,
+service, reload, restart, notification, or physical action was exposed or
+changed.
+
+The reported solar pattern is real but has two materially different forms:
+
+- The living-area opening had two approximately 30-minute `open/100%` episodes
+  around 10:01–10:31 local time on 27 and 29 August with roughly 495–564 W/m²
+  projected onto its façade. Outdoor air was nevertheless about 5.2–6.5 °C
+  cooler than the room, which was already roughly 1.2–1.5 °C above the Summer
+  cooling switch. This is the accepted P01-T08 ventilation-versus-solar trade-
+  off, not evidence that the optimizer preferred hotter outdoor air. Its
+  validity still depends on the unmeasured assumption that blind closure
+  reduces free ventilation area linearly.
+- Two openings linked to another room repeatedly remained `open/100%` under
+  direct sun while outdoor air was about 3–6 °C hotter. The clearest post-
+  window spans on 29 August were 13:36–14:36 and 15:31–16:21 local time, with
+  projected façade irradiance in an approximate 100–612 W/m² range. The room
+  was about 1.1–1.5 °C below the configured Summer cooling switch, so the
+  current symmetric objective deliberately sought positive heat. The accepted
+  replay did not cover this measured boundary.
+
+The evening pattern is also real, but most retained closed periods are not a
+single optimizer defect. In the living area on 27–28 August, two ready spans
+within 22:11–00:01 remained closed while outdoor air was about 5.6–8.3 °C
+cooler; the room was already about 0.4–1.0 °C below the Summer cooling switch,
+so the symmetric profile intentionally resisted more cooling. Other long
+closed spans either occurred below that switch or overlapped explicit room-
+temperature degradation. The only reconstructed ready spans that were both
+above the cooling switch and clearly cooler outdoors lasted about 15 minutes,
+consistent with the configured ten-minute opening-improvement delay plus the
+five-minute coordinator cadence. This does not justify the recurrent stale-
+source gaps; the selected 125-minute room boundary remains undeployed.
+
+Code tracing found two acceptance gaps beyond calibration:
+
+1. The coordinator can report forecast availability after a daily forecast is
+   fetched for season selection, but the live Home Assistant adapter constructs
+   every `OpeningSnapshot` with `forecast_conditions=None`. The optimizer's
+   forecast and adverse-forecast paths therefore run only in domain/replay
+   tests, never in the deployed thermal decision. The integration test named as
+   using forecast asserts only season and availability, not delivery to the
+   optimizer.
+2. Recorder retains public transition values (`open`, `tilt`, `close`, `hold`,
+   `degraded`) and blind targets, while resolved window target and reason exist
+   only in point-in-time diagnostics. Applying the last actionable transition
+   can locate diagnostic candidate intervals after the first known pulse, but
+   it is not acceptance-grade parity and cannot recover historical reasons or
+   an initial `hold` target.
+
+P01-T15 records this audit. P01-T16 separately owns the missing live forecast
+horizon, P01-T17 owns Recorder-visible target/reason evidence, and P01-T18 is
+blocked on the owner's Summer-policy and blind-calibration decision. No code or
+Home Assistant configuration is changed by this audit.
+
 ## Four-day evidence
 
 Days 1–4 span consecutive exact windows from 2026-08-25T08:26:50Z through
