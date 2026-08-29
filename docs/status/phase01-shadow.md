@@ -129,7 +129,10 @@ The reported solar pattern is real but has two materially different forms:
   cooling switch. This is the accepted P01-T08 ventilation-versus-solar trade-
   off, not evidence that the optimizer preferred hotter outdoor air. Its
   validity still depends on the unmeasured assumption that blind closure
-  reduces free ventilation area linearly.
+  reduces free ventilation area linearly. P01-T19 later retained that relation
+  only as a 0–100% geometry bound and identified the physical evidence required
+  for calibration; this history cannot provide actual manual positions or
+  airflow.
 - Two openings linked to another room repeatedly remained `open/100%` under
   direct sun while outdoor air was about 3–6 °C hotter. The clearest post-
   window spans on 29 August were 13:36–14:36 and 15:31–16:21 local time, with

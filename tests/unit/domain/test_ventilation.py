@@ -41,19 +41,35 @@ def test_airflow_matches_the_historical_expression_and_scales_monotonically() ->
         0.0035 * 1.2 * 5,
     )
     expected_full = 1.92 / 2 * math.sqrt(expected_driver)
-    full = unilateral_airflow_m3_s(
-        DIMENSIONS, WindowState.OPEN, BlindOpening(100), CONDITIONS
-    )
-    half = unilateral_airflow_m3_s(
-        DIMENSIONS, WindowState.OPEN, BlindOpening(50), CONDITIONS
-    )
+    percentages = range(0, 101, 10)
+    flows = [
+        unilateral_airflow_m3_s(
+            DIMENSIONS,
+            WindowState.OPEN,
+            BlindOpening(percent),
+            CONDITIONS,
+        )
+        for percent in percentages
+    ]
+    areas = [
+        effective_free_area_m2(
+            DIMENSIONS,
+            WindowState.OPEN,
+            BlindOpening(percent),
+        )
+        for percent in percentages
+    ]
     tilt = unilateral_airflow_m3_s(
         DIMENSIONS, WindowState.TILT, BlindOpening(100), CONDITIONS
     )
 
-    assert full == pytest.approx(expected_full)
-    assert half == pytest.approx(full * 0.5)
-    assert tilt == pytest.approx(full * 0.12)
+    assert flows == pytest.approx(
+        [expected_full * percent / 100 for percent in percentages]
+    )
+    assert areas == pytest.approx(
+        [DIMENSIONS.area_m2 * percent / 100 for percent in percentages]
+    )
+    assert tilt == pytest.approx(flows[-1] * 0.12)
     assert (
         unilateral_airflow_m3_s(
             DIMENSIONS, WindowState.CLOSED, BlindOpening(100), CONDITIONS

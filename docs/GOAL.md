@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.12
+> Document version: 0.13
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-30
 > Current state: **active / Phase 01**
@@ -237,6 +237,14 @@ objective until separately reviewed; this decision does not silently alter it.
 Phase 01 must encode these directions explicitly, cover the measured hot-sun
 and cool-evening cases, and keep the provisional blind-airflow relation as a
 separate bounded calibration task.
+
+P01-T19 retains the linear blind/free-area multiplier only as an explicitly
+uncalibrated 0–100% geometry bound. Published experiments require
+device/geometry/flow-specific correction, while current Recorder history lacks
+actual manual blind/window positions, airflow observations, and a calibrated
+room response. Phase 01 must not invent an exponent or discharge coefficient;
+calibration resumes only from manufacturer free-area/pressure-loss data or a
+repeatable physical experiment at known positions.
 
 Missing or stale safety inputs do not become zero wind, no rain, or favourable
 temperature. Degradation is explicit in recommendation, availability, reason

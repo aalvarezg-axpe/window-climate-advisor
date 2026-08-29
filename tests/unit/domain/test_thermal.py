@@ -64,7 +64,7 @@ def test_blind_opening_changes_solar_and_ventilation_monotonically() -> None:
         candidate_thermal_load(
             DIMENSIONS, WindowState.OPEN, BlindOpening(percent), conditions
         )
-        for percent in (0, 50, 100)
+        for percent in range(0, 101, 10)
     ]
 
     assert [load.solar_w for load in loads] == sorted(load.solar_w for load in loads)
@@ -72,6 +72,32 @@ def test_blind_opening_changes_solar_and_ventilation_monotonically() -> None:
         abs(load.ventilation_w) for load in loads
     )
     assert loads[0].ventilation_w == 0
+
+
+def test_direct_sun_exposes_the_linear_airflow_tradeoff() -> None:
+    """Bound where the assumed ventilation gain can reverse admitted sun."""
+    percentages = range(0, 101, 10)
+
+    def totals(irradiance_w_m2: float) -> list[float]:
+        conditions = ThermalConditions(
+            27,
+            22,
+            irradiance_w_m2,
+            wind_speed_kmh=8,
+            gust_speed_kmh=12,
+        )
+        return [
+            candidate_thermal_load(
+                DIMENSIONS,
+                WindowState.OPEN,
+                BlindOpening(percent),
+                conditions,
+            ).total_w
+            for percent in percentages
+        ]
+
+    assert totals(300) == sorted(totals(300), reverse=True)
+    assert totals(600) == sorted(totals(600))
 
 
 def test_tilt_mix_and_closed_blind_residual_are_explicitly_sensitive() -> None:
