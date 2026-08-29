@@ -42,7 +42,7 @@ class CoordinatorData:
 
     evaluation: AdvisorEvaluation
     source_quality: dict[str, str]
-    forecast_available: bool
+    profile_forecast_available: bool
 
 
 class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
@@ -130,13 +130,13 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
         season = None
         profile = None
-        forecast_available = False
+        profile_forecast_available = False
         if profiles is not None and settings is not None:
             forecast = await async_daily_forecast(
                 self.hass,
                 self.config_entry.data[CONF_WEATHER_ENTITY_ID],
             )
-            forecast_available = forecast.available
+            profile_forecast_available = forecast.available
             temperatures = built.indoor_temperatures_c
             season = select_season(
                 SelectionMode(self.config_entry.options[CONF_SELECTION_MODE]),
@@ -162,7 +162,7 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
         quality["options"] = (
             "ready" if settings is not None else "configuration_required"
         )
-        return CoordinatorData(evaluation, quality, forecast_available)
+        return CoordinatorData(evaluation, quality, profile_forecast_available)
 
 
 type WindowClimateAdvisorConfigEntry = ConfigEntry[WindowClimateAdvisorCoordinator]

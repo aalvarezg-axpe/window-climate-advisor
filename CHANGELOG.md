@@ -56,6 +56,10 @@ Semantic Versioning after the first distributable integration release.
 
 ### Fixed
 
+- Forecast diagnostics now describe only daily-profile selection. The live
+  optimizer explicitly keeps its thermal horizon unavailable because the
+  configured sources provide no future irradiance, avoiding invented solar or
+  indoor conditions.
 - Seasonal optimization is one-sided by explicit profile season: Summer no
   longer seeks heat and Winter no longer seeks cooling on their inactive side;
   each seeks minimum absolute thermal load there, while Shoulder season remains

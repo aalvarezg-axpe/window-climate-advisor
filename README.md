@@ -30,6 +30,12 @@ Current solar load is projected per opening from global radiation,
 position data degrades the recommendation instead of inventing a favourable
 value.
 
+Daily weather maxima select the automatic comfort profile. The live adapter
+does not claim a thermal forecast horizon: Home Assistant's standard weather
+forecast has no future irradiance field, and no configured source provides one.
+The optimizer therefore applies its explicit missing-horizon penalty instead
+of inventing future solar load or indoor temperature.
+
 Seasonal intent is explicit at the optimizer boundary. Summer may cool but is
 neutral when heating would otherwise be requested; Winter may heat but is
 neutral when cooling would otherwise be requested. Shoulder season retains the

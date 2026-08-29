@@ -108,7 +108,7 @@ async def async_get_config_entry_diagnostics(
                 if data.evaluation.season is not None
                 else None
             ),
-            "forecast_available": data.forecast_available,
+            "profile_forecast_available": data.profile_forecast_available,
             "openings": openings,
         },
         "source_quality": quality,

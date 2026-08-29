@@ -1,6 +1,6 @@
 # ADR 0008 — Home Assistant shadow runtime
 
-- Status: accepted for P01-T09
+- Status: accepted for P01-T09; amended by P01-T16
 - Date: 2026-08-25
 - Sources: ADR 0003, P01-T01–P01-T08, and predecessor F04-09
 
@@ -23,11 +23,14 @@ recommendation and unsafe-to-open result; they never become zero or favourable.
 An `on` binary rain source is conservatively treated as more than light rain.
 A numeric rain source is accepted only in mm/h.
 
-Daily weather forecast temperatures are used for automatic profile selection.
-The optimizer receives a forecast horizon only when every required thermal
-value is available; otherwise its already accepted missing-forecast penalty
-applies and diagnostics record that forecast as unavailable. No future indoor
-temperature, façade irradiance, wind, or gust is invented.
+Daily weather forecast temperatures are used only for automatic profile
+selection. Diagnostics name that narrow fact
+`profile_forecast_available`; they do not advertise a thermal forecast. The
+Home Assistant weather contract supplies no future irradiance, and read-only
+capability inspection on 2026-08-30 found no configured entity carrying a
+future irradiance payload. The live optimizer therefore receives no forecast
+horizon and its already accepted missing-forecast penalty applies. No future
+indoor temperature, façade irradiance, wind, or gust is invented.
 
 Profiles plus these runtime parameters are required in the options flow and
 have no hidden operational defaults:

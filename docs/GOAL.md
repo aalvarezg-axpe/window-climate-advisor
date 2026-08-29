@@ -112,10 +112,11 @@ implemented in the custom integration and traced as follows:
 - Global outdoor-temperature, weather/forecast, radiation, wind, and rain
   source selection through typed Home Assistant selectors; solar position comes
   from Home Assistant's built-in `sun` integration when the evaluator consumes
-  it. A forecast is not considered consumed merely because it selected the
-  seasonal profile or an availability flag is true: a typed, time-aligned
-  thermal horizon must reach each opening's optimizer, or the result must state
-  explicitly that no such horizon was available.
+  it. Daily forecast maxima currently select only the seasonal profile and are
+  labelled accordingly. The live optimizer has no thermal forecast horizon
+  because the standard weather contract and configured sources do not provide
+  future irradiance; the product states that absence explicitly and applies
+  its missing-horizon penalty instead of inventing solar or indoor conditions.
 - Pure Python domain models for geometry, solar exposure, ventilation, thermal
   balance, safety, strategy, hysteresis, and recommendation aggregation.
 - Deterministic joint evaluation of window state and recommended blind opening,
@@ -224,7 +225,11 @@ that the live coordinator could report forecast availability while the adapter
 supplied `None` as every opening's thermal forecast horizon; domain-only replay
 coverage did not detect that disconnect. Phase 01 cannot close until the
 forecast contract is either implemented end to end or deliberately narrowed in
-the public product contract.
+the public product contract. P01-T16 deliberately narrows it: the diagnostic
+flag describes profile selection only, and a production-boundary regression
+proves the daily maxima do not enter `OptimizationRequest` as thermal
+conditions. A later real horizon requires a demonstrated, time-aligned future
+irradiance source and an explicit indoor reference contract.
 
 The owner froze one-sided seasonal intent on 2026-08-30. Summer may actively
 remove heat, but once cooling is no longer required it must seek thermal

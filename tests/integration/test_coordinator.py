@@ -16,6 +16,7 @@ from custom_components.window_climate_advisor.const import (
 from custom_components.window_climate_advisor.coordinator import (
     WindowClimateAdvisorCoordinator,
 )
+from custom_components.window_climate_advisor.domain.optimizer import optimize_opening
 from custom_components.window_climate_advisor.domain.policy import Recommendation
 from custom_components.window_climate_advisor.domain.profiles import Season
 from tests.integration.test_adapters import entry, set_ready_states
@@ -38,7 +39,7 @@ async def test_incomplete_options_load_as_explicit_degradation(
     assert opening.recommendation is Recommendation.DEGRADED
     assert opening.reason is InputIssue.CONFIGURATION_REQUIRED
     assert coordinator.data.source_quality["options"] == "configuration_required"
-    assert not coordinator.data.forecast_available
+    assert not coordinator.data.profile_forecast_available
 
 
 async def test_configured_coordinator_uses_forecast_persists_and_refreshes(
@@ -64,10 +65,16 @@ async def test_configured_coordinator_uses_forecast_persists_and_refreshes(
     )
     coordinator = WindowClimateAdvisorCoordinator(hass, config_entry)
 
-    await coordinator.async_config_entry_first_refresh()
+    with patch(
+        "custom_components.window_climate_advisor.application.evaluator.optimize_opening",
+        wraps=optimize_opening,
+    ) as optimizer:
+        await coordinator.async_config_entry_first_refresh()
 
     assert coordinator.data.evaluation.season is Season.SUMMER
-    assert coordinator.data.forecast_available
+    assert coordinator.data.profile_forecast_available
+    optimizer.assert_called_once()
+    assert optimizer.call_args.args[0].forecast_conditions is None
     assert coordinator.data.source_quality["options"] == "ready"
     with patch.object(
         coordinator, "async_request_refresh", new_callable=AsyncMock
