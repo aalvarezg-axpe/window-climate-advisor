@@ -5,13 +5,12 @@ tilt positions, blinds, shutters, and solar protection from room conditions,
 outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
-The project is in **advisor/shadow observation**. Its dwelling, room, opening,
-comfort, and runtime configuration are verified; installed candidate
-`v0.1.0b4` separates slow room-temperature freshness from
-safety/environmental freshness. The four-day period runs from
-2026-08-25 08:26:50 UTC through 2026-08-29 08:26:50 UTC. It does not control
-physical actuators. The deployed automation `v4.17_pre` remains the operational
-baseline and rollback.
+The project is in the **post-shadow Phase 01 correction wave**. The completed
+four-day observation identified explicit forecast, seasonal-policy, public
+state, and blind-airflow follow-ups. Installed candidate `v0.1.0b4` remains the
+last live shadow build while those corrections are developed and verified. It
+does not control physical actuators. The deployed automation `v4.17_pre`
+remains the operational baseline and rollback.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
 tracked in
@@ -33,7 +32,8 @@ value.
 
 The initial entity surface is informational:
 
-- recommendation per opening;
+- resolved `open`/`tilt`/`close` recommendation per opening, or explicit
+  degradation, with one bounded Recorder-visible reason attribute;
 - recommended blind position for each physical blind, including manual ones;
 - safety-to-open status;
 - active comfort profile and last-evaluation timestamp;

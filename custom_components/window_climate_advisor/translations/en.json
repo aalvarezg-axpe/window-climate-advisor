@@ -89,8 +89,24 @@
           "open": "Open",
           "tilt": "Tilt",
           "close": "Close",
-          "hold": "Hold",
           "degraded": "Degraded"
+        },
+        "state_attributes": {
+          "reason": {
+            "name": "Reason",
+            "state": {
+              "optimizer": "Thermal optimization",
+              "wind_close": "Wind requires closing",
+              "wind_tilt_only": "Wind allows tilt only",
+              "rain_close": "Rain requires closing",
+              "rain_tilt_only": "Rain allows protected tilt only",
+              "missing_safety_data": "Safety data is missing",
+              "stale_safety_data": "Safety data is stale",
+              "configuration_required": "Configuration is required",
+              "missing_input": "Required input is missing",
+              "stale_input": "Required input is stale"
+            }
+          }
         }
       },
       "recommended_blind_position": {

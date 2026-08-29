@@ -24,7 +24,6 @@ from custom_components.window_climate_advisor.domain.policy import (
 )
 from custom_components.window_climate_advisor.domain.thermal import ThermalLoad
 
-CURRENT_CLOSED = CandidateAction(WindowState.CLOSED, BlindOpening(100))
 GEOMETRY = SafetyGeometry(0, 0.5, 0.5, True)
 DRY = SafetySnapshot(0, 5, 0, 20)
 
@@ -41,7 +40,6 @@ def test_stale_or_missing_safety_data_fails_closed_as_degraded() -> None:
     """Never turn unknown or stale observations into favourable weather."""
     stale = apply_weather_policy(
         optimized(WindowState.OPEN),
-        CURRENT_CLOSED,
         SafetySnapshot(0, 5, 0, stale=True),
         GEOMETRY,
         supports_tilt=True,
@@ -61,7 +59,6 @@ def test_stale_or_missing_safety_data_fails_closed_as_degraded() -> None:
     ):
         result = apply_weather_policy(
             optimized(WindowState.OPEN),
-            CURRENT_CLOSED,
             snapshot,
             GEOMETRY,
             supports_tilt=True,
@@ -75,7 +72,6 @@ def test_absolute_gust_limit_closes_before_any_thermal_result() -> None:
     """Close at 45 km/h even when the optimizer strongly prefers open."""
     result = apply_weather_policy(
         optimized(WindowState.OPEN, 80),
-        CURRENT_CLOSED,
         SafetySnapshot(0, 45, 180),
         GEOMETRY,
         supports_tilt=True,
@@ -91,28 +87,24 @@ def test_worst_direction_and_continuous_limits_restrict_open_to_tilt_or_close() 
     """Use the nearer direction and the continuous façade exposure limits."""
     open_safe = apply_weather_policy(
         optimized(WindowState.OPEN),
-        CURRENT_CLOSED,
         SafetySnapshot(0, 9.9, 105),
         GEOMETRY,
         supports_tilt=True,
     )
     tilt_only = apply_weather_policy(
         optimized(WindowState.OPEN),
-        CURRENT_CLOSED,
         SafetySnapshot(0, 15, 105, 0),
         GEOMETRY,
         supports_tilt=True,
     )
     frontal_close = apply_weather_policy(
         optimized(WindowState.OPEN),
-        CURRENT_CLOSED,
         SafetySnapshot(0, 35, 0),
         GEOMETRY,
         supports_tilt=True,
     )
     leeward_tilt = apply_weather_policy(
         optimized(WindowState.OPEN),
-        CURRENT_CLOSED,
         SafetySnapshot(0, 40, 105),
         GEOMETRY,
         supports_tilt=True,
@@ -129,7 +121,6 @@ def test_wind_restriction_closes_when_tilt_is_not_supported() -> None:
     """Do not invent a tilt capability for an opening that lacks it."""
     result = apply_weather_policy(
         optimized(WindowState.OPEN),
-        CURRENT_CLOSED,
         SafetySnapshot(0, 15, 0),
         GEOMETRY,
         supports_tilt=False,
@@ -143,14 +134,12 @@ def test_light_rain_allows_only_a_geometrically_protected_tilt() -> None:
     """Apply the overhang projection before retaining thermal ventilation."""
     protected = apply_weather_policy(
         optimized(WindowState.OPEN),
-        CURRENT_CLOSED,
         SafetySnapshot(1.2, 5, 0),
         GEOMETRY,
         supports_tilt=True,
     )
     leeward = apply_weather_policy(
         optimized(WindowState.OPEN),
-        CURRENT_CLOSED,
         SafetySnapshot(1, 5, 105),
         GEOMETRY,
         supports_tilt=True,
@@ -179,7 +168,6 @@ def test_heavy_unprotected_or_unsupported_rain_closes(
     """Close when any accepted rain-tilt condition is absent."""
     result = apply_weather_policy(
         optimized(WindowState.OPEN),
-        CURRENT_CLOSED,
         snapshot,
         geometry,
         supports_tilt=supports_tilt,
@@ -193,7 +181,6 @@ def test_rain_does_not_make_a_closed_thermal_candidate_more_open() -> None:
     """Safety is a restriction and can never improve the optimizer action."""
     result = apply_weather_policy(
         optimized(WindowState.CLOSED),
-        CURRENT_CLOSED,
         SafetySnapshot(1, 5, 0),
         GEOMETRY,
         supports_tilt=True,
@@ -204,23 +191,20 @@ def test_rain_does_not_make_a_closed_thermal_candidate_more_open() -> None:
 
 
 @pytest.mark.parametrize(
-    ("optimized_state", "current_state", "expected"),
+    ("optimized_state", "expected"),
     [
-        (WindowState.OPEN, WindowState.CLOSED, Recommendation.OPEN),
-        (WindowState.TILT, WindowState.CLOSED, Recommendation.TILT),
-        (WindowState.CLOSED, WindowState.OPEN, Recommendation.CLOSE),
-        (WindowState.CLOSED, WindowState.CLOSED, Recommendation.HOLD),
+        (WindowState.OPEN, Recommendation.OPEN),
+        (WindowState.TILT, Recommendation.TILT),
+        (WindowState.CLOSED, Recommendation.CLOSE),
     ],
 )
 def test_safe_weather_maps_optimizer_state_to_typed_recommendation(
     optimized_state: WindowState,
-    current_state: WindowState,
     expected: Recommendation,
 ) -> None:
     """Map normal optimizer output without legacy letter codes."""
     result = apply_weather_policy(
         optimized(optimized_state),
-        CandidateAction(current_state, BlindOpening(100)),
         DRY,
         GEOMETRY,
         supports_tilt=True,

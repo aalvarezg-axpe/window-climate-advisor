@@ -94,8 +94,9 @@ valid assignment is allowed.
 Phase 00 does not create platform files because no evaluator consumes them yet.
 P01-T09 implements this frozen informational surface:
 
-- per opening: enum recommendation sensor with `open`, `tilt`, `close`, `hold`,
-  and `degraded` states;
+- per opening: enum recommendation sensor with the resolved stable `open`,
+  `tilt`, or `close` target, plus explicit `degraded`; the same sensor carries
+  one bounded translated `reason` attribute for Recorder reconstruction;
 - per opening with a physical blind: recommended blind-position sensor in the
   0–100% Home Assistant convention, whether or not a `cover` is configured;
 - per opening: safety-to-open binary sensor;
@@ -107,6 +108,10 @@ P01-T09 implements this frozen informational surface:
 Entity unique IDs use `<entry_id>:<subentry_id>:<kind>` for opening entities and
 `<entry_id>:<kind>` for dwelling entities. Display names and entity IDs never
 participate in identity. No service or physical-action entity is permitted.
+
+P01-T17 removes `hold` from this public contract. Whether an evaluation changed
+the stable target belongs to the grouped internal notification candidate, not
+to a second entity state. Entity identity and inventory remain unchanged.
 
 ### Minimal scaffold artifacts
 

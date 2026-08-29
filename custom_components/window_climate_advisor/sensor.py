@@ -87,6 +87,12 @@ class OpeningRecommendationSensor(WindowClimateAdvisorOpeningEntity, SensorEntit
         """Return the public recommendation enum value."""
         return self.opening.recommendation.value
 
+    @property
+    @override
+    def extra_state_attributes(self) -> dict[str, str]:
+        """Expose the bounded reason that explains the current target."""
+        return {"reason": self.opening.reason.value}
+
 
 class RecommendedBlindPositionSensor(WindowClimateAdvisorOpeningEntity, SensorEntity):
     """Publish the stable blind recommendation for one opening."""

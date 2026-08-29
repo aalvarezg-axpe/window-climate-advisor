@@ -1,6 +1,11 @@
 """Tests for the frozen informational entity surface."""
 
-from homeassistant.core import HomeAssistant
+from homeassistant.const import (
+    ATTR_UNIT_OF_MEASUREMENT,
+    EVENT_STATE_CHANGED,
+    UnitOfSpeed,
+)
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
@@ -59,9 +64,11 @@ async def test_entities_publish_stable_advisor_results_and_devices(
         registry, "sensor", f"{config_entry.entry_id}:last_evaluation"
     )
 
-    assert hass.states.get(recommendation_id).state in {
-        item.value for item in Recommendation
-    }
+    recommendation = hass.states.get(recommendation_id)
+    recommendation_values = {item.value for item in Recommendation}
+    assert recommendation_values == {"open", "tilt", "close", "degraded"}
+    assert recommendation.state in recommendation_values
+    assert recommendation.attributes["reason"] == "optimizer"
     assert 0 <= float(hass.states.get(blind_id).state) <= 100
     assert hass.states.get(safety_id).state == "on"
     assert hass.states.get(profile_id).state == "summer"
@@ -91,6 +98,63 @@ async def test_entities_publish_stable_advisor_results_and_devices(
     assert original_ids == set(registry.entities)
 
 
+async def test_reason_change_is_reconstructable_when_target_is_unchanged(
+    hass: HomeAssistant,
+) -> None:
+    """Publish a state event when only the bounded Recorder reason changes."""
+    config_entry = entry()
+    object.__setattr__(
+        config_entry,
+        "options",
+        type(config_entry.options)(VALID_OPTIONS),
+    )
+    config_entry.add_to_hass(hass)
+    set_ready_states(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+
+    opening_id = next(
+        subentry_id
+        for subentry_id, subentry in config_entry.subentries.items()
+        if subentry.subentry_type == SUBENTRY_TYPE_OPENING
+    )
+    recommendation_id = _entity_id(
+        er.async_get(hass),
+        "sensor",
+        f"{config_entry.entry_id}:{opening_id}:recommendation",
+    )
+    before = hass.states.get(recommendation_id)
+    assert before.state == "close"
+    assert before.attributes["reason"] == "optimizer"
+
+    changes: list[Event] = []
+
+    @callback
+    def capture(event: Event) -> None:
+        if event.data["entity_id"] == recommendation_id:
+            changes.append(event)
+
+    unsubscribe = hass.bus.async_listen(EVENT_STATE_CHANGED, capture)
+    hass.states.async_set(
+        "sensor.gust",
+        "45",
+        {ATTR_UNIT_OF_MEASUREMENT: UnitOfSpeed.KILOMETERS_PER_HOUR},
+    )
+    await hass.async_block_till_done()
+    unsubscribe()
+
+    after = hass.states.get(recommendation_id)
+    assert after.state == "close"
+    assert after.attributes["reason"] == "wind_close"
+    matching = [
+        event
+        for event in changes
+        if event.data["new_state"].attributes.get("reason") == "wind_close"
+    ]
+    assert matching
+    assert matching[-1].data["old_state"].state == "close"
+    assert matching[-1].data["new_state"].state == "close"
+
+
 async def test_incomplete_options_degrade_and_no_blind_omits_sensor(
     hass: HomeAssistant,
 ) -> None:
@@ -114,6 +178,10 @@ async def test_incomplete_options_degrade_and_no_blind_omits_sensor(
     )
 
     assert hass.states.get(recommendation_id).state == "degraded"
+    assert (
+        hass.states.get(recommendation_id).attributes["reason"]
+        == "configuration_required"
+    )
     assert hass.states.get(safety_id).state == "unavailable"
     assert hass.states.get(profile_id).state == "unavailable"
     assert (

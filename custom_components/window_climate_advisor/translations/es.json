@@ -89,8 +89,24 @@
           "open": "Abrir",
           "tilt": "Oscilobatiente",
           "close": "Cerrar",
-          "hold": "Mantener",
           "degraded": "Degradado"
+        },
+        "state_attributes": {
+          "reason": {
+            "name": "Motivo",
+            "state": {
+              "optimizer": "Optimización térmica",
+              "wind_close": "El viento requiere cerrar",
+              "wind_tilt_only": "El viento solo permite oscilobatiente",
+              "rain_close": "La lluvia requiere cerrar",
+              "rain_tilt_only": "La lluvia solo permite oscilobatiente protegido",
+              "missing_safety_data": "Faltan datos de seguridad",
+              "stale_safety_data": "Los datos de seguridad están desactualizados",
+              "configuration_required": "Se requiere configuración",
+              "missing_input": "Falta una entrada necesaria",
+              "stale_input": "Una entrada necesaria está desactualizada"
+            }
+          }
         }
       },
       "recommended_blind_position": {

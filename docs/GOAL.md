@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.10
+> Document version: 0.11
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-30
 > Current state: **active / Phase 01**
@@ -45,9 +45,9 @@ recommends per opening whether to:
 - close to preserve coolness or warmth;
 - raise a blind to capture useful solar gain;
 - lower a blind to reduce solar load or night heat loss;
-- keep the current action when no meaningful advantage exists;
-- never pair a non-closed recommended window state, including holding that
-  state, with 0% blind opening;
+- keep the stable physical target when no meaningful advantage exists, without
+  exposing a separate public `hold` state;
+- never pair a non-closed recommended window target with 0% blind opening;
 - recommend a blind opening percentage without creating noisy intermediate
   notifications.
 

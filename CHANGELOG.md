@@ -39,8 +39,8 @@ Semantic Versioning after the first distributable integration release.
   notification candidate per evaluation.
 - Versioned synthetic Summer, Shoulder-season, and Winter replay evidence with
   v4.17 action provenance, physical-model comparison, and bounded sensitivity.
-- Corrected joint window/blind feasibility so every non-closed recommendation,
-  including `hold`, requires a positive blind opening.
+- Corrected joint window/blind feasibility so every non-closed resolved target
+  requires a positive blind opening.
 - Version-2 unit-explicit opening geometry migration and required runtime
   optimizer, stability, and source-age options.
 - Typed Home Assistant source/forecast adapters, conservative degradation, one
@@ -56,6 +56,10 @@ Semantic Versioning after the first distributable integration release.
 
 ### Fixed
 
+- Recommendation entities expose the resolved stable `open`, `tilt`, or
+  `close` target instead of the ambiguous public `hold` state. A translated,
+  bounded reason attribute preserves Recorder reconstruction without changing
+  entity identity or adding an entity.
 - Home Assistant 2026.8 can serialize every config-flow schema for its HTTP
   frontend while empty and whitespace-only dwelling, room, and opening names
   remain rejected.

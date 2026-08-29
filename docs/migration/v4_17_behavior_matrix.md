@@ -17,7 +17,7 @@ executable assertions only beside the domain or adapter that consumes a case.
 | Window | `A` / `O` | Recommend fully open / tilt. | Replace thermal selection with optimizer output; retain weather limits. |
 | Window | `R` | Close for rain or wind. | Keep as absolute weather-safety priority. |
 | Window | `F` / `H` | Close to preserve coolness / warmth. | Replace discrete heuristics with optimizer output. |
-| Window | `M` | Hold/no recommendation. | Adapt to the typed `hold` or `degraded` result. |
+| Window | `M` | Hold/no recommendation. | Adapt to the resolved stable `open`/`tilt`/`close` target or explicit `degraded`; unchanged evaluations emit no candidate. |
 | Blind | `P` / `I` | Lower for solar protection / night insulation. | Replace with the joint 0–100% optimum. |
 | Blind | `G` / `V` | Raise for solar gain / ventilation. | Replace with the joint optimum while preserving free airflow. |
 | Blind | `M` | Hold/no recommendation. | Adapt to stable typed output. |

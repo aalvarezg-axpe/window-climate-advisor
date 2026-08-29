@@ -5,7 +5,7 @@ from enum import StrEnum
 from math import cos, isfinite, radians
 
 from .models import BlindOpening, WindowState
-from .optimizer import CandidateAction, OptimizationResult
+from .optimizer import OptimizationResult
 
 
 class Recommendation(StrEnum):
@@ -14,7 +14,6 @@ class Recommendation(StrEnum):
     OPEN = "open"
     TILT = "tilt"
     CLOSE = "close"
-    HOLD = "hold"
     DEGRADED = "degraded"
 
 
@@ -139,6 +138,15 @@ class PolicyResult:
     reason: ReasonCode
 
 
+def recommendation_for_state(state: WindowState) -> Recommendation:
+    """Map a resolved physical target to its public recommendation."""
+    return {
+        WindowState.CLOSED: Recommendation.CLOSE,
+        WindowState.TILT: Recommendation.TILT,
+        WindowState.OPEN: Recommendation.OPEN,
+    }[state]
+
+
 def _angular_distance(direction_deg: float, facade_azimuth_deg: float) -> float:
     return abs(((direction_deg - facade_azimuth_deg + 180) % 360) - 180)
 
@@ -206,7 +214,6 @@ def _result(
 
 def apply_weather_policy(
     optimized: OptimizationResult,
-    current_action: CandidateAction,
     snapshot: SafetySnapshot,
     geometry: SafetyGeometry,
     *,
@@ -315,17 +322,8 @@ def apply_weather_policy(
             False,
             ReasonCode.WIND_CLOSE,
         )
-    recommendation = (
-        Recommendation.HOLD
-        if candidate_state is current_action.window_state
-        else {
-            WindowState.CLOSED: Recommendation.CLOSE,
-            WindowState.TILT: Recommendation.TILT,
-            WindowState.OPEN: Recommendation.OPEN,
-        }[candidate_state]
-    )
     return _result(
-        recommendation,
+        recommendation_for_state(candidate_state),
         candidate_state,
         blind,
         True,

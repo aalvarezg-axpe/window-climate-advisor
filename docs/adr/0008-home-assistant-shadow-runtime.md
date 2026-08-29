@@ -65,21 +65,26 @@ dwelling-wide option, not a per-entity exception system.
 
 The only enabled platforms are `sensor` and `binary_sensor`:
 
-- per opening: recommendation enum and safe-to-open binary sensor;
+- per opening: resolved recommendation enum with one bounded translated reason
+  attribute, and a safe-to-open binary sensor;
 - per opening with a physical blind: recommended blind position sensor;
 - per dwelling: active profile enum and last-evaluation timestamp sensor.
 
 Unique IDs follow ADR 0003 exactly. Opening entities share a device identified
 by config-entry/subentry ID and dwelling entities share a config-entry device.
-Recommendation is relative to the observed contact when configured; without a
-contact, the persisted stable recommendation is the conservative reference and
-a new opening starts closed. A configured but unreadable cover position
-degrades that opening. Without a cover, a physical blind uses its persisted
-stable recommendation and starts at 100%. Only an opening explicitly configured
-without a physical blind is fixed at 100% and omits the blind-position entity.
+Recommendation always exposes the persisted stable physical target, independent
+of whether it differs from an observed contact. A new opening starts closed,
+and unchanged evaluations produce no grouped notification candidate. A
+configured but unreadable cover position degrades that opening. Without a
+cover, a physical blind uses its persisted stable recommendation and starts at
+100%. Only an opening explicitly configured without a physical blind is fixed
+at 100% and omits the blind-position entity.
 
-Home Assistant diagnostics return configuration shape, source quality,
-reason codes, timestamps, and accepted engine results. Entity IDs and config
+The recommendation sensor's low-cardinality `reason` attribute is stored with
+its state so Recorder can distinguish optimizer, weather-safety, input-quality,
+and recovery intervals even when the target is unchanged. Home Assistant
+diagnostics return configuration shape, source quality, reason codes,
+timestamps, and accepted engine results. Entity IDs and config
 names are redacted; tokens, raw entity states, household history, contacts, and
 coordinates are absent. No rapidly changing diagnostic attributes or enabled
 diagnostic sensors are added in this phase. Subentry IDs are replaced with

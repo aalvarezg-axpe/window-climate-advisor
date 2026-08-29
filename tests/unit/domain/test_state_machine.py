@@ -115,15 +115,15 @@ def test_minimum_avoided_cost_blocks_small_joint_changes() -> None:
     )
 
 
-def test_hold_immediately_corrects_zero_blind_for_non_closed_window() -> None:
-    """Never publish an incoherent hold while waiting for thermal benefit."""
+def test_stable_target_immediately_corrects_zero_blind_for_non_closed_window() -> None:
+    """Never retain an incoherent target while waiting for thermal benefit."""
     current = CandidateAction(WindowState.TILT, BlindOpening(0))
     proposal = sample(
         current,
         WindowState.TILT,
         20,
         benefit_w=0,
-        recommendation=Recommendation.HOLD,
+        recommendation=Recommendation.TILT,
     )
 
     result = advance_opening(initial_stability_state(current), proposal, NOW, SETTINGS)

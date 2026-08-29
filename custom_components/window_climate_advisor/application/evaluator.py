@@ -24,6 +24,7 @@ from ..domain.policy import (
     SafetyGeometry,
     SafetySnapshot,
     apply_weather_policy,
+    recommendation_for_state,
 )
 from ..domain.profiles import ComfortProfile, Season
 from ..domain.state_machine import StabilityInput, StabilitySettings
@@ -103,19 +104,6 @@ class AdvisorEvaluation:
     notification_candidate: NotificationCandidate | None
 
 
-def _stable_recommendation(
-    stable: WindowState,
-    observed: WindowState,
-) -> Recommendation:
-    if stable is observed:
-        return Recommendation.HOLD
-    return {
-        WindowState.CLOSED: Recommendation.CLOSE,
-        WindowState.TILT: Recommendation.TILT,
-        WindowState.OPEN: Recommendation.OPEN,
-    }[stable]
-
-
 def _degraded(issue: InputIssue) -> OpeningEvaluation:
     return OpeningEvaluation(
         Recommendation.DEGRADED,
@@ -164,7 +152,6 @@ def evaluate_snapshot(
         )
         policy = apply_weather_policy(
             optimized,
-            opening.current_action,
             opening.safety,
             opening.safety_geometry,
             supports_tilt=opening.supports_tilt,
@@ -199,10 +186,7 @@ def evaluate_snapshot(
         recommendation = (
             Recommendation.DEGRADED
             if policy.recommendation is Recommendation.DEGRADED
-            else _stable_recommendation(
-                stable.window,
-                opening.current_action.window_state,
-            )
+            else recommendation_for_state(stable.window)
         )
         results[opening_id] = OpeningEvaluation(
             recommendation,

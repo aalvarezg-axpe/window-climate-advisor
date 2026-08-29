@@ -8,9 +8,10 @@
 
 Wrap the optimizer result in a pure weather-safety policy. Safety may preserve
 or restrict the candidate `open → tilt → closed`; it may never make it more
-open. The output is a typed recommendation (`open`, `tilt`, `close`, `hold`, or
-`degraded`), recommended window/blind state, safety boolean, and reason code.
-It contains no service name, entity ID, or action callback.
+open. The output is a typed resolved recommendation (`open`, `tilt`, `close`,
+or `degraded`), recommended window/blind state, safety boolean, and reason code.
+An unchanged target retains its physical state; `hold` is not a public policy
+result. It contains no service name, entity ID, or action callback.
 
 Required observations are rain rate, gust, and at least one current/mean wind
 direction. `None` represents missing/unavailable/malformed input; a stale flag

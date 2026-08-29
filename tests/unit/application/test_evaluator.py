@@ -80,8 +80,8 @@ def snapshot(item: OpeningSnapshot, *, configured: bool = True) -> EvaluationSna
     )
 
 
-def test_stability_publishes_hold_then_open_relative_to_observed_contact() -> None:
-    """Gate an improvement and keep blind output absent without a cover."""
+def test_stability_publishes_resolved_target_then_accepted_change() -> None:
+    """Keep the stable target visible while gating an improvement."""
     item = opening()
 
     started = evaluate_snapshot(snapshot(item), AdvisorState(), NOW, SETTINGS)
@@ -92,7 +92,7 @@ def test_stability_publishes_hold_then_open_relative_to_observed_contact() -> No
         SETTINGS,
     )
 
-    assert started.openings["opening"].recommendation is Recommendation.HOLD
+    assert started.openings["opening"].recommendation is Recommendation.CLOSE
     assert started.notification_candidate is None
     assert accepted.openings["opening"].recommendation is Recommendation.OPEN
     assert accepted.openings["opening"].recommended_blind is None

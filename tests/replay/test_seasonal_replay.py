@@ -244,7 +244,6 @@ def run_replay(
                 )
                 policy = apply_weather_policy(
                     optimized,
-                    current_action,
                     snapshot,
                     geometry,
                     supports_tilt=opening["supports_tilt"],
