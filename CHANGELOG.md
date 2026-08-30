@@ -5,6 +5,26 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0b4 - 2026-08-30
+
+### Changed
+
+- Rain now restricts only façades reached by a meaningful projected gust.
+  Zero/near-zero gust and leeward façades retain the optimizer target through
+  the normal wind policy instead of closing for vertical rain alone.
+- The existing typed wind-direction source is reused for gust exposure because
+  the deployed Home Assistant inventory has no distinct gust-direction source.
+
+### Safety and privacy
+
+- The 45 km/h all-façade close, missing/stale fail-closed handling, protected
+  tilt geometry, positive-blind invariant, notification routing, privacy and
+  zero-actuator boundary remain unchanged.
+- The legacy advisor automation was turned off through Home Assistant's
+  supported service after proving it had no executable consumers. Its
+  configuration remains intact for reversible rollback while notifications
+  come only from the custom component.
+
 ## 0.2.0b3 - 2026-08-30
 
 ### Changed

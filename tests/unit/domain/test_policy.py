@@ -131,7 +131,7 @@ def test_wind_restriction_closes_when_tilt_is_not_supported() -> None:
 
 
 def test_light_rain_allows_only_a_geometrically_protected_tilt() -> None:
-    """Apply the overhang projection before retaining thermal ventilation."""
+    """Apply the overhang projection only on a wind-exposed façade."""
     protected = apply_weather_policy(
         optimized(WindowState.OPEN),
         SafetySnapshot(1.2, 5, 0),
@@ -148,7 +148,84 @@ def test_light_rain_allows_only_a_geometrically_protected_tilt() -> None:
     assert protected.recommendation is Recommendation.TILT
     assert protected.reason is ReasonCode.RAIN_TILT_ONLY
     assert protected.safe_to_open
-    assert leeward.recommendation is Recommendation.TILT
+    assert leeward.recommendation is Recommendation.OPEN
+    assert leeward.reason is ReasonCode.OPTIMIZER
+
+
+@pytest.mark.parametrize(
+    ("snapshot", "state"),
+    [
+        (SafetySnapshot(10, 0, 0), WindowState.OPEN),
+        (SafetySnapshot(10, 0.49, 0), WindowState.TILT),
+        (SafetySnapshot(10, 5, 105), WindowState.OPEN),
+    ],
+)
+def test_rain_without_meaningful_facade_gust_preserves_optimizer(
+    snapshot: SafetySnapshot,
+    state: WindowState,
+) -> None:
+    """Keep vertical or leeward rain from closing an otherwise safe target."""
+    result = apply_weather_policy(
+        optimized(state),
+        snapshot,
+        SafetyGeometry(0, 0, 0, False),
+        supports_tilt=True,
+    )
+
+    assert result.recommended_window_state is state
+    assert result.reason is ReasonCode.OPTIMIZER
+    assert result.safe_to_open
+
+
+@pytest.mark.parametrize(
+    ("facade_azimuth_deg", "rain_restricts"),
+    [
+        (0, True),
+        (45, True),
+        (90, True),
+        (135, False),
+        (180, False),
+        (225, False),
+        (270, True),
+        (315, True),
+    ],
+)
+def test_wind_driven_rain_uses_cardinal_and_intercardinal_facade_exposure(
+    facade_azimuth_deg: float,
+    rain_restricts: bool,
+) -> None:
+    """Restrict only façades reached by a gust coming from north."""
+    result = apply_weather_policy(
+        optimized(WindowState.OPEN),
+        SafetySnapshot(1, 5, 0),
+        SafetyGeometry(facade_azimuth_deg, 0, 0, False),
+        supports_tilt=True,
+    )
+
+    assert (result.reason is ReasonCode.RAIN_CLOSE) is rain_restricts
+    assert (result.recommended_window_state is WindowState.CLOSED) is rain_restricts
+
+
+def test_leeward_rain_closes_only_at_absolute_gust_limit() -> None:
+    """Allow the normal wind policy below the all-façade emergency limit."""
+    geometry = SafetyGeometry(180, 0, 0, False)
+    below = apply_weather_policy(
+        optimized(WindowState.OPEN),
+        SafetySnapshot(10, 44, 0),
+        geometry,
+        supports_tilt=True,
+    )
+    absolute = apply_weather_policy(
+        optimized(WindowState.OPEN),
+        SafetySnapshot(10, 45, 0),
+        geometry,
+        supports_tilt=True,
+    )
+
+    assert below.recommended_window_state is WindowState.TILT
+    assert below.reason is ReasonCode.WIND_TILT_ONLY
+    assert absolute.recommended_window_state is WindowState.CLOSED
+    assert absolute.reason is ReasonCode.WIND_CLOSE
 
 
 @pytest.mark.parametrize(

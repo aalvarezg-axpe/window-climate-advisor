@@ -125,6 +125,7 @@ class SafetySettings:
 
 
 DEFAULT_SAFETY_SETTINGS = SafetySettings()
+_MIN_WIND_DRIVEN_RAIN_GUST_KMH = 0.5
 
 
 @dataclass(frozen=True, slots=True)
@@ -259,7 +260,10 @@ def apply_weather_policy(
             ReasonCode.WIND_CLOSE,
         )
 
-    if snapshot.rain_rate_mm_h > 0:
+    if (
+        snapshot.rain_rate_mm_h > 0
+        and snapshot.gust_kmh * exposure >= _MIN_WIND_DRIVEN_RAIN_GUST_KMH
+    ):
         tilt_protected = _rain_tilt_protected(
             snapshot.gust_kmh, exposure, geometry, settings
         )

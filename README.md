@@ -6,7 +6,7 @@ outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
 The project is in **Phase 02 contextual-notification validation**. Candidate
-`v0.2.0b3` stores only recipient persons, discovers their associated Home
+`v0.2.0b4` stores only recipient persons, discovers their associated Home
 Assistant Mobile App devices through native registries, sends stable-change
 summaries only to those devices currently home, and gives fresh advice when a
 configured occupant arrives. Live-verified `v0.1.0b5` remains the integration
@@ -48,6 +48,12 @@ neutral when heating would otherwise be requested; Winter may heat but is
 neutral when cooling would otherwise be requested. Shoulder season retains the
 symmetric heat/cool/neutral objective. Weather safety remains absolute.
 
+Rain is evaluated per façade rather than as a dwelling-wide close. With no
+meaningful projected gust, or on a leeward façade, rain does not override the
+thermal target; exposed façades retain the intensity, gust, overhang and
+protected-tilt checks. Gusts of 45 km/h or more still close every façade, and
+missing/stale rain, gust or direction remains explicitly degraded.
+
 The thermal score is a comparative first-order model, not a calibrated
 building simulation. It combines projected solar gain, glazing conduction, and
 single-sided ventilation in watts for every feasible window/blind candidate.
@@ -76,7 +82,7 @@ Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
 1. In HACS, open the menu and select **Custom repositories**.
 2. Add `https://github.com/aalvarezg-axpe/window-climate-advisor` as type
    **Integration**.
-3. Download the explicit prerelease `v0.2.0b2`; enable prerelease tracking for
+3. Download the explicit prerelease `v0.2.0b4`; enable prerelease tracking for
    this repository if HACS does not initially show it.
 4. Restart Home Assistant.
 5. Go to **Settings → Devices & services → Add integration**, search for

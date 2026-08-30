@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.19
+> Document version: 0.20
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-30
 > Current state: **active / Phase 02**
@@ -274,6 +274,22 @@ evidence later supplies a defensible correction.
 Missing or stale safety inputs do not become zero wind, no rain, or favourable
 temperature. Degradation is explicit in recommendation, availability, reason
 code, and diagnostics.
+
+Rain restricts an opening only when it is wind-driven onto that façade. The
+policy projects the configured gust through the existing conservative façade
+exposure function; below 0.5 km/h of raw projected gust, including zero gust
+or a leeward façade, rain does not override the optimizer target and the normal
+wind policy still applies. On an exposed façade, the accepted rain intensity,
+gust, protection and overhang geometry decide between tilt and close. A gust
+at or above 45 km/h still closes every façade before rain handling. The
+configured direction remains required even at zero gust so unavailable or
+stale safety data cannot silently become favourable.
+
+The live source inventory exposes no separate gust-direction entity or weather
+attribute, so the existing typed wind-direction selector supplies the best
+available bearing for both wind and gust exposure. Add a distinct selector only
+when Home Assistant exposes a real source that can be selected and verified at
+the production boundary.
 
 Safety and environmental observations use an independent, strict maximum age.
 Slow battery room-temperature observations may use one separately configured

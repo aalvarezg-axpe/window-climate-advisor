@@ -227,6 +227,8 @@ def test_ready_snapshot_normalizes_sources_and_current_action(
     assert opening.current_conditions.facade_irradiance_w_m2 > 300
     assert opening.current_action.window_state is WindowState.CLOSED
     assert opening.current_action.blind == BlindOpening(80)
+    assert opening.safety.gust_kmh == 8
+    assert opening.safety.wind_direction_deg == 180
     assert set(built.source_quality.values()) == {"ready"}
     assert built.indoor_temperatures_c == (27,)
     assert "sensor.outdoor" in configured_entity_ids(config_entry)

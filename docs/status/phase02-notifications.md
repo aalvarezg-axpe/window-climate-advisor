@@ -1,6 +1,6 @@
 # Phase 02 notification validation
 
-- Candidate: `v0.2.0b3`
+- Candidate: `v0.2.0b4`
 - Route: public GitHub prerelease through the existing custom HACS repository
 - Integration/operational rollback: live-verified `v0.1.0b5`
 - Behavioural baseline only: immutable `v4.17_pre` fixture; no longer deployed
@@ -150,3 +150,21 @@ After cutover, b3 remains one loaded schema-v4 entry with 4 rooms, 5 openings,
 3 recipients and an available native notification action. The legacy entity is
 off and its retained trace count did not change. No synthetic notification,
 recipient/config-entry/dashboard change, restart or physical action occurred.
+
+## Local b4 wind-driven rain correction
+
+The owner rejected dwelling-wide closure for rain alone. The b4 policy keeps
+the absolute 45 km/h all-façade close but applies rain restrictions only when
+raw `gust × façade exposure` reaches 0.5 km/h. Zero/near-zero gust and leeward
+façades retain the optimizer target through the normal wind policy; exposed
+façades retain the existing light-rain, protected-tilt and overhang projection
+checks. Missing or stale rain, gust or direction still degrades fail-closed.
+
+A redacted live capability audit found zero distinct gust-direction sensors
+and zero weather attributes carrying gust direction. B4 therefore reuses the
+existing configured typed direction source without a schema, selector or
+configuration change. Unit coverage includes cardinal/intercardinal façades,
+zero and near-zero gust, leeward rain up to the absolute limit, protected tilt,
+missing/stale data and the production adapter's gust/direction delivery. The
+focused policy/application/adapter/notification/replay gate passes 75 tests;
+publication, HACS installation and live verification remain.

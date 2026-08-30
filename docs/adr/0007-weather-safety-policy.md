@@ -20,22 +20,35 @@ represents an otherwise numeric but expired snapshot. Either condition returns
 legacy assumption that missing direction is frontal is not retained because it
 hid data loss.
 
-Retain the v4.17 safety envelope:
+Retain the v4.17 wind and protection envelope, amended by the owner's
+façade-driven rain decision on 2026-08-30:
 
 - any gust at or above 45 km/h closes;
 - façade exposure uses the nearer current/mean direction, a 15° conservative
   margin, and continuous full-open 10–20 / tilt 35–45 km/h limits;
-- light rain is at most 1.2 mm/h and can allow tilt only below 18 km/h when the
-  configured real overhang geometry protects the tilt opening;
+- rain overrides the thermal target only when `gust × façade exposure` reaches
+  0.5 km/h; zero/near-zero gust or a leeward façade proceeds through the normal
+  wind policy instead of closing for vertical rain alone;
+- on a wind-exposed façade, light rain is at most 1.2 mm/h and can allow tilt
+  only below 18 km/h when the configured real overhang geometry protects the
+  tilt opening;
 - rain projection uses the safety gust `1.20 × gust + 2 km/h`, vertical rain
   speed 15 km/h, 0.20 m tilt opening, and 0.15 m vertical margin;
-- heavy/unprotected rain closes. Even full geometric protection limits a new
-  thermal opening recommendation to tilt, matching the legacy rain branch.
+- wind-driven heavy/unprotected rain closes. Even full geometric protection
+  limits a new thermal opening recommendation to tilt;
+- a leeward façade may remain open or be reduced by the normal directional wind
+  limits, but closes unconditionally at the 45 km/h all-façade limit.
 
 The `rain_protected` config flag enables geometric evaluation; it does not by
 itself declare the opening safe. The optimizer's blind percentage is preserved
 as information because closing a window for weather does not establish a blind
 thermal optimum.
+
+Home Assistant currently exposes no distinct selectable gust-direction source
+in the deployed inventory. The existing required typed wind-direction source
+therefore supplies the bearing used with gust speed; this is explicit source
+reuse, not an inferred entity or favourable fallback. Missing or stale bearing
+still degrades fail-closed.
 
 ## Exclusions
 
