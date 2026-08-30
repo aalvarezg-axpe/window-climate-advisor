@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.17
+> Document version: 0.18
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-30
 > Current state: **active / Phase 02**
@@ -94,7 +94,7 @@ implemented in the custom integration and traced as follows:
 | Predecessor task | Integration task | Disposition |
 |---|---|---|
 | F04-01 heuristic inventory | P01-T01 | Carried forward; weather safety is separated from replaceable thermal policy. |
-| F04-02 coupled blind/window model | P01-T02 | Carried forward as pure, calibrated domain logic. |
+| F04-02 coupled blind/window model | P01-T02 | Carried forward as pure, bounded, auditable domain logic. |
 | F04-03 seasonal comfort profiles | P01-T03 | Carried forward through typed config-entry/options data; separate helpers are not the default. |
 | F04-04 numerical optimization | P01-T04 | Carried forward; deterministic enumeration is the initial implementation unless evidence requires a solver. |
 | F04-05 remove `terraza_caliente` | P01-T05 | Carried forward; real geometry may remain, the binary thermal heuristic may not. |
@@ -214,7 +214,7 @@ not use Core's build-time `strings.json` pipeline.
   several Home Assistant persons does not implicitly authorize every one of
   those persons.
 - Reconfigure flow: structural changes and entity replacements.
-- Options flow: infrequent tuning and calibration.
+- Options flow: infrequent tuning of accepted user-visible settings.
 - Native `select`, `number`, or `switch` entities: only controls that users
   reasonably change from dashboards or automations.
 - Supported Home Assistant storage API: compact runtime state and hysteresis;
@@ -252,17 +252,20 @@ heating is no longer required it must stop further gains and seek neutrality
 rather than deliberately admit colder outdoor air to cool a warm room. Weather
 safety remains absolute. Shoulder-season keeps the existing symmetric comfort
 objective until separately reviewed; this decision does not silently alter it.
-Phase 01 must encode these directions explicitly, cover the measured hot-sun
-and cool-evening cases, and keep the provisional blind-airflow relation as a
-separate bounded calibration task.
+Phase 01 encodes these directions explicitly and covers the measured hot-sun
+and cool-evening cases. P01-T19 retains the linear blind/free-area multiplier
+as the owner's accepted best defensible unmeasured estimate for the initial
+product: a first-order 0–100% uncovered-area geometry bound, not an empirical
+airflow curve or a calibrated building simulation.
 
-P01-T19 retains the linear blind/free-area multiplier only as an explicitly
-uncalibrated 0–100% geometry bound. Published experiments require
-device/geometry/flow-specific correction, while current Recorder history lacks
-actual manual blind/window positions, airflow observations, and a calibrated
-room response. Phase 01 must not invent an exponent or discharge coefficient;
-calibration resumes only from manufacturer free-area/pressure-loss data or a
-repeatable physical experiment at known positions.
+Published experiments require device/geometry/flow-specific correction, while
+current Recorder history lacks actual manual blind/window positions, airflow
+observations, and an identifiable room response. The owner ruled out a
+dedicated physical calibration campaign as disproportionate on 2026-08-30.
+The product therefore does not invent an exponent, discharge coefficient, or
+new option and does not keep missing physical calibration as blocked work. The
+relation may be revisited only if manufacturer data or passive operational
+evidence later supplies a defensible correction.
 
 Missing or stale safety inputs do not become zero wind, no rain, or favourable
 temperature. Degradation is explicit in recommendation, availability, reason

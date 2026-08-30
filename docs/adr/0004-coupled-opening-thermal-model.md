@@ -1,7 +1,8 @@
 # ADR 0004 — Coupled opening and blind thermal model
 
-- Status: accepted for P01-T02
+- Status: accepted for P01-T02 and P01-T19
 - Date: 2026-08-24
+- Last amended: 2026-08-30
 - Sources: catalog C008, C012, C014 and predecessor A03/A04/A09/A10
 
 ## Context
@@ -75,6 +76,13 @@ or a calibrated discharge coefficient. Adding an exponent, device coefficient,
 or new user option without corresponding evidence would make the model less
 auditable, not more accurate.
 
+The owner ruled out a dedicated physical calibration campaign as
+disproportionate on 2026-08-30 and accepted this bounded relation as the best
+defensible unmeasured estimate for the initial product. Missing physical
+calibration is therefore not an open delivery gate. A future revision requires
+new manufacturer evidence or passive operational observations that identify a
+better relation; it does not justify speculative complexity now.
+
 ## Bounds and exclusions
 
 - Dimensions must be finite and positive; percentages are finite and within
@@ -91,10 +99,12 @@ auditable, not more accurate.
   actual physical positions. It also has no airflow/tracer measurement or
   calibrated room thermal capacity/internal-gain model with which to isolate
   ventilation from sun, conduction, occupancy, and HVAC.
-- Calibration requires at least the shutter type and 0–100 position geometry,
-  plus manufacturer free-area/pressure-loss data or a repeatable physical
-  experiment at several known blind/window positions. Until then replaying a
-  guessed alternative curve would compare inventions rather than evidence.
+- A more accurate relation would require at least the shutter type and 0–100
+  position geometry plus manufacturer free-area/pressure-loss data, or actual
+  position and response observations rich enough to identify it. The initial
+  product will not require a physical experiment; until better evidence appears,
+  replaying a guessed alternative curve would compare inventions rather than
+  evidence.
 - P01-T02 consumes façade irradiance already calculated at the boundary. P01-T11
   later implements that missing global-to-façade boundary under ADR 0009; this
   thermal module still does not own sun state, weather safety, seasonal policy,

@@ -43,6 +43,12 @@ neutral when heating would otherwise be requested; Winter may heat but is
 neutral when cooling would otherwise be requested. Shoulder season retains the
 symmetric heat/cool/neutral objective. Weather safety remains absolute.
 
+The thermal score is a comparative first-order model, not a calibrated
+building simulation. It combines projected solar gain, glazing conduction, and
+single-sided ventilation in watts for every feasible window/blind candidate.
+Blind opening scales effective free area linearly as the accepted bounded
+estimate; the integration does not claim measured room response or airflow.
+
 The initial entity surface is informational:
 
 - resolved `open`/`tilt`/`close` recommendation per opening, or explicit

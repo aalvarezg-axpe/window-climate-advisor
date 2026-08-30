@@ -131,9 +131,9 @@ The reported solar pattern is real but has two materially different forms:
   off, not evidence that the optimizer preferred hotter outdoor air. Its
   validity still depends on the unmeasured assumption that blind closure
   reduces free ventilation area linearly. P01-T19 later retained that relation
-  only as a 0–100% geometry bound and identified the physical evidence required
-  for calibration; this history cannot provide actual manual positions or
-  airflow.
+  as the owner's accepted best defensible first-order 0–100% geometry bound;
+  this history cannot provide actual manual positions or airflow, and a
+  dedicated physical calibration campaign is not required.
 - Two openings linked to another room repeatedly remained `open/100%` under
   direct sun while outdoor air was about 3–6 °C hotter. The clearest post-
   window spans on 29 August were 13:36–14:36 and 15:31–16:21 local time, with
@@ -173,8 +173,9 @@ Code tracing found two acceptance gaps beyond calibration:
 P01-T15 records this audit. P01-T16 separately owns the missing live forecast
 horizon and P01-T17 owns Recorder-visible target/reason evidence. After this
 audit, the owner approved the one-sided Summer/Winter contract implemented by
-P01-T18; blind-airflow evidence remains isolated in P01-T19. No code or Home
-Assistant configuration was changed by the audit itself.
+P01-T18 and then accepted P01-T19's bounded blind-airflow estimate instead of a
+physical calibration campaign. No code or Home Assistant configuration was
+changed by the audit or that later modelling decision.
 
 ## Four-day evidence
 

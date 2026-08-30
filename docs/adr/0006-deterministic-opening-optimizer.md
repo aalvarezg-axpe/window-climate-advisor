@@ -30,7 +30,7 @@ This P01-T18 amendment prevents deliberate Summer gain from hotter outdoor air
 or sun once cooling is unnecessary, and deliberate Winter loss to colder air
 once heating is unnecessary. Neutrality minimizes signed-load magnitude; it
 does not prescribe a window or blind position. Shoulder behaviour, physical
-calibration, and downstream absolute weather safety are unchanged.
+model bounds, and downstream absolute weather safety are unchanged.
 
 The total score in watt-equivalent comparison units is:
 
