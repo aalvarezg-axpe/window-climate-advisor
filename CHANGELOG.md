@@ -5,6 +5,25 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0b6 - 2026-08-30
+
+### Changed
+
+- Summer free cooling now remains active until the room reaches its lower
+  comfort boundary plus hysteresis. This uses materially cooler outdoor air
+  before returning to thermal neutrality instead of stopping at the higher
+  preconditioning target.
+- The live `Pruebas` comparison card is aligned separately through Home
+  Assistant's supported Lovelace API with all six configured room sources and
+  seven current openings.
+
+### Safety and privacy
+
+- Winter still never actively cools, Shoulder-season remains symmetric, and
+  all weather-safety, stability, notification-routing, privacy and
+  zero-actuator gates are unchanged. The dashboard correction renames no
+  entity and stores no household state in the repository.
+
 ## 0.2.0b5 - 2026-08-30
 
 ### Changed

@@ -19,18 +19,25 @@ numerical solver or optimization dependency.
 For each current or forecast horizon, derive intent from the selected profile
 and explicit season. Shoulder season remains symmetric: heat below the lower
 bound or preconditioning target minus hysteresis, cool above the upper bound or
-target plus hysteresis, otherwise neutral. Summer keeps cooling but maps the
-heating side to neutral; Winter keeps heating but maps the cooling side to
-neutral. Candidate thermal cost is `-load` for heating, `load` for cooling, and
-`abs(load)` for neutrality; lower is better. The profile boundaries and
-hysteresis are unchanged. When a valid forecast exists, use the worse of the
-current and forecast costs under the same season.
+target plus hysteresis, otherwise neutral. Summer keeps cooling while indoor
+temperature is above the lower bound plus hysteresis, then maps the heating
+side to neutral; Winter keeps heating but maps the cooling side to neutral.
+Candidate thermal cost is `-load` for heating, `load` for cooling, and
+`abs(load)` for neutrality; lower is better. When a valid forecast exists, use
+the worse of the current and forecast costs under the same season.
 
 This P01-T18 amendment prevents deliberate Summer gain from hotter outdoor air
 or sun once cooling is unnecessary, and deliberate Winter loss to colder air
 once heating is unnecessary. Neutrality minimizes signed-load magnitude; it
 does not prescribe a window or blind position. Shoulder behaviour, physical
 model bounds, and downstream absolute weather safety are unchanged.
+
+P02-T12 corrects where Summer cooling becomes unnecessary. A production-shaped
+low-sun interval proved that stopping at the preconditioning target could
+retain tilt while full opening offered materially greater free cooling and the
+room was still above its lower comfort edge. Summer therefore cools down to
+`lower + hysteresis`; the exact edge is neutral to avoid overcooling and churn.
+No Winter, Shoulder, physical-model, penalty, stability, or safety rule changes.
 
 The total score in watt-equivalent comparison units is:
 

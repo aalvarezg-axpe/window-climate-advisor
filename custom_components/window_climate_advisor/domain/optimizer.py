@@ -127,9 +127,13 @@ def _thermal_cost_w(
     )
     if heating_required and season is not Season.SUMMER:
         return -load.total_w
-    cooling_required = (
-        temperature_c >= profile.upper_c
-        or temperature_c > profile.preconditioning_target_c + profile.hysteresis_c
+    cooling_switch_c = (
+        profile.lower_c + profile.hysteresis_c
+        if season is Season.SUMMER
+        else profile.preconditioning_target_c + profile.hysteresis_c
+    )
+    cooling_required = temperature_c >= profile.upper_c or temperature_c > (
+        cooling_switch_c
     )
     if cooling_required and season is not Season.WINTER:
         return load.total_w

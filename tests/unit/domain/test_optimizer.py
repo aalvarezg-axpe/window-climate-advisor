@@ -210,13 +210,49 @@ def test_active_seasonal_direction_still_uses_profile_boundaries(
     assert result.best.thermal_cost_w == (load if season is Season.SUMMER else -load)
 
 
+def test_summer_free_cools_until_lower_boundary_plus_hysteresis() -> None:
+    """Use a cool low-sun interval before stopping at the Summer lower edge."""
+    profile = ComfortProfile(24, 27, 25, 0.5)
+    settings = OptimizerSettings(10, 20, 10, 30)
+    current_action = CandidateAction(WindowState.TILT, BlindOpening(100))
+
+    cooling = optimize_opening(
+        OptimizationRequest(
+            DIMENSIONS,
+            profile,
+            Season.SUMMER,
+            ThermalConditions(24.7, 21.3, 30, 8, 12),
+            None,
+            current_action,
+            True,
+        ),
+        settings,
+    )
+    stopped = optimize_opening(
+        OptimizationRequest(
+            DIMENSIONS,
+            profile,
+            Season.SUMMER,
+            ThermalConditions(24.5, 21.3, 30, 8, 12),
+            None,
+            current_action,
+            True,
+        ),
+        settings,
+    )
+
+    assert cooling.best.action == CandidateAction(WindowState.OPEN, BlindOpening(100))
+    assert cooling.best.thermal_cost_w == cooling.best.current_load.total_w
+    assert stopped.best.thermal_cost_w == abs(stopped.best.current_load.total_w)
+
+
 @pytest.mark.parametrize(
     ("season", "current", "forecast"),
     [
         (
             Season.SUMMER,
             ThermalConditions(27, 20, 0),
-            ThermalConditions(23.5, 29, 500),
+            ThermalConditions(20.4, 29, 500),
         ),
         (
             Season.WINTER,

@@ -1,6 +1,6 @@
 # Phase 02 notification validation
 
-- Candidate: `v0.2.0b5`
+- Candidate: `v0.2.0b6`
 - Route: public GitHub prerelease through the existing custom HACS repository
 - Integration/operational rollback: live-verified `v0.1.0b5`
 - Behavioural baseline only: immutable `v4.17_pre` fixture; no longer deployed
@@ -9,10 +9,10 @@
 
 ## Local acceptance
 
-The P02-T11 focused gate passes 12 tests; adding the manifest gate passes 15.
-The complete candidate gate passes 179 tests at 95.77% coverage with Ruff,
-formatting, strict mypy,
-artifact/secret checks, integration lifecycle, replay, and safety checks.
+P02-T12's optimizer/application/replay gate passes 29 tests; adding the
+manifest gate passes 32. The complete candidate gate passes 180 tests at
+95.77% coverage with Ruff, formatting, strict mypy, artifact/secret checks,
+integration lifecycle, replay, privacy and safety checks.
 
 | Boundary | Redacted evidence |
 |---|---|
@@ -313,3 +313,27 @@ No synthetic message, configuration/recipient change or physical action was
 called. P02-T11 and P02-T04 retain only natural-device rendering/presence
 evidence; the new wording will be accepted when the next genuine applicable
 change produces it.
+
+## Local b6 Summer free-cooling correction
+
+The owner rejected the presentation-only explanation after observing that the
+`Pruebas` table showed high indoor temperatures while outdoor air was suitable
+for ventilation. A supported read-only reproduction separated two defects.
+The live Salón source was fresh, outdoor air was 3.4 °C cooler, and façade
+radiation was low. The physical model estimated about -443 W with full opening
+versus -47 W with tilt, but the Summer neutral branch minimized absolute heat
+flow because the room was below the preconditioning target even though it was
+still above the lower comfort boundary plus hysteresis.
+
+P02-T12 moves only the Summer free-cooling stop to that lower boundary. The
+exact boundary remains neutral; Winter no-active-cooling, Shoulder symmetry,
+weather safety, movement/forecast penalties, minimum benefit, stability delays,
+notification routing and the zero-actuator boundary remain unchanged. A
+production-shaped regression plus optimizer/application/replay suites pass
+29/29. The same read-only audit found that the custom-component comparison
+card still contained five historical openings and none of its room-temperature
+references matched the integration's six configured sources. One supported
+Lovelace save changed only that component card: it now has seven opening rows,
+six exact configured room sources and no entity rename. Every other dashboard
+card remained byte-equivalent in the verified configuration; no service,
+notification or physical action was called.

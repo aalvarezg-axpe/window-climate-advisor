@@ -6,7 +6,7 @@ outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
 The project is in **Phase 02 contextual-notification validation**. Candidate
-`v0.2.0b5` stores only recipient persons, discovers their associated Home
+`v0.2.0b6` stores only recipient persons, discovers their associated Home
 Assistant Mobile App devices through native registries, sends stable-change
 summaries only to those devices currently home, and gives fresh advice when a
 configured occupant arrives. Live-verified `v0.1.0b5` remains the integration
@@ -45,10 +45,12 @@ forecast has no future irradiance field, and no configured source provides one.
 The optimizer therefore applies its explicit missing-horizon penalty instead
 of inventing future solar load or indoor temperature.
 
-Seasonal intent is explicit at the optimizer boundary. Summer may cool but is
-neutral when heating would otherwise be requested; Winter may heat but is
-neutral when cooling would otherwise be requested. Shoulder season retains the
-symmetric heat/cool/neutral objective. Weather safety remains absolute.
+Seasonal intent is explicit at the optimizer boundary. Summer uses available
+free cooling until the room reaches its lower comfort boundary plus hysteresis,
+then becomes neutral rather than deliberately heating a cool room. Winter may
+heat but is neutral when cooling would otherwise be requested. Shoulder season
+retains the symmetric heat/cool/neutral objective. Weather safety remains
+absolute.
 
 Rain is evaluated per façade rather than as a dwelling-wide close. With no
 meaningful projected gust, or on a leeward façade, rain does not override the
@@ -84,7 +86,7 @@ Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
 1. In HACS, open the menu and select **Custom repositories**.
 2. Add `https://github.com/aalvarezg-axpe/window-climate-advisor` as type
    **Integration**.
-3. Download the explicit prerelease `v0.2.0b5`; enable prerelease tracking for
+3. Download the explicit prerelease `v0.2.0b6`; enable prerelease tracking for
    this repository if HACS does not initially show it.
 4. Restart Home Assistant.
 5. Go to **Settings → Devices & services → Add integration**, search for

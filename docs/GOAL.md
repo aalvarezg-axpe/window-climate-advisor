@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.21
+> Document version: 0.22
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-30
 > Current state: **active / Phase 02**
@@ -259,19 +259,22 @@ proves the daily maxima do not enter `OptimizationRequest` as thermal
 conditions. A later real horizon requires a demonstrated, time-aligned future
 irradiance source and an explicit indoor reference contract.
 
-The owner froze one-sided seasonal intent on 2026-08-30. Summer may actively
-remove heat, but once cooling is no longer required it must seek thermal
-neutrality rather than deliberately admit hotter outdoor air or solar gain to
-heat a cool room. Winter is the inverse: it may actively add heat, but once
-heating is no longer required it must stop further gains and seek neutrality
-rather than deliberately admit colder outdoor air to cool a warm room. Weather
-safety remains absolute. Shoulder-season keeps the existing symmetric comfort
-objective until separately reviewed; this decision does not silently alter it.
-Phase 01 encodes these directions explicitly and covers the measured hot-sun
-and cool-evening cases. P01-T19 retains the linear blind/free-area multiplier
-as the owner's accepted best defensible unmeasured estimate for the initial
-product: a first-order 0–100% uncovered-area geometry bound, not an empirical
-airflow curve or a calibrated building simulation.
+The owner froze one-sided seasonal intent on 2026-08-30 and corrected its
+Summer stop boundary after a live false-tilt reproduction. Summer may actively
+remove heat while the room is above the lower comfort boundary plus hysteresis;
+at or below that boundary it must seek thermal neutrality rather than
+deliberately admit hotter outdoor air or solar gain to heat a cool room. Winter
+is the inverse in direction, not in target range: it may actively add heat, but
+once heating is no longer required it must stop further gains and seek
+neutrality rather than deliberately admit colder outdoor air to cool a warm
+room. Weather safety remains absolute. Shoulder-season keeps the existing
+symmetric comfort objective until separately reviewed; this decision does not
+silently alter it. Phase 01 encodes the one-sided directions and P02-T12
+corrects the Summer free-cooling cutoff from the preconditioning target to the
+lower boundary plus hysteresis. P01-T19 retains the linear blind/free-area
+multiplier as the owner's accepted best defensible unmeasured estimate for the
+initial product: a first-order 0–100% uncovered-area geometry bound, not an
+empirical airflow curve or a calibrated building simulation.
 
 Published experiments require device/geometry/flow-specific correction, while
 current Recorder history lacks actual manual blind/window positions, airflow
