@@ -222,3 +222,33 @@ or safety effect because their frozen geometries are identical. P02-T10 now
 targets six rooms and seven openings transactionally. No room/opening flow had
 been submitted, no entry reloaded, and no notification or physical action
 called at this checkpoint.
+
+### Restored live topology
+
+Supported Home Assistant subentry flows now configure Salón, Baño, Despacho,
+Cocina, Anto and Eli with the temperature and humidity sensor from the display
+device bearing that room's name. The generic bedroom identity and opening were
+reused for Anto; Eli received the same frozen north-east geometry; Baño received
+the recovered south-west overhang and rain-protection geometry. No entity ID
+was renamed and no helper, schema, production code, dashboard write, synthetic
+message or physical action was introduced.
+
+The first combined attempt exposed a flow-client defect in the operation, not
+the integration: optional contact/cover selectors were resubmitted as null.
+Home Assistant rejected the opening step and deleted the newly created rooms,
+but those same nulls also invalidated restoration of the four already-updated
+room subentries. Immediate read-back found the partial state—four correct new
+room sources and no new topology—before it was reported as rolled back. The
+corrected forward pass omitted absent optional fields and completed the target.
+This required extra diagnostic and recovery reloads beyond the planned single
+final reload; the deviation is retained rather than hidden.
+
+The final redacted gate reports loaded schema v4, 6 rooms, 7 openings,
+3 recipients, 8 integration devices and 23/23 available unique entities.
+Diagnostics contain 14 ready source classes and seven ready recommendation,
+blind and safety triples with bounded targets and no non-closed/0% violation.
+All 17 entity references that already existed in the dashboard still resolve.
+The legacy automation remains off, and duplicate identities, Repairs,
+integration errors/services and owned persistent notifications are zero.
+Focused integration coverage passes 32 tests; the canonical gate passes all
+179 tests at 95.75% coverage. P02-T10 is complete.
