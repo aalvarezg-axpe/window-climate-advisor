@@ -1,7 +1,6 @@
 # Phase 01 shadow status
 
-- Status: four-day observation and b5 corrective gate closed; acceptance blocked
-  only on comparison scope
+- Status: accepted and closed on 2026-08-30
 - Corrective candidate: `v0.1.0b5` / commit `c12d9d7`
 - Four-day observation candidate: `v0.1.0b4` / commit `f9d91aa`
 - Candidate route: public GitHub prerelease installed through custom HACS
@@ -240,10 +239,10 @@ missing resolved-target history cannot be reconstructed retroactively, so no
 behaviour-match percentage is asserted.
 
 All structural, integrity, ready-target, fail-safe, error/action, release, and
-weather-coverage gates pass. P01-T10 remains blocked because its approved live
-comparison scope is unresolved: the owner must either accept the operational
-four-day evidence together with the existing replays and the b5 corrective
-gate below, or require a new b5 shadow with resolved-target instrumentation.
+weather-coverage gates pass. On 2026-08-30 the owner explicitly accepted the
+operational four-day b4 evidence together with the versioned replays and the b5
+corrective gate below as the complete comparison scope. P01-T10 and Phase 01
+are closed; no new b5 observation window is required.
 
 ## Post-shadow corrective gate
 
