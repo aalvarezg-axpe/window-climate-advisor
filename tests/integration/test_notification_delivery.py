@@ -46,6 +46,7 @@ from custom_components.window_climate_advisor.domain.models import (
     BlindOpening,
     WindowState,
 )
+from custom_components.window_climate_advisor.domain.policy import ReasonCode
 from custom_components.window_climate_advisor.domain.state_machine import (
     OpeningStabilityState,
 )
@@ -71,8 +72,14 @@ def _entry() -> MockConfigEntry:
                 "unique_id": None,
             },
             {
+                "subentry_type": SUBENTRY_TYPE_ROOM,
+                "title": "Cocina",
+                "data": {},
+                "unique_id": None,
+            },
+            {
                 "subentry_type": SUBENTRY_TYPE_OPENING,
-                "title": "Sur",
+                "title": "Salón · SE",
                 "data": {CONF_ROOM_SUBENTRY_ID: "room_living", CONF_HAS_BLIND: True},
                 "unique_id": None,
             },
@@ -83,6 +90,18 @@ def _entry() -> MockConfigEntry:
                     CONF_ROOM_SUBENTRY_ID: "room_bedroom",
                     CONF_HAS_BLIND: False,
                 },
+                "unique_id": None,
+            },
+            {
+                "subentry_type": SUBENTRY_TYPE_OPENING,
+                "title": "Cocina · NO",
+                "data": {CONF_ROOM_SUBENTRY_ID: "room_kitchen", CONF_HAS_BLIND: True},
+                "unique_id": None,
+            },
+            {
+                "subentry_type": SUBENTRY_TYPE_OPENING,
+                "title": "Cocina · SO",
+                "data": {CONF_ROOM_SUBENTRY_ID: "room_kitchen", CONF_HAS_BLIND: True},
                 "unique_id": None,
             },
             {
@@ -110,10 +129,16 @@ def _entry() -> MockConfigEntry:
         for subentry_id, subentry in entry.subentries.items()
         if subentry.subentry_type == SUBENTRY_TYPE_ROOM
     }
+    opening_rooms = {
+        "Salón · SE": "Salón",
+        "Norte": "Dormitorio",
+        "Cocina · NO": "Cocina",
+        "Cocina · SO": "Cocina",
+    }
     for subentry in entry.subentries.values():
         if subentry.subentry_type != SUBENTRY_TYPE_OPENING:
             continue
-        room_id = rooms["Salón" if subentry.title == "Sur" else "Dormitorio"]
+        room_id = rooms[opening_rooms[subentry.title]]
         object.__setattr__(
             subentry,
             "data",
@@ -127,6 +152,10 @@ def _change(
     opening_title: str,
     window: WindowState,
     blind_percent: float,
+    reason: ReasonCode = ReasonCode.OPTIMIZER,
+    *,
+    window_changed: bool = True,
+    blind_changed: bool = True,
 ) -> OpeningChange:
     opening_id = next(
         subentry_id
@@ -137,16 +166,31 @@ def _change(
     return OpeningChange(
         opening_id,
         OpeningStabilityState(window, BlindOpening(blind_percent)),
-        True,
-        True,
+        reason,
+        window_changed,
+        blind_changed,
     )
 
 
 def _candidate(entry: MockConfigEntry) -> NotificationCandidate:
     return NotificationCandidate(
         (
-            _change(entry, "Sur", WindowState.OPEN, 70),
-            _change(entry, "Norte", WindowState.TILT, 100),
+            _change(entry, "Salón · SE", WindowState.OPEN, 70),
+            _change(entry, "Norte", WindowState.OPEN, 100),
+            _change(
+                entry,
+                "Cocina · NO",
+                WindowState.CLOSED,
+                0,
+                ReasonCode.RAIN_CLOSE,
+            ),
+            _change(
+                entry,
+                "Cocina · SO",
+                WindowState.CLOSED,
+                0,
+                ReasonCode.RAIN_CLOSE,
+            ),
         )
     )
 
@@ -243,6 +287,7 @@ async def test_delivery_filters_presence_and_consolidates_in_stable_order(
 ) -> None:
     """Send one translated grouped summary only to an available home target."""
     entry = _entry()
+    hass.config.language = "es"
     targets = _set_recipient_states(hass)
     calls: list[ServiceCall] = []
 
@@ -258,9 +303,63 @@ async def test_delivery_filters_presence_and_consolidates_in_stable_order(
     assert calls[0].data == {
         ATTR_ENTITY_ID: targets["first"],
         ATTR_MESSAGE: (
-            "Dormitorio / Norte: Tilt\n"
-            "Salón / Sur: Open · Recommended blind position: 70 %"
+            "Ventanas:\n"
+            "- Cocina NO: Cerrada (Lluvia y viento)\n"
+            "- Cocina SO: Cerrada (Lluvia y viento)\n"
+            "- Dormitorio: Abierta\n"
+            "- Salón: Abierta\n\n"
+            "Persianas:\n"
+            "- Cocina NO: 0% (Lluvia y viento)\n"
+            "- Cocina SO: 0% (Lluvia y viento)\n"
+            "- Salón: 70%"
         ),
+        ATTR_TITLE: "Casa",
+    }
+
+
+async def test_delivery_lists_only_changed_components_and_skips_degraded_rows(
+    hass: HomeAssistant,
+) -> None:
+    """Keep window/blind sections truthful to the accepted grouped change."""
+    entry = _entry()
+    targets = _set_recipient_states(hass)
+    calls: list[ServiceCall] = []
+
+    async def send_message(call: ServiceCall) -> None:
+        calls.append(call)
+
+    hass.services.async_register(NOTIFY_DOMAIN, SERVICE_SEND_MESSAGE, send_message)
+    candidate = NotificationCandidate(
+        (
+            _change(
+                entry,
+                "Salón · SE",
+                WindowState.OPEN,
+                70,
+                window_changed=False,
+            ),
+            _change(
+                entry,
+                "Cocina · NO",
+                WindowState.CLOSED,
+                0,
+                ReasonCode.WIND_CLOSE,
+                blind_changed=False,
+            ),
+            _change(
+                entry,
+                "Cocina · SO",
+                WindowState.CLOSED,
+                0,
+                ReasonCode.STALE_SAFETY_DATA,
+            ),
+        )
+    )
+
+    assert await async_deliver_notification_candidate(hass, entry, candidate) == 1
+    assert calls[0].data == {
+        ATTR_ENTITY_ID: targets["first"],
+        ATTR_MESSAGE: ("Windows:\n- Cocina NO: Closed (Wind)\n\nBlinds:\n- Salón: 70%"),
         ATTR_TITLE: "Casa",
     }
 
@@ -369,7 +468,8 @@ async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_bl
     opening_id = next(
         subentry_id
         for subentry_id, subentry in entry.subentries.items()
-        if subentry.subentry_type == SUBENTRY_TYPE_OPENING and subentry.title == "Sur"
+        if subentry.subentry_type == SUBENTRY_TYPE_OPENING
+        and subentry.title == "Salón · SE"
     )
     candidate = ArrivalNotificationCandidate(
         (
@@ -378,6 +478,7 @@ async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_bl
                 WindowState.OPEN,
                 BlindOpening(70),
                 manual_blind_unobserved=True,
+                reason=ReasonCode.OPTIMIZER,
             ),
         )
     )
@@ -389,8 +490,8 @@ async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_bl
     assert len(calls) == 2
     expected = {
         ATTR_MESSAGE: (
-            "Salón / Sur: Open · Recommended blind position: 70 % "
-            "(manual position not observable)"
+            "Windows:\n- Salón: Open\n\n"
+            "Blinds:\n- Salón: 70% (manual position not observable)"
         ),
         ATTR_TITLE: "Casa",
     }

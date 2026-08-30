@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.18
+> Document version: 0.19
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-30
 > Current state: **active / Phase 02**
@@ -327,6 +327,14 @@ not replay obsolete away-time transitions. Arrival delivery is deduplicated per
 real away-to-home transition and remains restart-safe. Contact and cover
 feedback suppress targets already satisfied; when a manual blind position
 cannot be observed, the arrival message states that explicitly.
+
+Notification bodies separate `Windows` and `Blinds` into multiline bullet
+sections and include only the component that changed or remains actionable. A
+room with one opening is identified only by its room title; a room with several
+openings appends the shortest configured opening suffix needed to distinguish
+them without repeating the room title. Weather-forced rows include a concise
+reason propagated from the evaluated policy result rather than inferred during
+delivery. Ordering is deterministic and degraded rows remain non-actionable.
 
 ## 7. Safety and privacy gates
 

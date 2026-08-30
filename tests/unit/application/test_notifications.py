@@ -125,8 +125,20 @@ def test_arrival_advice_keeps_only_actionable_and_unobserved_targets() -> None:
     ) == ArrivalNotificationCandidate(
         (
             # Window and manual blind both remain actionable.
-            ArrivalOpeningAdvice("manual", WindowState.TILT, BlindOpening(40), True),
+            ArrivalOpeningAdvice(
+                "manual",
+                WindowState.TILT,
+                BlindOpening(40),
+                True,
+                ReasonCode.OPTIMIZER,
+            ),
             # Only the observed window differs; the blind target is already met.
-            ArrivalOpeningAdvice("observed", WindowState.CLOSED, None, False),
+            ArrivalOpeningAdvice(
+                "observed",
+                WindowState.CLOSED,
+                None,
+                False,
+                ReasonCode.OPTIMIZER,
+            ),
         )
     )

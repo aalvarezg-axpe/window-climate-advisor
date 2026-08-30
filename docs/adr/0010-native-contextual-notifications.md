@@ -2,6 +2,7 @@
 
 - Status: accepted for Phase 02
 - Date: 2026-08-30
+- Last amended: 2026-08-30
 - Sources: owner presence requirements, P01-T17, and Home Assistant 2026.8
 
 ## Decision
@@ -32,7 +33,13 @@ content.
 ## Consequences
 
 - The existing grouped stable-change candidate remains the only ordinary
-  notification trigger.
+  notification trigger. It carries the already-evaluated policy reason only
+  for presentation; delivery does not reconstruct weather decisions.
+- Ordinary and arrival bodies use the same deterministic two-section format:
+  window rows, then blind rows. Single-opening rooms use the room title alone;
+  multi-opening rooms add a non-duplicated opening suffix. Only changed or
+  still-actionable components appear, and weather-forced rows show a concise
+  reason.
 - Away-time changes are discarded rather than queued.
 - A later arrival uses the native non-home to `home` person-state edge and a
   fresh evaluation sent only to that person's associated devices then home;

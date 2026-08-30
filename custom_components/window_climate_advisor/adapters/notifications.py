@@ -19,7 +19,6 @@ from homeassistant.const import ATTR_ENTITY_ID, STATE_HOME, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.translation import async_get_translations
 
 from ..application.notifications import (
     ArrivalNotificationCandidate,
@@ -29,25 +28,52 @@ from ..application.state import NotificationCandidate
 from ..const import (
     CONF_HAS_BLIND,
     CONF_ROOM_SUBENTRY_ID,
-    DOMAIN,
     SUBENTRY_TYPE_OPENING,
     SUBENTRY_TYPE_RECIPIENT,
     SUBENTRY_TYPE_ROOM,
 )
-from ..domain.policy import recommendation_for_state
+from ..domain.policy import ReasonCode
 
 _LOGGER = logging.getLogger(__name__)
-_RECOMMENDATION_STATE_KEY = (
-    f"component.{DOMAIN}.entity.sensor.recommendation.state.{{state}}"
-)
-_BLIND_NAME_KEY = f"component.{DOMAIN}.entity.sensor.recommended_blind_position.name"
-_MANUAL_BLIND_NOTE = {
-    "en": "manual position not observable",
-    "es": "posición manual no observable",
+_NOTIFICATION_TEXT = {
+    "en": {
+        "windows": "Windows",
+        "blinds": "Blinds",
+        "closed": "Closed",
+        "tilt": "Tilt",
+        "open": "Open",
+        "manual": "manual position not observable",
+        ReasonCode.WIND_CLOSE.value: "Wind",
+        ReasonCode.WIND_TILT_ONLY.value: "Wind",
+        ReasonCode.RAIN_CLOSE.value: "Rain and wind",
+        ReasonCode.RAIN_TILT_ONLY.value: "Rain and wind",
+    },
+    "es": {
+        "windows": "Ventanas",
+        "blinds": "Persianas",
+        "closed": "Cerrada",
+        "tilt": "Oscilobatiente",
+        "open": "Abierta",
+        "manual": "posición manual no observable",
+        ReasonCode.WIND_CLOSE.value: "Viento",
+        ReasonCode.WIND_TILT_ONLY.value: "Viento",
+        ReasonCode.RAIN_CLOSE.value: "Lluvia y viento",
+        ReasonCode.RAIN_TILT_ONLY.value: "Lluvia y viento",
+    },
+}
+_UNACTIONABLE_REASONS = {
+    ReasonCode.MISSING_SAFETY_DATA,
+    ReasonCode.STALE_SAFETY_DATA,
 }
 
 
-def _opening_label(entry: ConfigEntry, opening_id: str) -> tuple[str, str, str] | None:
+def _text(language: str) -> dict[str, str]:
+    return _NOTIFICATION_TEXT.get(language.split("-", 1)[0], _NOTIFICATION_TEXT["en"])
+
+
+def _opening_label(
+    entry: ConfigEntry, opening_id: str
+) -> tuple[tuple[str, str, str], str, bool] | None:
     """Return sortable room/opening labels for a configured opening."""
     opening = entry.subentries.get(opening_id)
     if opening is None or opening.subentry_type != SUBENTRY_TYPE_OPENING:
@@ -59,74 +85,117 @@ def _opening_label(entry: ConfigEntry, opening_id: str) -> tuple[str, str, str] 
         if room is not None and room.subentry_type == SUBENTRY_TYPE_ROOM
         else ""
     )
-    label = " / ".join(part for part in (room_title, opening.title) if part)
-    return room_title, opening.title, label
+    opening_count = sum(
+        subentry.subentry_type == SUBENTRY_TYPE_OPENING
+        and subentry.data.get(CONF_ROOM_SUBENTRY_ID) == room_id
+        for subentry in entry.subentries.values()
+    )
+    if room_title and opening_count == 1:
+        label = room_title
+    elif room_title:
+        suffix = opening.title
+        remainder = suffix[len(room_title) :]
+        if suffix[: len(room_title)].casefold() == room_title.casefold() and (
+            not remainder or remainder[0] in " /·:-"
+        ):
+            suffix = remainder.lstrip(" /·:-")
+        label = " ".join(part for part in (room_title, suffix) if part)
+    else:
+        label = opening.title
+    return (
+        (room_title.casefold(), opening.title.casefold(), opening_id),
+        label,
+        opening.data.get(CONF_HAS_BLIND) is True,
+    )
+
+
+def _note(reason: ReasonCode, text: dict[str, str], *, manual: bool = False) -> str:
+    notes = [text[reason.value]] if reason.value in text else []
+    if manual:
+        notes.append(text["manual"])
+    return f" ({'; '.join(notes)})" if notes else ""
+
+
+def _format_message(
+    windows: tuple[str, ...], blinds: tuple[str, ...], language: str
+) -> str:
+    text = _text(language)
+    sections = [
+        f"{text[title]}:\n" + "\n".join(f"- {row}" for row in rows)
+        for title, rows in (("windows", windows), ("blinds", blinds))
+        if rows
+    ]
+    return "\n\n".join(sections)
 
 
 def _message_rows(
     entry: ConfigEntry,
     candidate: NotificationCandidate,
-    translations: dict[str, str],
-) -> tuple[str, ...]:
-    """Render changed openings in deterministic room/opening order."""
-    rows: list[tuple[tuple[str, str, str], str]] = []
+    language: str,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Render changed window and blind rows in deterministic order."""
+    text = _text(language)
+    windows: list[tuple[tuple[str, str, str], str]] = []
+    blinds: list[tuple[tuple[str, str, str], str]] = []
     for change in candidate.changes:
-        labels = _opening_label(entry, change.opening_id)
-        if labels is None:
+        labelled = _opening_label(entry, change.opening_id)
+        if labelled is None or change.reason in _UNACTIONABLE_REASONS:
             continue
-        room_title, opening_title, label = labels
-        opening = entry.subentries[change.opening_id]
-        state = recommendation_for_state(change.state.window).value
-        state_label = translations.get(
-            _RECOMMENDATION_STATE_KEY.format(state=state), state
-        )
-        row = f"{label}: {state_label}"
-        if opening.data.get(CONF_HAS_BLIND) is True:
-            blind_label = translations.get(_BLIND_NAME_KEY, "Blind")
-            row += f" · {blind_label}: {change.state.blind.percent:g} %"
-        rows.append(
-            ((room_title.casefold(), opening_title.casefold(), change.opening_id), row)
-        )
-    rows.sort(key=lambda item: item[0])
-    return tuple(row for _, row in rows)
+        sort_key, label, has_blind = labelled
+        note = _note(change.reason, text)
+        if change.window_changed:
+            windows.append(
+                (sort_key, f"{label}: {text[change.state.window.value]}{note}")
+            )
+        if change.blind_changed and has_blind:
+            blinds.append((sort_key, f"{label}: {change.state.blind.percent:g}%{note}"))
+    windows.sort(key=lambda item: item[0])
+    blinds.sort(key=lambda item: item[0])
+    return (
+        tuple(row for _, row in windows),
+        tuple(row for _, row in blinds),
+    )
 
 
 def _arrival_message_rows(
     entry: ConfigEntry,
     candidate: ArrivalNotificationCandidate,
-    translations: dict[str, str],
     language: str,
-) -> tuple[str, ...]:
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Render only still-actionable arrival advice in stable order."""
-    rows: list[tuple[tuple[str, str, str], str]] = []
-    manual_note = _MANUAL_BLIND_NOTE.get(
-        language.split("-", 1)[0], _MANUAL_BLIND_NOTE["en"]
-    )
-    blind_label = translations.get(_BLIND_NAME_KEY, "Blind")
+    text = _text(language)
+    windows: list[tuple[tuple[str, str, str], str]] = []
+    blinds: list[tuple[tuple[str, str, str], str]] = []
     for advice in candidate.openings:
-        labels = _opening_label(entry, advice.opening_id)
-        if labels is None:
+        labelled = _opening_label(entry, advice.opening_id)
+        if labelled is None:
             continue
-        room_title, opening_title, label = labels
-        actions: list[str] = []
+        sort_key, label, _ = labelled
         if advice.window is not None:
-            state = recommendation_for_state(advice.window).value
-            actions.append(
-                translations.get(_RECOMMENDATION_STATE_KEY.format(state=state), state)
+            windows.append(
+                (
+                    sort_key,
+                    f"{label}: {text[advice.window.value]}{_note(advice.reason, text)}",
+                )
             )
         if advice.blind is not None:
-            blind = f"{blind_label}: {advice.blind.percent:g} %"
-            if advice.manual_blind_unobserved:
-                blind += f" ({manual_note})"
-            actions.append(blind)
-        rows.append(
-            (
-                (room_title.casefold(), opening_title.casefold(), advice.opening_id),
-                f"{label}: {' · '.join(actions)}",
+            note = _note(
+                advice.reason,
+                text,
+                manual=advice.manual_blind_unobserved,
             )
-        )
-    rows.sort(key=lambda item: item[0])
-    return tuple(row for _, row in rows)
+            blinds.append(
+                (
+                    sort_key,
+                    f"{label}: {advice.blind.percent:g}%{note}",
+                )
+            )
+    windows.sort(key=lambda item: item[0])
+    blinds.sort(key=lambda item: item[0])
+    return (
+        tuple(row for _, row in windows),
+        tuple(row for _, row in blinds),
+    )
 
 
 def _recipients(entry: ConfigEntry) -> tuple[str, ...]:
@@ -222,13 +291,10 @@ async def async_deliver_notification_candidate(
         return 0
     if not recipients:
         return 0
-    translations = await async_get_translations(
-        hass, hass.config.language, "entity", (DOMAIN,)
-    )
-    rows = _message_rows(entry, candidate, translations)
-    if not rows:
+    windows, blinds = _message_rows(entry, candidate, hass.config.language)
+    message = _format_message(windows, blinds, hass.config.language)
+    if not message:
         return 0
-    message = "\n".join(rows)
     delivered = 0
     seen_targets: set[str] = set()
     for person_entity_id in sorted(recipients):
@@ -265,13 +331,10 @@ async def async_deliver_arrival_candidate(
         return 0
     if not configured:
         return 0
-    translations = await async_get_translations(
-        hass, hass.config.language, "entity", (DOMAIN,)
-    )
-    rows = _arrival_message_rows(entry, candidate, translations, hass.config.language)
-    if not rows:
+    windows, blinds = _arrival_message_rows(entry, candidate, hass.config.language)
+    message = _format_message(windows, blinds, hass.config.language)
+    if not message:
         return 0
-    message = "\n".join(rows)
     delivered = 0
     for target in notification_targets_for_person(
         hass, person_entity_id, home_only=True

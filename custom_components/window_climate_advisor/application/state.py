@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from ..domain.models import BlindOpening, WindowState
+from ..domain.policy import ReasonCode
 from ..domain.state_machine import (
     BlindDirection,
     OpeningStabilityState,
@@ -40,6 +41,7 @@ class OpeningChange:
 
     opening_id: str
     state: OpeningStabilityState
+    reason: ReasonCode
     window_changed: bool
     blind_changed: bool
 
@@ -83,6 +85,7 @@ def advance_evaluation(
                 OpeningChange(
                     opening_id,
                     transition.state,
+                    sample.policy.reason,
                     transition.window_changed,
                     transition.blind_changed,
                 )

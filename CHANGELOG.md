@@ -5,6 +5,24 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0b3 - 2026-08-30
+
+### Changed
+
+- Notifications now separate window and blind changes into multiline bullet
+  sections and omit components that did not change.
+- Single-opening rooms use only the room title; multi-opening rooms retain a
+  non-duplicated configured suffix for disambiguation.
+- Weather-forced rows show the concise reason already produced by the safety
+  policy. Arrival advice uses the same structure and retains the manual-blind
+  observation note.
+
+### Safety and privacy
+
+- Rain, gust, direction, façade exposure, overhang, recipient, presence,
+  no-queue, and zero-actuator policies are unchanged. Degraded rows remain
+  non-actionable and message content is not persisted by the integration.
+
 ## 0.2.0b2 - 2026-08-30
 
 ### Changed

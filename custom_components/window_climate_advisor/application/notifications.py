@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from ..const import CONF_PERSON_ENTITY_ID
 from ..domain.models import BlindOpening, WindowState
 from ..domain.optimizer import CandidateAction
-from ..domain.policy import Recommendation
+from ..domain.policy import ReasonCode, Recommendation
 from .evaluator import AdvisorEvaluation
 
 
@@ -27,6 +27,7 @@ class ArrivalOpeningAdvice:
     window: WindowState | None
     blind: BlindOpening | None
     manual_blind_unobserved: bool
+    reason: ReasonCode
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,7 +66,9 @@ def arrival_notification_candidate(
     """Build fresh advice, retaining only targets not proven already satisfied."""
     openings: list[ArrivalOpeningAdvice] = []
     for opening_id, result in sorted(evaluation.openings.items()):
-        if result.recommendation is Recommendation.DEGRADED:
+        if result.recommendation is Recommendation.DEGRADED or not isinstance(
+            result.reason, ReasonCode
+        ):
             continue
         feedback = feedback_by_opening.get(opening_id)
         window: WindowState | None = result.recommended_window_state
@@ -91,6 +94,7 @@ def arrival_notification_candidate(
                 window,
                 blind,
                 blind is not None and (feedback is None or not feedback.blind_observed),
+                result.reason,
             )
         )
     return ArrivalNotificationCandidate(tuple(openings)) if openings else None

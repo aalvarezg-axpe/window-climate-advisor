@@ -106,6 +106,10 @@ def test_evaluation_returns_at_most_one_sorted_grouped_candidate() -> None:
         change.window_changed and not change.blind_changed
         for change in result.notification_candidate.changes
     )
+    assert all(
+        change.reason is ReasonCode.WIND_CLOSE
+        for change in result.notification_candidate.changes
+    )
     assert not hasattr(result.notification_candidate, "send")
 
     repeated = advance_evaluation(result.state, samples, NOW, SETTINGS)

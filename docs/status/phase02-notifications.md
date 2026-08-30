@@ -1,6 +1,6 @@
 # Phase 02 notification validation
 
-- Candidate: `v0.2.0b2`
+- Candidate: `v0.2.0b3`
 - Route: public GitHub prerelease through the existing custom HACS repository
 - Integration/operational rollback: live-verified `v0.1.0b5`
 - Behavioural baseline only: immutable `v4.17_pre` fixture; no longer deployed
@@ -9,8 +9,8 @@
 
 ## Local acceptance
 
-The P02-T05 focused gate passes 30 tests. The complete candidate gate passes
-166 tests at 95.71% coverage with Ruff, formatting, strict mypy,
+The P02-T07 focused gate passes 28 tests. The complete candidate gate passes
+167 tests at 95.75% coverage with Ruff, formatting, strict mypy,
 artifact/secret checks, integration lifecycle, replay, and safety checks.
 
 | Boundary | Redacted evidence |
@@ -90,3 +90,21 @@ The real present/away/mixed/stable-change/arrival delivery matrix remains to
 be observed through natural events. Configuration and lifecycle evidence are
 complete, but no synthetic notification will be sent solely to close that
 gate.
+
+## Owner-observed presentation correction
+
+The first naturally observed b2 delivery proved routing but exposed a compact
+presentation defect: room and opening titles could repeat, orientation remained
+visible for a single-opening room, and window plus blind advice shared one long
+line. P02-T07 owns the correction. The local contract now uses separate
+multiline window/blind sections, room-only single-opening labels,
+non-duplicated multi-opening suffixes, changed/actionable components only, and
+concise weather reasons carried from the evaluated policy. No private message,
+recipient, room/opening name, or raw household state is retained here.
+
+The focused formatter/state/delivery gate passes 28 tests; adding the manifest
+gate passes 31. The complete b3 candidate gate passes 167 tests at 95.75%
+coverage with lint, formatting, strict typing, replay, privacy, artifact/secret,
+and zero-actuator checks green. Publication, HACS installation, restart, and
+natural-message observation remain; b2 stays installed until that reversible
+deployment completes.

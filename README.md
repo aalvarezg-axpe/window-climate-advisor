@@ -6,13 +6,18 @@ outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
 The project is in **Phase 02 contextual-notification validation**. Candidate
-`v0.2.0b2` stores only recipient persons, discovers their associated Home
+`v0.2.0b3` stores only recipient persons, discovers their associated Home
 Assistant Mobile App devices through native registries, sends stable-change
 summaries only to those devices currently home, and gives fresh advice when a
 configured occupant arrives. Live-verified `v0.1.0b5` remains the integration
 fallback and operational rollback. Neither build controls physical actuators;
 the retired `v4.17_pre` automation remains only as an immutable behavioural
 fixture.
+
+Notification summaries use separate window and blind bullet sections. Rooms
+with one opening appear once by room name; rooms with several openings retain
+only the configured suffix needed to distinguish them. Weather-forced changes
+include their evaluated safety reason.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
 tracked in
