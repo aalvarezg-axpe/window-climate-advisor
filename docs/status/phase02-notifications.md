@@ -25,9 +25,29 @@ artifact/secret checks, integration lifecycle, replay, and safety checks.
 
 ## Live acceptance
 
-Pending: publish the immutable prerelease, create or confirm a current backup,
-install it through HACS, and explicitly configure owner-selected person-to-notify
-mappings. The mapping will not be inferred from private names or devices.
+The immutable `release/0.2.0` branch, annotated `v0.2.0b1` tag, and public
+GitHub prerelease resolve to the same candidate. HACS beta tracking was enabled
+only for this repository after it listed the exact prerelease. Home Assistant
+configuration validation passed, a new supported backup completed with the
+database, HACS downloaded the exact version, and the required restart returned
+Home Assistant 2026.8.3 without intervention.
+
+The post-restart gate passes with installed `v0.2.0b1`, schema v4, one loaded
+entry, 4 rooms, 5 openings, 6 devices, 17 unique entities, zero duplicate
+identities, zero integration Repairs/log records/services/owned persistent
+notifications, recipient-flow support, and the frozen baseline available. The
+first immediate poll saw only 7 entities ready while startup evaluation was
+settling; the subsequent coherent gate recovered to 15/17. The remaining two
+unavailable entities belong to one opening explicitly degraded for one missing
+input class; the other 11 source classes and four recommendations are ready.
+
+No recommendation notification has been sent because the deployed entry still
+has zero recipients. This proves the unchanged-v4 disabled default without
+guessing a private mapping.
+
+Pending: explicitly configure owner-selected person-to-notify mappings through
+the native config flow, then run the bounded live presence matrix. The mapping
+will not be inferred from private names or devices.
 
 After configuration, record only the installed version/schema, structure and
 availability counts, exact notification counts for the bounded presence matrix,
