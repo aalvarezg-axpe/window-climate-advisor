@@ -391,4 +391,29 @@ without the established external environment override; it was stopped and the
 reproducible environment was then fully restored from the frozen lock. No
 tracked artifact or Home Assistant state was affected. Consolidated Ponytail
 review removed one redundant exclusion collection and parameter, then reported
-`Lean already. Ship.` Publication and protected b7 deployment remain.
+`Lean already. Ship.`
+
+## Live b7 grouped-notification installation and Summer profile
+
+Commit `728efd7`, remote `release/0.2.0`, annotated tag and public prerelease
+identify the same `v0.2.0b7` candidate. HACS refreshed only this custom
+repository and exposed b7. A supported full backup completed with the database,
+one complete local-agent copy and zero agent errors before the native update
+path installed the beta. The supported configuration check passed. The single
+restart request lost its HTTP response while Core shut down, so it was not
+repeated; read-only polling observed the expected recovery and loaded entry.
+
+The supported complete options form preserved its other 17 values while
+changing Summer lower/upper bounds to 21–24 °C, preconditioning target to
+22 °C and hysteresis to 0.5 °C. A second read-only flow exposed all 21 fields
+with those exact values and was aborted. The effective Summer free-cooling stop
+is therefore 21.5 °C.
+
+The final redacted gate confirms installed b7/schema v4, one loaded entry,
+6 rooms, 7 openings, 3 recipients, 8 integration devices, 23/23 available
+unique entities, 14/14 ready source classes and seven valid recommendation,
+blind and safety triples. The retained legacy automation remains off.
+Duplicate identities, integration Repairs, log matches, services and owned
+persistent notifications are zero. No synthetic notification or physical
+action was called. P02-T13 and P02-T14 terminate; P02-T04 remains open only for
+natural-device batching and present/away/mixed/arrival delivery evidence.

@@ -78,5 +78,5 @@ service, retain a notification backlog, or control a physical device.
 5. Restore the pre-beta backup only if normal rollback does not return Home
    Assistant to the verified baseline.
 
-`v0.1.0b5` is the last live-verified integration and operational fallback.
+`v0.1.0b5` remains the live-verified operational fallback for the b7 beta.
 `v4.17_pre` remains only as an immutable characterization fixture.
