@@ -77,10 +77,14 @@ automation was the rollback until the new integration had:
    duplicate entities or configuration errors.
 
 Those gates passed in Phase 01 and the owner accepted continuing exclusively
-on the custom integration. The old automation is no longer deployed or an
-operational rollback; its exact fixture and characterization evidence remain
-immutable. The last live-verified integration `v0.1.0b5` is the operational
-rollback for the Phase 02 notification beta.
+on the custom integration. A later notification-provenance audit found that
+the old automation entity still remained enabled alongside the component and
+had executed its notification action. The final cutover on 2026-08-30 left
+that exact automation present but turned it off through Home Assistant's
+supported service, so it cannot compete with component delivery and remains a
+reversible emergency reference only. Its repository fixture and
+characterization evidence remain immutable. The last live-verified integration
+`v0.1.0b5` is the operational rollback for the Phase 02 notification beta.
 
 The owner fixed the Phase 01 shadow period at four consecutive calendar days
 on 2026-08-25 because the expected interval includes rain, heat, and sun. Its

@@ -129,3 +129,24 @@ with `missing_input`; all emitted blind targets remain bounded and every
 non-closed target remains positive. P02-T07 is complete. The next natural
 stable change must still confirm the real-device multiline rendering, and the
 remaining presence/arrival matrix stays open under P02-T04.
+
+## Single notification route cutover
+
+A provenance audit prompted by the owner found that the legacy advisor
+automation had remained enabled alongside b3 despite the earlier accepted
+cutover wording. It was notification-capable, had run during the prior 24
+hours, and each of its four retained traces reached the notify action. The
+owner-observed single-line room/opening wording itself matches the b2 component
+formatter, so both implementations were capable of producing separate advice.
+
+No automation, script, scene, state attribute or config-entry consumer calls
+the legacy automation. Its dashboard references are display-only, and that
+dashboard already contains all 17 component entities. The exact legacy entity
+was therefore turned off through Home Assistant's supported service with
+running actions stopped, while its configuration remains intact for a
+reversible emergency rollback.
+
+After cutover, b3 remains one loaded schema-v4 entry with 4 rooms, 5 openings,
+3 recipients and an available native notification action. The legacy entity is
+off and its retained trace count did not change. No synthetic notification,
+recipient/config-entry/dashboard change, restart or physical action occurred.
