@@ -2,10 +2,10 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.13
+> Document version: 0.14
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-30
-> Current state: **active / Phase 01**
+> Current state: **active / Phase 02**
 > Home Assistant display timezone: `Europe/Madrid`
 > Internal operational timezone: UTC
 
@@ -200,6 +200,9 @@ not use Core's build-time `strings.json` pipeline.
 - Config entry: dwelling identity and global source assignments.
 - Room subentry: room-level environmental sources and metadata.
 - Opening subentry: geometry, façade, protection, contact, cover, and room link.
+- Recipient subentry: one `person` entity mapped to one native `notify` entity.
+  Delivery always uses Home Assistant's fixed `notify.send_message` action;
+  configuration never stores or infers a service/action name.
 - Reconfigure flow: structural changes and entity replacements.
 - Options flow: infrequent tuning and calibration.
 - Native `select`, `number`, or `switch` entities: only controls that users
@@ -289,11 +292,12 @@ diagnostics.
 
 ### 6.1 Presence-aware notification contract
 
-Notification delivery is deferred to the draft
-[`Phase 02 plan`](phases/02-contextual-notifications/PLAN.md) and remains outside
-the active Phase 01 build. Each recipient maps one configured `person` entity to
-an explicitly selected and runtime-validated notification action; names are
-never inferred from a person or device.
+Notification delivery is owned by the active
+[`Phase 02 plan`](phases/02-contextual-notifications/PLAN.md). Each recipient is
+a native config subentry that maps one configured `person` entity to one
+explicitly selected and runtime-validated `notify` entity. Delivery uses only
+Home Assistant's fixed `notify.send_message` action; action names are never
+stored or inferred from a person, device, or entity name.
 
 An accepted stable window or blind target change is delivered only to
 recipients whose person is `home` at delivery time. If everybody is away, the
