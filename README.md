@@ -5,17 +5,16 @@ tilt positions, blinds, shutters, and solar protection from room conditions,
 outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
-The project is in the **post-shadow Phase 01 correction wave**. The completed
-four-day observation identified explicit forecast, seasonal-policy, public
-state, and blind-airflow follow-ups. Installed candidate `v0.1.0b5` contains
-the accepted corrections and has passed its live technical gates; `v0.1.0b4`
-remains the previous live-verified fallback. Neither build controls physical
-actuators. The deployed automation `v4.17_pre` remains the operational baseline
-and rollback.
+The project is in **Phase 02 contextual-notification validation**. Candidate
+`v0.2.0b1` adds explicit person-to-notification recipient mappings, home-only
+stable-change summaries, and fresh advice when a configured occupant arrives.
+Live-verified `v0.1.0b5` remains the integration fallback. Neither build
+controls physical actuators; the frozen automation `v4.17_pre` remains the
+operational rollback.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
 tracked in
-[`docs/phases/01-domain-optimizer/PLAN.md`](docs/phases/01-domain-optimizer/PLAN.md),
+[`docs/phases/02-contextual-notifications/PLAN.md`](docs/phases/02-contextual-notifications/PLAN.md),
 and repository-wide rules are in [`AGENTS.md`](AGENTS.md).
 
 ## Intended architecture
@@ -51,25 +50,29 @@ The initial entity surface is informational:
 - active comfort profile and last-evaluation timestamp;
 - redacted downloadable diagnostics with reason codes and source quality.
 
-There are no services, notifications, helpers, YAML automations, or actuator
-platforms in the integration.
+The integration owns no service, helper, YAML automation, or actuator platform.
+It may call only Home Assistant's fixed `notify.send_message` action for
+explicitly configured recipients; it never stores an arbitrary action name or
+queues notifications while occupants are away.
 
-## Install the shadow candidate with HACS
+## Install the notification beta with HACS
 
 Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
 
 1. In HACS, open the menu and select **Custom repositories**.
 2. Add `https://github.com/aalvarezg-axpe/window-climate-advisor` as type
    **Integration**.
-3. Download the explicit prerelease `v0.1.0b5`; enable prerelease tracking for
+3. Download the explicit prerelease `v0.2.0b1`; enable prerelease tracking for
    this repository if HACS does not initially show it.
 4. Restart Home Assistant.
 5. Go to **Settings → Devices & services → Add integration**, search for
-   **Window Climate Advisor**, and complete its UI flows.
+   **Window Climate Advisor**, complete its UI flows, and add recipient
+   subentries by explicitly selecting each `person` and matching `notify`
+   entity.
 
-This installs an informational shadow advisor beside `v4.17_pre`; it does not
-replace that automation or create notifications or physical actions. Follow
-the backup, verification, and rollback procedure in
+This installs a recommendation and contextual-notification advisor beside the
+frozen `v4.17_pre`; it does not replace that automation or perform physical
+actions. Follow the backup, verification, and rollback procedure in
 [`docs/operations/deployment.md`](docs/operations/deployment.md).
 
 ## Local development

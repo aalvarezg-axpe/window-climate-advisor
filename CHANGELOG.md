@@ -5,6 +5,30 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0b1 - 2026-08-30
+
+### Added
+
+- Explicit repeatable recipient configuration mapping one native `person`
+  entity to one selected native `notify` entity without inferred action names.
+- One translated, deterministic notification per accepted grouped
+  recommendation change, delivered only to configured occupants currently at
+  home.
+- Fresh arrival advice on real non-home-to-home transitions, omitting targets
+  already confirmed by contact/cover feedback and identifying unobservable
+  manual blind positions.
+
+### Safety and privacy
+
+- Away-time changes are discarded instead of queued, startup/restoration does
+  not count as an arrival, notification failure is isolated, and diagnostics
+  expose only a recipient count.
+- Notification delivery uses only fixed `notify.send_message`; no actuator,
+  helper, entity, dependency, service-name parser, or presence ledger was
+  added.
+
+## 0.1.0b5 - 2026-08-30
+
 ### Added
 
 - Initial repository governance, product goal, bootstrap phase, architecture
