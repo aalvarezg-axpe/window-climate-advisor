@@ -337,3 +337,30 @@ Lovelace save changed only that component card: it now has seven opening rows,
 six exact configured room sources and no entity rename. Every other dashboard
 card remained byte-equivalent in the verified configuration; no service,
 notification or physical action was called.
+
+## Live b6 Summer free-cooling installation
+
+Commit `51d176c`, remote `release/0.2.0`, annotated tag and public prerelease
+identify the same `v0.2.0b6` candidate. HACS refreshed only this custom
+repository and exposed exactly b6. The supported backup manager created one
+full local backup including the database with zero agent errors before the
+native update entity downloaded the exact beta. The supported configuration
+check passed and one observed down/up restart recovered Home Assistant 2026.8.3.
+An earlier attempt to request a structured check response was rejected before
+mutation because that action exposes only its simple form; the supported form
+then completed normally.
+
+The final redacted gate confirms installed b6/schema v4, one loaded entry,
+6 rooms, 7 openings, 3 recipients, 8 integration devices, 23/23 available
+unique entities, 14/14 ready source classes and seven valid recommendation,
+blind and safety triples. The corrected Salón optimum was immediately
+`open/100%`, with about 331 W benefit over the persisted stable tilt and the
+50 W minimum. Without a forced refresh, the stable recommendation crossed its
+10-minute opening gate and became `open` with reason `optimizer`.
+
+The retained legacy automation remains off. Duplicate identities, integration
+Repairs, log matches, services and owned persistent notifications are zero.
+The `Pruebas` component card retains six configured room sources and seven
+opening rows. No entity rename, synthetic notification or physical action was
+called. P02-T12 terminates; P02-T04 remains open only for the naturally
+observed presence/arrival delivery matrix.
