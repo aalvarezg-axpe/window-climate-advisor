@@ -189,3 +189,25 @@ Two missing external inputs currently leave 10/12 source classes, 2/5
 recommendations and 11/17 entities ready. All reported blind targets remain
 bounded and every non-closed target is positive. This does not block P02-T09;
 P02-T04 retains the natural-device multiline and presence/arrival matrix.
+
+## Room-source topology audit
+
+The owner identified the six new display devices as Salón, Baño, Despacho,
+Cocina and the two bedrooms Anto and Eli. A redacted registry check confirms
+that every device supplies exactly one enabled native temperature sensor and
+one enabled native humidity sensor, so sensor identity is no longer ambiguous.
+
+The live integration nevertheless contains four room subentries—Salón,
+Despacho, Cocina and one generic Dormitorio—and five openings, only one of
+which belongs to that generic bedroom. Historical live gates show the same
+four-room topology from the component's first deployment. The immutable v4.17
+automation also actively models those four rooms; Baño appears only in a
+commented block explicitly pending a temperature entity. It was therefore not
+deleted during this task or after component deployment.
+
+Anto and Eli are distinct bedrooms and the owner confirms that their façades
+share orientation. Orientation alone does not establish which bedroom owns the
+existing generic opening or the other opening's width, height, overhang,
+rain protection, tilt and blind geometry. P02-T10 therefore remains blocked
+before any partial source assignment. No room flow was submitted, no entry was
+reloaded, and no notification or physical action was called.
