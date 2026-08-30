@@ -13,16 +13,17 @@ from homeassistant.components.notify.const import (
 from homeassistant.components.notify.const import (
     DOMAIN as NOTIFY_DOMAIN,
 )
+from homeassistant.components.person import ATTR_DEVICE_TRACKERS
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID, STATE_HOME, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.translation import async_get_translations
 
 from ..application.notifications import (
     ArrivalNotificationCandidate,
-    NotificationRecipient,
-    notification_recipients_from_mappings,
+    recipient_persons_from_mappings,
 )
 from ..application.state import NotificationCandidate
 from ..const import (
@@ -128,25 +129,60 @@ def _arrival_message_rows(
     return tuple(row for _, row in rows)
 
 
-def _recipients(entry: ConfigEntry) -> tuple[NotificationRecipient, ...]:
+def _recipients(entry: ConfigEntry) -> tuple[str, ...]:
     """Decode configured recipients at the delivery boundary."""
-    return notification_recipients_from_mappings(
+    return recipient_persons_from_mappings(
         subentry.data
         for subentry in entry.subentries.values()
         if subentry.subentry_type == SUBENTRY_TYPE_RECIPIENT
     )
 
 
+def notification_targets_for_person(
+    hass: HomeAssistant,
+    person_entity_id: str,
+    *,
+    home_only: bool,
+) -> tuple[str, ...]:
+    """Resolve a person's Mobile App notification entities through registries."""
+    person = hass.states.get(person_entity_id)
+    if person is None:
+        return ()
+    tracker_ids = person.attributes.get(ATTR_DEVICE_TRACKERS)
+    if not isinstance(tracker_ids, list | tuple):
+        return ()
+
+    registry = er.async_get(hass)
+    targets: set[str] = set()
+    for tracker_id in tracker_ids:
+        if not isinstance(tracker_id, str):
+            continue
+        if home_only and not hass.states.is_state(tracker_id, STATE_HOME):
+            continue
+        tracker = registry.async_get(tracker_id)
+        if (
+            tracker is None
+            or tracker.platform != "mobile_app"
+            or tracker.disabled_by is not None
+            or tracker.device_id is None
+        ):
+            continue
+        targets.update(
+            sibling.entity_id
+            for sibling in er.async_entries_for_device(registry, tracker.device_id)
+            if sibling.domain == NOTIFY_DOMAIN and sibling.platform == "mobile_app"
+        )
+    return tuple(sorted(targets))
+
+
 async def _async_send_message(
     hass: HomeAssistant,
     entry: ConfigEntry,
-    recipient: NotificationRecipient,
+    notify_entity_id: str,
     message: str,
 ) -> bool:
-    """Send one native message when the recipient and target remain available."""
-    if not hass.states.is_state(recipient.person_entity_id, STATE_HOME):
-        return False
-    target = hass.states.get(recipient.notify_entity_id)
+    """Send one native message when the resolved target remains available."""
+    target = hass.states.get(notify_entity_id)
     if target is None or target.state == STATE_UNAVAILABLE:
         return False
     try:
@@ -154,7 +190,7 @@ async def _async_send_message(
             NOTIFY_DOMAIN,
             SERVICE_SEND_MESSAGE,
             {
-                ATTR_ENTITY_ID: recipient.notify_entity_id,
+                ATTR_ENTITY_ID: notify_entity_id,
                 ATTR_MESSAGE: message,
                 ATTR_TITLE: entry.title,
             },
@@ -194,11 +230,18 @@ async def async_deliver_notification_candidate(
         return 0
     message = "\n".join(rows)
     delivered = 0
-    for recipient in sorted(recipients, key=lambda item: item.person_entity_id):
-        if recipient.person_entity_id in excluded_person_entity_ids:
+    seen_targets: set[str] = set()
+    for person_entity_id in sorted(recipients):
+        if person_entity_id in excluded_person_entity_ids:
             continue
-        if await _async_send_message(hass, entry, recipient, message):
-            delivered += 1
+        for target in notification_targets_for_person(
+            hass, person_entity_id, home_only=True
+        ):
+            if target in seen_targets:
+                continue
+            seen_targets.add(target)
+            if await _async_send_message(hass, entry, target, message):
+                delivered += 1
     return delivered
 
 
@@ -214,20 +257,13 @@ async def async_deliver_arrival_candidate(
     if not hass.services.has_service(NOTIFY_DOMAIN, SERVICE_SEND_MESSAGE):
         return 0
     try:
-        recipient = next(
-            (
-                recipient
-                for recipient in _recipients(entry)
-                if recipient.person_entity_id == person_entity_id
-            ),
-            None,
-        )
+        configured = person_entity_id in _recipients(entry)
     except ValueError:
         _LOGGER.warning(
             "Skipped notification delivery: invalid recipient configuration"
         )
         return 0
-    if recipient is None:
+    if not configured:
         return 0
     translations = await async_get_translations(
         hass, hass.config.language, "entity", (DOMAIN,)
@@ -235,4 +271,11 @@ async def async_deliver_arrival_candidate(
     rows = _arrival_message_rows(entry, candidate, translations, hass.config.language)
     if not rows:
         return 0
-    return int(await _async_send_message(hass, entry, recipient, "\n".join(rows)))
+    message = "\n".join(rows)
+    delivered = 0
+    for target in notification_targets_for_person(
+        hass, person_entity_id, home_only=True
+    ):
+        if await _async_send_message(hass, entry, target, message):
+            delivered += 1
+    return delivered

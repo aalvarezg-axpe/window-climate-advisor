@@ -23,7 +23,8 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
 
-from .application.notifications import notification_recipient_from_mapping
+from .adapters.notifications import notification_targets_for_person
+from .application.notifications import recipient_person_from_mapping
 from .const import (
     CONF_BLIND_DEADBAND_PERCENT,
     CONF_BLIND_FULL_TRAVEL_PENALTY_W,
@@ -38,7 +39,6 @@ from .const import (
     CONF_MINIMUM_BENEFIT_W,
     CONF_MISSING_FORECAST_CHANGE_PENALTY_W,
     CONF_NAME,
-    CONF_NOTIFY_ENTITY_ID,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
     CONF_OVERHANG_DEPTH_M,
     CONF_OVERHANG_GAP_M,
@@ -74,6 +74,9 @@ from .const import (
     SUBENTRY_TYPE_OPENING,
     SUBENTRY_TYPE_RECIPIENT,
     SUBENTRY_TYPE_ROOM,
+)
+from .const import (
+    MINOR_VERSION as CONFIG_MINOR_VERSION,
 )
 from .const import (
     VERSION as CONFIG_VERSION,
@@ -151,7 +154,6 @@ ROOM_SCHEMA = vol.Schema(
 RECIPIENT_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_PERSON_ENTITY_ID): _entity_selector("person"),
-        vol.Required(CONF_NOTIFY_ENTITY_ID): _entity_selector(NOTIFY_DOMAIN),
     }
 )
 
@@ -168,10 +170,12 @@ def _recipient_target_available(
     hass: HomeAssistant, user_input: Mapping[str, object]
 ) -> bool:
     """Validate the selected entities and fixed native notification action."""
-    recipient = notification_recipient_from_mapping(user_input)
+    person_entity_id = recipient_person_from_mapping(user_input)
     return (
-        _entity_exists(hass, recipient.person_entity_id)
-        and _entity_exists(hass, recipient.notify_entity_id)
+        _entity_exists(hass, person_entity_id)
+        and bool(
+            notification_targets_for_person(hass, person_entity_id, home_only=False)
+        )
         and hass.services.has_service(NOTIFY_DOMAIN, SERVICE_SEND_MESSAGE)
     )
 
@@ -336,6 +340,7 @@ class WindowClimateAdvisorConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle configuration of a dwelling's shared climate sources."""
 
     VERSION = CONFIG_VERSION
+    MINOR_VERSION = CONFIG_MINOR_VERSION
 
     @staticmethod
     @callback

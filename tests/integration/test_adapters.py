@@ -36,7 +36,6 @@ from custom_components.window_climate_advisor.const import (
     CONF_HAS_BLIND,
     CONF_HEIGHT_M,
     CONF_NAME,
-    CONF_NOTIFY_ENTITY_ID,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
     CONF_OVERHANG_DEPTH_M,
     CONF_OVERHANG_GAP_M,
@@ -128,10 +127,7 @@ def entry(
             {
                 "subentry_type": SUBENTRY_TYPE_RECIPIENT,
                 "title": "person.resident",
-                "data": {
-                    CONF_PERSON_ENTITY_ID: "person.resident",
-                    CONF_NOTIFY_ENTITY_ID: "notify.phone",
-                },
+                "data": {CONF_PERSON_ENTITY_ID: "person.resident"},
                 "unique_id": None,
             },
         )

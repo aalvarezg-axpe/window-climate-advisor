@@ -1,6 +1,6 @@
 # Phase 02 notification validation
 
-- Candidate: `v0.2.0b1`
+- Candidate: `v0.2.0b2`
 - Route: public GitHub prerelease through the existing custom HACS repository
 - Integration fallback: live-verified `v0.1.0b5`
 - Operational rollback: frozen `v4.17_pre`
@@ -9,21 +9,21 @@
 
 ## Local acceptance
 
-The frozen P02-T03 focused gate passes 20 tests. The complete candidate gate
-passes 164 tests at 95.85% coverage with Ruff, formatting, strict mypy,
+The P02-T05 focused gate passes 30 tests. The complete candidate gate passes
+166 tests at 95.71% coverage with Ruff, formatting, strict mypy,
 artifact/secret checks, integration lifecycle, replay, and safety checks.
 
 | Boundary | Redacted evidence |
 |---|---|
-| Lifecycle | Current schema-v4 entries load with zero or more optional recipient subentries; setup, unload, reload, restart-state restoration, and migration tests pass. |
-| Ordinary delivery | Present, away, mixed-recipient, unavailable-target, deterministic ordering, one grouped message, unchanged/degraded suppression, and exact-call-count tests pass. |
+| Lifecycle | Schema-v4 revision-1 recipients migrate in place to person-only revision 2 without changing subentry identity or the loadable major-version downgrade path; setup, unload, reload, restart-state restoration, and migration tests pass. |
+| Ordinary delivery | Native person→Mobile App tracker→device→notify joins, per-device home filtering, several devices per person, malformed shared-target deduplication, away/unavailable/disabled/missing paths, deterministic ordering, one grouped message per target, unchanged/degraded suppression, and exact-call-count tests pass. |
 | Failure isolation | A native notification failure is redacted, does not block another recipient, and cannot change evaluation or actuator state. |
 | Arrival | Only a real configured non-home-to-`home` edge requests fresh advice for that person. Startup, repeated `home`, and unavailable recovery do not count; the arriving person is excluded from any simultaneous ordinary message. |
 | Actionability | Contact/cover feedback removes targets already satisfied. Missing physical feedback does not claim success, and an unobservable manual blind position is identified explicitly. |
-| Privacy | Diagnostics expose only recipient count. Logs omit recipient/target IDs and exception text; no queue, coordinates, device IDs, message history, or persistent notification is owned. |
+| Privacy | Configuration stores only persons and diagnostics expose only recipient count. Logs omit recipient/target IDs and exception text; no queue, coordinates, device names, message history, or persistent notification is owned. Registry device IDs are transient join keys only. |
 | Physical safety | Production contains no window, cover, shutter, awning, HVAC, or other actuator call. The sole new service boundary is fixed `notify.send_message`. |
 
-## Live acceptance
+## Superseded b1 deployment
 
 The immutable `release/0.2.0` branch, annotated `v0.2.0b1` tag, and public
 GitHub prerelease resolve to the same candidate. HACS beta tracking was enabled
@@ -41,15 +41,21 @@ settling; the subsequent coherent gate recovered to 15/17. The remaining two
 unavailable entities belong to one opening explicitly degraded for one missing
 input class; the other 11 source classes and four recommendations are ready.
 
-No recommendation notification has been sent because the deployed entry still
-has zero recipients. This proves the unchanged-v4 disabled default without
-guessing a private mapping.
+No recommendation notification was sent because the b1 entry had zero
+recipients. The owner then rejected b1's redundant explicit target selector;
+the live deployment remains valid evidence for installation/lifecycle only and
+will be superseded by b2 before recipient configuration.
 
-Pending: explicitly configure owner-selected person-to-notify mappings through
-the native config flow, then run the bounded live presence matrix. The mapping
-will not be inferred from private names or devices.
+## Pending b2 live acceptance
 
-After configuration, record only the installed version/schema, structure and
-availability counts, exact notification counts for the bounded presence matrix,
-clean Repairs/log outcomes, absence of owned backlog/services/physical calls,
-and verified fallback availability.
+Publish and install `v0.2.0b2`, verify schema v4 revision 2, then add all four
+owner-authorized persons through supported config subentry flows. A redacted
+preflight resolved five associated Mobile App targets (three single-device
+persons and one two-device person) without names. No target is selected or
+stored explicitly.
+
+After configuration, record only installed version/schema revision, recipient
+and associated-device counts, structure and availability counts, clean
+Repairs/log outcomes, absence of owned backlog/services/physical calls, and
+verified fallback availability. Do not send a synthetic notification solely
+for verification.

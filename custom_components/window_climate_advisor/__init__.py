@@ -9,12 +9,15 @@ from .const import (
     CONF_FACADE_AZIMUTH_DEG,
     CONF_HAS_BLIND,
     CONF_HEIGHT_M,
+    CONF_NOTIFY_ENTITY_ID,
     CONF_OVERHANG_DEPTH_M,
     CONF_OVERHANG_GAP_M,
     CONF_ROOM_TEMPERATURE_STALE_MINUTES,
     CONF_SOURCE_STALE_MINUTES,
     CONF_WIDTH_M,
+    MINOR_VERSION,
     SUBENTRY_TYPE_OPENING,
+    SUBENTRY_TYPE_RECIPIENT,
     VERSION,
 )
 from .coordinator import (
@@ -35,9 +38,11 @@ _V1_GEOMETRY_KEYS = {
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Migrate opening geometry and physical blind capability in place."""
-    if entry.version == VERSION:
+    if entry.version == VERSION and entry.minor_version == MINOR_VERSION:
         return True
-    if entry.version not in (1, 2, 3):
+    if entry.version not in (1, 2, 3, 4) or (
+        entry.version == VERSION and entry.minor_version > MINOR_VERSION
+    ):
         return False
 
     if entry.version in (1, 2):
@@ -51,13 +56,24 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         data[new_key] = data.pop(old_key)
             data[CONF_HAS_BLIND] = isinstance(data.get(CONF_COVER_ENTITY_ID), str)
             hass.config_entries.async_update_subentry(entry, subentry, data=data)
+    for subentry in entry.subentries.values():
+        if subentry.subentry_type != SUBENTRY_TYPE_RECIPIENT:
+            continue
+        data = dict(subentry.data)
+        data.pop(CONF_NOTIFY_ENTITY_ID, None)
+        hass.config_entries.async_update_subentry(entry, subentry, data=data)
     options = dict(entry.options)
     if CONF_SOURCE_STALE_MINUTES in options:
         options.setdefault(
             CONF_ROOM_TEMPERATURE_STALE_MINUTES,
             options[CONF_SOURCE_STALE_MINUTES],
         )
-    hass.config_entries.async_update_entry(entry, version=VERSION, options=options)
+    hass.config_entries.async_update_entry(
+        entry,
+        version=VERSION,
+        minor_version=MINOR_VERSION,
+        options=options,
+    )
     return True
 
 

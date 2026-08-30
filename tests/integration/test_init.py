@@ -21,6 +21,7 @@ from custom_components.window_climate_advisor.const import (
     CONF_SOURCE_STALE_MINUTES,
     CONF_WIDTH_M,
     DOMAIN,
+    MINOR_VERSION,
     SUBENTRY_TYPE_OPENING,
     SUBENTRY_TYPE_RECIPIENT,
     SUBENTRY_TYPE_ROOM,
@@ -41,6 +42,7 @@ async def test_entry_setup_unload_and_update_listener_reload(
     assert await hass.config_entries.async_setup(entry.entry_id)
     assert entry.state is ConfigEntryState.LOADED
     assert entry.version == VERSION
+    assert entry.minor_version == MINOR_VERSION
 
     with patch.object(
         hass.config_entries, "async_reload", new_callable=AsyncMock
@@ -101,6 +103,7 @@ async def test_v1_geometry_migration_preserves_subentry_identity(
 
     assert await async_migrate_entry(hass, entry)
     assert entry.version == VERSION
+    assert entry.minor_version == MINOR_VERSION
     assert opening_id in entry.subentries
     assert entry.subentries[opening_id].data == {
         CONF_NAME: "Ventana",
@@ -115,6 +118,12 @@ async def test_v1_geometry_migration_preserves_subentry_identity(
 
     unsupported = MockConfigEntry(domain=DOMAIN, version=VERSION + 1)
     assert not await async_migrate_entry(hass, unsupported)
+    unsupported_minor = MockConfigEntry(
+        domain=DOMAIN,
+        version=VERSION,
+        minor_version=MINOR_VERSION + 1,
+    )
+    assert not await async_migrate_entry(hass, unsupported_minor)
 
 
 async def test_v2_migration_derives_physical_blind_from_existing_cover(
@@ -146,6 +155,7 @@ async def test_v2_migration_derives_physical_blind_from_existing_cover(
 
     assert await async_migrate_entry(hass, entry)
     assert entry.version == VERSION
+    assert entry.minor_version == MINOR_VERSION
     migrated = {
         subentry.title: subentry.data[CONF_HAS_BLIND]
         for subentry in entry.subentries.values()
@@ -166,23 +176,25 @@ async def test_v3_migration_preserves_shared_source_age_semantics(
 
     assert await async_migrate_entry(hass, entry)
     assert entry.version == VERSION
+    assert entry.minor_version == MINOR_VERSION
     assert entry.options == {
         CONF_SOURCE_STALE_MINUTES: 15,
         CONF_ROOM_TEMPERATURE_STALE_MINUTES: 15,
     }
 
 
-async def test_current_schema_preserves_optional_recipient_subentry(
+async def test_v4_recipient_migration_removes_redundant_notification_target(
     hass: HomeAssistant,
 ) -> None:
-    """Keep schema-v4 entries valid with or without notification recipients."""
+    """Retain the person and subentry identity while migrating the beta schema."""
     data = {
         CONF_PERSON_ENTITY_ID: "person.resident",
         CONF_NOTIFY_ENTITY_ID: "notify.phone",
     }
     entry = MockConfigEntry(
         domain=DOMAIN,
-        version=VERSION,
+        version=4,
+        minor_version=1,
         subentries_data=[
             {
                 "subentry_type": SUBENTRY_TYPE_RECIPIENT,
@@ -197,4 +209,7 @@ async def test_current_schema_preserves_optional_recipient_subentry(
 
     assert await async_migrate_entry(hass, entry)
     assert entry.version == VERSION
-    assert entry.subentries[recipient_id].data == data
+    assert entry.minor_version == MINOR_VERSION
+    assert entry.subentries[recipient_id].data == {
+        CONF_PERSON_ENTITY_ID: "person.resident"
+    }

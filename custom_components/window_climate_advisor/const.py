@@ -4,6 +4,7 @@ from typing import Final
 
 DOMAIN: Final = "window_climate_advisor"
 VERSION: Final = 4
+MINOR_VERSION: Final = 2
 
 SUBENTRY_TYPE_ROOM: Final = "room"
 SUBENTRY_TYPE_OPENING: Final = "opening"
@@ -18,6 +19,7 @@ CONF_WIND_DIRECTION_ENTITY_ID: Final = "wind_direction_entity_id"
 CONF_WIND_GUST_ENTITY_ID: Final = "wind_gust_entity_id"
 CONF_RAIN_ENTITY_ID: Final = "rain_entity_id"
 CONF_PERSON_ENTITY_ID: Final = "person_entity_id"
+# Retained only to migrate the published schema-v4 beta recipient contract.
 CONF_NOTIFY_ENTITY_ID: Final = "notify_entity_id"
 
 CONF_TEMPERATURE_ENTITY_ID: Final = "temperature_entity_id"

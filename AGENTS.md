@@ -42,10 +42,11 @@ scope or weaken safety, privacy, rollback, or acceptance gates.
 - Expose recommendations and diagnostics through native entities. Do not
   control windows, blinds, shutters, awnings, HVAC, or any physical actuator
   until `docs/GOAL.md` contains a separately approved safety phase.
-- Notification delivery, when its later phase is activated, uses configured
-  `person` presence and explicitly selected, validated notification actions.
-  Never derive an action name from a person, device, or entity name; never
-  replay a stale away-time queue when somebody arrives.
+- Notification delivery uses configured `person` entities and resolves their
+  associated Mobile App trackers to sibling `notify` entities through Home
+  Assistant's entity/device registries. Deliver only to linked trackers that
+  are currently `home`. Never derive an action name from a person, device, or
+  entity name; never replay a stale away-time queue when somebody arrives.
 - Preserve the deployed v4.17_pre automation as the rollback and behavioural
   baseline until a shadow comparison has passed its acceptance gate.
 

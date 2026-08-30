@@ -11,17 +11,13 @@ from custom_components.window_climate_advisor.application.evaluator import (
 from custom_components.window_climate_advisor.application.notifications import (
     ArrivalNotificationCandidate,
     ArrivalOpeningAdvice,
-    NotificationRecipient,
     OpeningFeedback,
     arrival_notification_candidate,
-    notification_recipient_from_mapping,
-    notification_recipients_from_mappings,
+    recipient_person_from_mapping,
+    recipient_persons_from_mappings,
 )
 from custom_components.window_climate_advisor.application.state import AdvisorState
-from custom_components.window_climate_advisor.const import (
-    CONF_NOTIFY_ENTITY_ID,
-    CONF_PERSON_ENTITY_ID,
-)
+from custom_components.window_climate_advisor.const import CONF_PERSON_ENTITY_ID
 from custom_components.window_climate_advisor.domain.models import (
     BlindOpening,
     WindowState,
@@ -34,44 +30,29 @@ from custom_components.window_climate_advisor.domain.policy import (
 from custom_components.window_climate_advisor.domain.profiles import Season
 
 
-def _mapping(person: str, target: str) -> dict[str, object]:
-    return {
-        CONF_PERSON_ENTITY_ID: person,
-        CONF_NOTIFY_ENTITY_ID: target,
-    }
+def _mapping(person: str) -> dict[str, object]:
+    return {CONF_PERSON_ENTITY_ID: person}
 
 
 def test_recipient_mapping_is_typed_and_ordered() -> None:
     """Decode persisted mappings without Home Assistant objects."""
-    assert notification_recipient_from_mapping(
-        _mapping("person.one", "notify.one")
-    ) == NotificationRecipient("person.one", "notify.one")
-    assert notification_recipients_from_mappings(
-        [_mapping("person.two", "notify.two"), _mapping("person.one", "notify.one")]
-    ) == (
-        NotificationRecipient("person.two", "notify.two"),
-        NotificationRecipient("person.one", "notify.one"),
-    )
+    assert recipient_person_from_mapping(_mapping("person.one")) == "person.one"
+    assert recipient_persons_from_mappings(
+        [_mapping("person.two"), _mapping("person.one")]
+    ) == ("person.two", "person.one")
 
 
-def test_recipient_mapping_rejects_missing_and_duplicate_targets() -> None:
-    """Reject malformed, repeated-person, and repeated-target mappings."""
-    for value in ({}, {CONF_PERSON_ENTITY_ID: "person.one"}):
+def test_recipient_mapping_rejects_missing_and_duplicate_people() -> None:
+    """Reject malformed and repeated-person mappings."""
+    for value in ({}, {CONF_PERSON_ENTITY_ID: 1}):
         with pytest.raises(ValueError):
-            notification_recipient_from_mapping(value)
-    for value in (
-        _mapping("sensor.one", "notify.one"),
-        _mapping("person.one", "sensor.one"),
-    ):
+            recipient_person_from_mapping(value)
+    for value in (_mapping("sensor.one"),):
         with pytest.raises(ValueError):
-            notification_recipient_from_mapping(value)
+            recipient_person_from_mapping(value)
     with pytest.raises(ValueError, match="persons must be unique"):
-        notification_recipients_from_mappings(
-            [_mapping("person.one", "notify.one"), _mapping("person.one", "notify.two")]
-        )
-    with pytest.raises(ValueError, match="targets must be unique"):
-        notification_recipients_from_mappings(
-            [_mapping("person.one", "notify.one"), _mapping("person.two", "notify.one")]
+        recipient_persons_from_mappings(
+            [_mapping("person.one"), _mapping("person.one")]
         )
 
 

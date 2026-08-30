@@ -194,7 +194,6 @@ async def test_only_real_arrival_runs_fresh_targeted_delivery(
     config_entry.mock_state(hass, ConfigEntryState.SETUP_IN_PROGRESS)
     set_ready_states(hass)
     hass.states.async_set("person.resident", STATE_HOME)
-    hass.states.async_set("notify.phone", "unknown")
     coordinator = WindowClimateAdvisorCoordinator(hass, config_entry)
 
     with (

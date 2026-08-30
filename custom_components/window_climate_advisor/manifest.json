@@ -1,7 +1,7 @@
 {
   "domain": "window_climate_advisor",
   "name": "Window Climate Advisor",
-  "version": "0.2.0b1",
+  "version": "0.2.0b2",
   "config_flow": true,
   "dependencies": ["sun"],
   "documentation": "https://github.com/aalvarezg-axpe/window-climate-advisor#readme",

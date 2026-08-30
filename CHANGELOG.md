@@ -5,6 +5,25 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0b2 - 2026-08-30
+
+### Changed
+
+- Recipient configuration now stores only a native `person` entity. Associated
+  Home Assistant Mobile App trackers and sibling `notify` entities are resolved
+  through the entity/device registries without comparing names.
+- Delivery targets every associated mobile device whose own tracker is
+  currently `home`; multiple home devices for one person are supported and a
+  malformed shared target is called at most once.
+- Schema-v4 revision 2 removes the redundant beta `notify_entity_id` while
+  retaining recipient subentry identity and the major-version downgrade path.
+
+### Safety and privacy
+
+- Missing, disabled, away, or unavailable tracker/notification paths send
+  nothing. Configuration, diagnostics, and logs retain no device names,
+  notification target IDs, presence details, coordinates, or message backlog.
+
 ## 0.2.0b1 - 2026-08-30
 
 ### Added

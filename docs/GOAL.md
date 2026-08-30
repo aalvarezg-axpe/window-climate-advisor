@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.14
+> Document version: 0.15
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-30
 > Current state: **active / Phase 02**
@@ -200,9 +200,11 @@ not use Core's build-time `strings.json` pipeline.
 - Config entry: dwelling identity and global source assignments.
 - Room subentry: room-level environmental sources and metadata.
 - Opening subentry: geometry, façade, protection, contact, cover, and room link.
-- Recipient subentry: one `person` entity mapped to one native `notify` entity.
-  Delivery always uses Home Assistant's fixed `notify.send_message` action;
-  configuration never stores or infers a service/action name.
+- Recipient subentry: one `person` entity. At delivery time the Home Assistant
+  adapter follows that person's configured Mobile App `device_tracker`
+  entities through the entity/device registries to their sibling native
+  `notify` entities. Configuration stores neither a target nor a service/action
+  name.
 - Reconfigure flow: structural changes and entity replacements.
 - Options flow: infrequent tuning and calibration.
 - Native `select`, `number`, or `switch` entities: only controls that users
@@ -294,20 +296,26 @@ diagnostics.
 
 Notification delivery is owned by the active
 [`Phase 02 plan`](phases/02-contextual-notifications/PLAN.md). Each recipient is
-a native config subentry that maps one configured `person` entity to one
-explicitly selected and runtime-validated `notify` entity. Delivery uses only
-Home Assistant's fixed `notify.send_message` action; action names are never
-stored or inferred from a person, device, or entity name.
+a native config subentry containing one configured `person` entity. At runtime,
+the Home Assistant adapter reads that person's native `device_trackers`
+relationship, joins each Mobile App tracker to sibling `notify` entities by
+registry `device_id`, and delivers only to linked trackers whose own state is
+`home`. The registry identifier is used only for this native join; delivery
+still targets entity IDs through Home Assistant's fixed
+`notify.send_message` action. Names and arbitrary action strings are never
+stored or inferred.
 
-An accepted stable window or blind target change is delivered only to
-recipients whose person is `home` at delivery time. If everybody is away, the
-integration sends nothing and stores no backlog of messages. When a configured
-person later enters `home`, the integration performs a fresh evaluation and
-sends only that arriving recipient any recommendation that is still current and
-actionable. It does not replay obsolete away-time transitions. Arrival delivery
-is deduplicated per real away-to-home transition and remains restart-safe.
-Contact and cover feedback suppress targets already satisfied; when a manual
-blind position cannot be observed, the arrival message states that explicitly.
+An accepted stable window or blind target change is delivered once to every
+resolved recipient device that is currently `home`; a person with several home
+devices may therefore receive the same consolidated advice on each of them.
+If every linked device is away, the integration sends nothing and stores no
+backlog. When a configured person later enters `home`, the integration performs
+a fresh evaluation and sends only to that arriving person's linked devices that
+are then home any recommendation that remains current and actionable. It does
+not replay obsolete away-time transitions. Arrival delivery is deduplicated per
+real away-to-home transition and remains restart-safe. Contact and cover
+feedback suppress targets already satisfied; when a manual blind position
+cannot be observed, the arrival message states that explicitly.
 
 ## 7. Safety and privacy gates
 

@@ -6,11 +6,12 @@ outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
 The project is in **Phase 02 contextual-notification validation**. Candidate
-`v0.2.0b1` adds explicit person-to-notification recipient mappings, home-only
-stable-change summaries, and fresh advice when a configured occupant arrives.
-Live-verified `v0.1.0b5` remains the integration fallback. Neither build
-controls physical actuators; the frozen automation `v4.17_pre` remains the
-operational rollback.
+`v0.2.0b2` stores only recipient persons, discovers their associated Home
+Assistant Mobile App devices through native registries, sends stable-change
+summaries only to those devices currently home, and gives fresh advice when a
+configured occupant arrives. Live-verified `v0.1.0b5` remains the integration
+fallback. Neither build controls physical actuators; the frozen automation
+`v4.17_pre` remains the operational rollback.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
 tracked in
@@ -51,9 +52,10 @@ The initial entity surface is informational:
 - redacted downloadable diagnostics with reason codes and source quality.
 
 The integration owns no service, helper, YAML automation, or actuator platform.
-It may call only Home Assistant's fixed `notify.send_message` action for
-explicitly configured recipients; it never stores an arbitrary action name or
-queues notifications while occupants are away.
+It may call only Home Assistant's fixed `notify.send_message` action for native
+Mobile App entities associated with explicitly configured persons; it stores
+neither target nor arbitrary action name and queues nothing while occupants are
+away.
 
 ## Install the notification beta with HACS
 
@@ -62,13 +64,13 @@ Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
 1. In HACS, open the menu and select **Custom repositories**.
 2. Add `https://github.com/aalvarezg-axpe/window-climate-advisor` as type
    **Integration**.
-3. Download the explicit prerelease `v0.2.0b1`; enable prerelease tracking for
+3. Download the explicit prerelease `v0.2.0b2`; enable prerelease tracking for
    this repository if HACS does not initially show it.
 4. Restart Home Assistant.
 5. Go to **Settings → Devices & services → Add integration**, search for
    **Window Climate Advisor**, complete its UI flows, and add recipient
-   subentries by explicitly selecting each `person` and matching `notify`
-   entity.
+   subentries by selecting each `person`. Associated Mobile App devices are
+   discovered automatically and only devices currently home are notified.
 
 This installs a recommendation and contextual-notification advisor beside the
 frozen `v4.17_pre`; it does not replace that automation or perform physical

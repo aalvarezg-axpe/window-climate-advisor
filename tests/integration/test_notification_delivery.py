@@ -11,14 +11,18 @@ from homeassistant.components.notify.const import (
 from homeassistant.components.notify.const import (
     DOMAIN as NOTIFY_DOMAIN,
 )
+from homeassistant.components.person import ATTR_DEVICE_TRACKERS
 from homeassistant.const import ATTR_ENTITY_ID, STATE_HOME, STATE_NOT_HOME
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.window_climate_advisor.adapters.notifications import (
     async_deliver_arrival_candidate,
     async_deliver_notification_candidate,
+    notification_targets_for_person,
 )
 from custom_components.window_climate_advisor.application.notifications import (
     ArrivalNotificationCandidate,
@@ -30,7 +34,6 @@ from custom_components.window_climate_advisor.application.state import (
 )
 from custom_components.window_climate_advisor.const import (
     CONF_HAS_BLIND,
-    CONF_NOTIFY_ENTITY_ID,
     CONF_PERSON_ENTITY_ID,
     CONF_ROOM_SUBENTRY_ID,
     DOMAIN,
@@ -85,28 +88,19 @@ def _entry() -> MockConfigEntry:
             {
                 "subentry_type": SUBENTRY_TYPE_RECIPIENT,
                 "title": "first",
-                "data": {
-                    CONF_PERSON_ENTITY_ID: "person.first",
-                    CONF_NOTIFY_ENTITY_ID: "notify.first",
-                },
+                "data": {CONF_PERSON_ENTITY_ID: "person.first"},
                 "unique_id": None,
             },
             {
                 "subentry_type": SUBENTRY_TYPE_RECIPIENT,
                 "title": "away",
-                "data": {
-                    CONF_PERSON_ENTITY_ID: "person.away",
-                    CONF_NOTIFY_ENTITY_ID: "notify.away",
-                },
+                "data": {CONF_PERSON_ENTITY_ID: "person.away"},
                 "unique_id": None,
             },
             {
                 "subentry_type": SUBENTRY_TYPE_RECIPIENT,
                 "title": "second",
-                "data": {
-                    CONF_PERSON_ENTITY_ID: "person.second",
-                    CONF_NOTIFY_ENTITY_ID: "notify.second",
-                },
+                "data": {CONF_PERSON_ENTITY_ID: "person.second"},
                 "unique_id": None,
             },
         ],
@@ -157,13 +151,91 @@ def _candidate(entry: MockConfigEntry) -> NotificationCandidate:
     )
 
 
-def _set_recipient_states(hass: HomeAssistant) -> None:
+def _add_mobile_device(
+    hass: HomeAssistant,
+    person_entity_id: str,
+    suffix: str,
+    tracker_state: str,
+    notify_state: str,
+    *,
+    notify_disabled: bool = False,
+) -> tuple[str, str]:
+    """Register one Mobile App tracker and sibling notify entity for a person."""
+    mobile_entry = MockConfigEntry(domain="mobile_app", unique_id=f"mobile-{suffix}")
+    mobile_entry.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=mobile_entry.entry_id,
+        identifiers={("mobile_app", f"device-{suffix}")},
+    )
+    registry = er.async_get(hass)
+    tracker = registry.async_get_or_create(
+        "device_tracker",
+        "mobile_app",
+        f"tracker-{suffix}",
+        suggested_object_id=suffix,
+        disabled_by=er.RegistryEntryDisabler.USER if notify_disabled else None,
+        config_entry=mobile_entry,
+        device_id=device.id,
+    )
+    target = registry.async_get_or_create(
+        NOTIFY_DOMAIN,
+        "mobile_app",
+        f"notify-{suffix}",
+        suggested_object_id=suffix,
+        config_entry=mobile_entry,
+        device_id=device.id,
+    )
+    person = hass.states.get(person_entity_id)
+    trackers = list(person.attributes.get(ATTR_DEVICE_TRACKERS, ())) if person else []
+    trackers.append(tracker.entity_id)
+    hass.states.async_set(
+        person_entity_id,
+        person.state if person else STATE_NOT_HOME,
+        {ATTR_DEVICE_TRACKERS: trackers},
+    )
+    hass.states.async_set(tracker.entity_id, tracker_state)
+    hass.states.async_set(target.entity_id, notify_state)
+    return tracker.entity_id, target.entity_id
+
+
+def _set_recipient_states(hass: HomeAssistant) -> dict[str, str]:
     hass.states.async_set("person.first", STATE_HOME)
     hass.states.async_set("person.away", STATE_NOT_HOME)
     hass.states.async_set("person.second", STATE_HOME)
-    hass.states.async_set("notify.first", "unknown")
-    hass.states.async_set("notify.away", "unknown")
-    hass.states.async_set("notify.second", "unavailable")
+    return {
+        "first": _add_mobile_device(
+            hass, "person.first", "first", STATE_HOME, "unknown"
+        )[1],
+        "away": _add_mobile_device(
+            hass, "person.away", "away", STATE_NOT_HOME, "unknown"
+        )[1],
+        "second": _add_mobile_device(
+            hass, "person.second", "second", STATE_HOME, "unavailable"
+        )[1],
+    }
+
+
+def test_target_resolution_skips_missing_and_disabled_registry_paths(
+    hass: HomeAssistant,
+) -> None:
+    """Fail closed when a tracker or its sibling notification target is unusable."""
+    hass.states.async_set(
+        "person.missing",
+        STATE_HOME,
+        {ATTR_DEVICE_TRACKERS: ["device_tracker.missing"]},
+    )
+    assert not notification_targets_for_person(hass, "person.missing", home_only=False)
+
+    hass.states.async_set("person.disabled", STATE_HOME)
+    _add_mobile_device(
+        hass,
+        "person.disabled",
+        "disabled",
+        STATE_HOME,
+        "unknown",
+        notify_disabled=True,
+    )
+    assert not notification_targets_for_person(hass, "person.disabled", home_only=False)
 
 
 async def test_delivery_filters_presence_and_consolidates_in_stable_order(
@@ -171,7 +243,7 @@ async def test_delivery_filters_presence_and_consolidates_in_stable_order(
 ) -> None:
     """Send one translated grouped summary only to an available home target."""
     entry = _entry()
-    _set_recipient_states(hass)
+    targets = _set_recipient_states(hass)
     calls: list[ServiceCall] = []
 
     async def send_message(call: ServiceCall) -> None:
@@ -184,13 +256,42 @@ async def test_delivery_filters_presence_and_consolidates_in_stable_order(
     )
     assert len(calls) == 1
     assert calls[0].data == {
-        ATTR_ENTITY_ID: "notify.first",
+        ATTR_ENTITY_ID: targets["first"],
         ATTR_MESSAGE: (
             "Dormitorio / Norte: Tilt\n"
             "Salón / Sur: Open · Recommended blind position: 70 %"
         ),
         ATTR_TITLE: "Casa",
     }
+
+
+async def test_delivery_calls_a_shared_mobile_target_only_once(
+    hass: HomeAssistant,
+) -> None:
+    """Deduplicate a malformed cross-person tracker relationship at runtime."""
+    entry = _entry()
+    targets = _set_recipient_states(hass)
+    first = hass.states.get("person.first")
+    second = hass.states.get("person.second")
+    assert first is not None and second is not None
+    first_tracker = first.attributes[ATTR_DEVICE_TRACKERS][0]
+    second_trackers = list(second.attributes[ATTR_DEVICE_TRACKERS])
+    hass.states.async_set(
+        "person.second",
+        STATE_HOME,
+        {ATTR_DEVICE_TRACKERS: [*second_trackers, first_tracker]},
+    )
+    calls: list[ServiceCall] = []
+
+    async def send_message(call: ServiceCall) -> None:
+        calls.append(call)
+
+    hass.services.async_register(NOTIFY_DOMAIN, SERVICE_SEND_MESSAGE, send_message)
+
+    assert (
+        await async_deliver_notification_candidate(hass, entry, _candidate(entry)) == 1
+    )
+    assert [call.data[ATTR_ENTITY_ID] for call in calls] == [targets["first"]]
 
 
 async def test_delivery_skips_empty_away_and_unavailable_surfaces(
@@ -226,14 +327,15 @@ async def test_delivery_failure_is_redacted_and_does_not_block_other_recipient(
 ) -> None:
     """Isolate a failing target while continuing with the remaining recipient."""
     entry = _entry()
-    _set_recipient_states(hass)
-    hass.states.async_set("notify.second", "unknown")
+    targets = _set_recipient_states(hass)
+    hass.states.async_set(targets["second"], "unknown")
+    caplog.clear()
     calls: list[str] = []
 
     async def send_message(call: ServiceCall) -> None:
         target = call.data[ATTR_ENTITY_ID]
         calls.append(target)
-        if target == "notify.first":
+        if target == targets["first"]:
             raise HomeAssistantError("private failure")
 
     hass.services.async_register(NOTIFY_DOMAIN, SERVICE_SEND_MESSAGE, send_message)
@@ -243,7 +345,7 @@ async def test_delivery_failure_is_redacted_and_does_not_block_other_recipient(
         )
 
     assert delivered == 1
-    assert calls == ["notify.first", "notify.second"]
+    assert calls == [targets["first"], targets["second"]]
     assert "Notification delivery failed for a configured recipient" in caplog.text
     assert all(private not in caplog.text for private in calls)
     assert "private failure" not in caplog.text
@@ -254,7 +356,10 @@ async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_bl
 ) -> None:
     """Send fresh advice to one person with explicit unobserved manual wording."""
     entry = _entry()
-    _set_recipient_states(hass)
+    targets = _set_recipient_states(hass)
+    _, second_home_target = _add_mobile_device(
+        hass, "person.first", "first-tablet", STATE_HOME, "unknown"
+    )
     calls: list[ServiceCall] = []
 
     async def send_message(call: ServiceCall) -> None:
@@ -279,17 +384,25 @@ async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_bl
 
     assert (
         await async_deliver_arrival_candidate(hass, entry, "person.first", candidate)
-        == 1
+        == 2
     )
-    assert len(calls) == 1
-    assert calls[0].data == {
-        ATTR_ENTITY_ID: "notify.first",
+    assert len(calls) == 2
+    expected = {
         ATTR_MESSAGE: (
             "Salón / Sur: Open · Recommended blind position: 70 % "
             "(manual position not observable)"
         ),
         ATTR_TITLE: "Casa",
     }
+    assert {call.data[ATTR_ENTITY_ID] for call in calls} == {
+        targets["first"],
+        second_home_target,
+    }
+    assert all(
+        {key: value for key, value in call.data.items() if key != ATTR_ENTITY_ID}
+        == expected
+        for call in calls
+    )
 
 
 async def test_ordinary_delivery_excludes_arriving_recipient(
@@ -297,8 +410,8 @@ async def test_ordinary_delivery_excludes_arriving_recipient(
 ) -> None:
     """Avoid duplicate ordinary and arrival messages in the same evaluation."""
     entry = _entry()
-    _set_recipient_states(hass)
-    hass.states.async_set("notify.second", "unknown")
+    targets = _set_recipient_states(hass)
+    hass.states.async_set(targets["second"], "unknown")
     calls: list[ServiceCall] = []
 
     async def send_message(call: ServiceCall) -> None:
@@ -315,4 +428,4 @@ async def test_ordinary_delivery_excludes_arriving_recipient(
         )
         == 1
     )
-    assert [call.data[ATTR_ENTITY_ID] for call in calls] == ["notify.second"]
+    assert [call.data[ATTR_ENTITY_ID] for call in calls] == [targets["second"]]

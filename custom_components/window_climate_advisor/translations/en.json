@@ -209,21 +209,19 @@
         "user": {
           "title": "Add notification recipient",
           "data": {
-            "person_entity_id": "Person",
-            "notify_entity_id": "Notification target"
+            "person_entity_id": "Person"
           }
         },
         "reconfigure": {
           "title": "Reconfigure notification recipient",
           "data": {
-            "person_entity_id": "Person",
-            "notify_entity_id": "Notification target"
+            "person_entity_id": "Person"
           }
         }
       },
       "error": {
-        "duplicate_entity_link": "This person or notification target is already assigned.",
-        "notification_target_unavailable": "Select existing person and notification entities while the notify.send_message action is available."
+        "duplicate_entity_link": "This person is already assigned.",
+        "notification_target_unavailable": "Select a person with an associated Home Assistant Mobile App notification device while notify.send_message is available."
       }
     }
   }

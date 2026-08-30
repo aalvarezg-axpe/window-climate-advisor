@@ -11,15 +11,18 @@ from homeassistant.components.notify.const import (
 from homeassistant.components.notify.const import (
     SERVICE_SEND_MESSAGE,
 )
+from homeassistant.components.person import ATTR_DEVICE_TRACKERS
 from homeassistant.config_entries import (
     SOURCE_RECONFIGURE,
     SOURCE_USER,
     ConfigEntry,
     ConfigSubentry,
 )
-from homeassistant.const import CONF_NAME
+from homeassistant.const import CONF_NAME, STATE_HOME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from voluptuous_serialize import convert
 
@@ -43,7 +46,6 @@ from custom_components.window_climate_advisor.const import (
     CONF_HUMIDITY_ENTITY_ID,
     CONF_MINIMUM_BENEFIT_W,
     CONF_MISSING_FORECAST_CHANGE_PENALTY_W,
-    CONF_NOTIFY_ENTITY_ID,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
     CONF_OVERHANG_DEPTH_M,
     CONF_OVERHANG_GAP_M,
@@ -99,7 +101,6 @@ ROOM_INPUT = {
 }
 RECIPIENT_INPUT = {
     CONF_PERSON_ENTITY_ID: "person.resident",
-    CONF_NOTIFY_ENTITY_ID: "notify.phone",
 }
 VALID_OPTIONS = {
     CONF_SELECTION_MODE: "auto",
@@ -142,6 +143,46 @@ async def _create_room(hass: HomeAssistant, entry: ConfigEntry) -> ConfigSubentr
     )
     assert result["type"] == "create_entry"
     return next(iter(entry.subentries.values()))
+
+
+def _register_mobile_recipient(
+    hass: HomeAssistant,
+    person_entity_id: str,
+    suffix: str,
+    *,
+    notify_state: str = "unknown",
+) -> None:
+    """Register the native person-to-Mobile-App registry relationship."""
+    mobile_entry = MockConfigEntry(domain="mobile_app", unique_id=f"mobile-{suffix}")
+    mobile_entry.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=mobile_entry.entry_id,
+        identifiers={("mobile_app", f"device-{suffix}")},
+    )
+    registry = er.async_get(hass)
+    tracker = registry.async_get_or_create(
+        "device_tracker",
+        "mobile_app",
+        f"tracker-{suffix}",
+        suggested_object_id=suffix,
+        config_entry=mobile_entry,
+        device_id=device.id,
+    )
+    target = registry.async_get_or_create(
+        NOTIFY_DOMAIN,
+        "mobile_app",
+        f"notify-{suffix}",
+        suggested_object_id=suffix,
+        config_entry=mobile_entry,
+        device_id=device.id,
+    )
+    hass.states.async_set(
+        person_entity_id,
+        STATE_HOME,
+        {ATTR_DEVICE_TRACKERS: [tracker.entity_id]},
+    )
+    hass.states.async_set(tracker.entity_id, STATE_HOME)
+    hass.states.async_set(target.entity_id, notify_state)
 
 
 async def test_user_flow_shows_typed_form_and_creates_entry(
@@ -311,13 +352,11 @@ def test_root_schemas_serialize_for_home_assistant_frontend() -> None:
 
 
 def test_recipient_schema_rejects_wrong_entity_domains() -> None:
-    """Constrain both sides of the recipient mapping through native selectors."""
+    """Constrain recipient selection to the native person domain."""
     with pytest.raises(vol.Invalid):
         RECIPIENT_SCHEMA(
             {**RECIPIENT_INPUT, CONF_PERSON_ENTITY_ID: "device_tracker.resident"}
         )
-    with pytest.raises(vol.Invalid):
-        RECIPIENT_SCHEMA({**RECIPIENT_INPUT, CONF_NOTIFY_ENTITY_ID: "sensor.phone"})
 
 
 def test_room_schema_rejects_wrong_sensor_domain() -> None:
@@ -423,11 +462,10 @@ async def test_room_subentry_create_and_reconfigure(hass: HomeAssistant) -> None
 async def test_recipient_subentry_validates_native_action_and_reconfigures(
     hass: HomeAssistant,
 ) -> None:
-    """Require real entities plus notify.send_message and preserve identity."""
+    """Require a native Mobile App relationship and preserve subentry identity."""
     entry = MockConfigEntry(domain=DOMAIN, data=VALID_INPUT, title="Casa")
     entry.add_to_hass(hass)
-    hass.states.async_set(RECIPIENT_INPUT[CONF_PERSON_ENTITY_ID], "home")
-    hass.states.async_set(RECIPIENT_INPUT[CONF_NOTIFY_ENTITY_ID], "unknown")
+    _register_mobile_recipient(hass, RECIPIENT_INPUT[CONF_PERSON_ENTITY_ID], "resident")
 
     result = await hass.config_entries.subentries.async_init(
         (entry.entry_id, SUBENTRY_TYPE_RECIPIENT), context={"source": SOURCE_USER}
@@ -456,35 +494,39 @@ async def test_recipient_subentry_validates_native_action_and_reconfigures(
     recipient_id = recipient.subentry_id
     assert recipient.data == RECIPIENT_INPUT
 
-    hass.states.async_set("notify.tablet", "unavailable")
     result = await hass.config_entries.subentries.async_init(
         (entry.entry_id, SUBENTRY_TYPE_RECIPIENT), context={"source": SOURCE_USER}
     )
     result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"],
-        user_input={**RECIPIENT_INPUT, CONF_NOTIFY_ENTITY_ID: "notify.tablet"},
+        result["flow_id"], user_input=RECIPIENT_INPUT
     )
     assert result["type"] == "form"
     assert result["errors"] == {"base": "duplicate_entity_link"}
 
+    replacement = {CONF_PERSON_ENTITY_ID: "person.replacement"}
+    hass.states.async_set(replacement[CONF_PERSON_ENTITY_ID], STATE_HOME)
     result = await hass.config_entries.subentries.async_init(
         (entry.entry_id, SUBENTRY_TYPE_RECIPIENT),
         context={"source": SOURCE_RECONFIGURE, "subentry_id": recipient_id},
     )
     result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"],
-        user_input={**RECIPIENT_INPUT, CONF_NOTIFY_ENTITY_ID: "notify.missing"},
+        result["flow_id"], user_input=replacement
     )
     assert result["type"] == "form"
     assert result["errors"] == {"base": "notification_target_unavailable"}
+    _register_mobile_recipient(
+        hass,
+        replacement[CONF_PERSON_ENTITY_ID],
+        "replacement",
+        notify_state="unavailable",
+    )
     result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"],
-        user_input={**RECIPIENT_INPUT, CONF_NOTIFY_ENTITY_ID: "notify.tablet"},
+        result["flow_id"], user_input=replacement
     )
     assert result["type"] == "abort"
     assert result["reason"] == "reconfigure_successful"
     assert recipient_id in entry.subentries
-    assert entry.subentries[recipient_id].data[CONF_NOTIFY_ENTITY_ID] == "notify.tablet"
+    assert entry.subentries[recipient_id].data == replacement
 
 
 async def test_opening_subentry_requires_an_existing_room(

@@ -209,21 +209,19 @@
         "user": {
           "title": "Añadir destinatario de notificaciones",
           "data": {
-            "person_entity_id": "Persona",
-            "notify_entity_id": "Destino de notificación"
+            "person_entity_id": "Persona"
           }
         },
         "reconfigure": {
           "title": "Reconfigurar destinatario de notificaciones",
           "data": {
-            "person_entity_id": "Persona",
-            "notify_entity_id": "Destino de notificación"
+            "person_entity_id": "Persona"
           }
         }
       },
       "error": {
-        "duplicate_entity_link": "Esta persona o destino de notificación ya está asignado.",
-        "notification_target_unavailable": "Selecciona entidades de persona y notificación existentes mientras la acción notify.send_message esté disponible."
+        "duplicate_entity_link": "Esta persona ya está asignada.",
+        "notification_target_unavailable": "Selecciona una persona con un dispositivo de notificación de la app móvil de Home Assistant asociado mientras notify.send_message esté disponible."
       }
     }
   }
