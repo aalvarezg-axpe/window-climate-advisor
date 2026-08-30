@@ -22,6 +22,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.window_climate_advisor.adapters.notifications import (
     async_deliver_arrival_candidate,
     async_deliver_notification_candidate,
+    home_notification_recipient_persons,
     notification_targets_for_person,
 )
 from custom_components.window_climate_advisor.application.notifications import (
@@ -307,7 +308,7 @@ async def test_delivery_filters_presence_and_consolidates_in_stable_order(
             "- Cocina NO: Cerrada (Lluvia y viento)\n"
             "- Cocina SO: Cerrada (Lluvia y viento)\n"
             "- Dormitorio: Abierta\n"
-            "- Salón: Oscilobatiente (Mejor equilibrio térmico)\n\n"
+            "- Salón: Oscilobatiente\n\n"
             "Persianas:\n"
             "- Cocina NO: 0% (Lluvia y viento)\n"
             "- Cocina SO: 0% (Lluvia y viento)\n"
@@ -369,7 +370,7 @@ async def test_delivery_lists_only_changed_components_and_skips_degraded_rows(
         ATTR_MESSAGE: (
             "Windows:\n"
             "- Cocina NO: Closed (Wind)\n"
-            "- Dormitorio: Closed (Better thermal balance)\n\n"
+            "- Dormitorio: Closed\n\n"
             "Blinds:\n- Salón: 70%"
         ),
         ATTR_TITLE: "Casa",
@@ -502,7 +503,7 @@ async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_bl
     assert len(calls) == 2
     expected = {
         ATTR_MESSAGE: (
-            "Windows:\n- Salón: Tilt (Better thermal balance)\n\n"
+            "Windows:\n- Salón: Tilt\n\n"
             "Blinds:\n- Salón: 70% (manual position not observable)"
         ),
         ATTR_TITLE: "Casa",
@@ -518,10 +519,10 @@ async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_bl
     )
 
 
-async def test_ordinary_delivery_excludes_arriving_recipient(
+async def test_ordinary_delivery_uses_only_people_retained_by_the_batch(
     hass: HomeAssistant,
 ) -> None:
-    """Avoid duplicate ordinary and arrival messages in the same evaluation."""
+    """Deliver only to the batch's event-time eligible recipient set."""
     entry = _entry()
     targets = _set_recipient_states(hass)
     hass.states.async_set(targets["second"], "unknown")
@@ -537,8 +538,30 @@ async def test_ordinary_delivery_excludes_arriving_recipient(
             hass,
             entry,
             _candidate(entry),
-            {"person.first"},
+            included_person_entity_ids={"person.second"},
         )
         == 1
     )
     assert [call.data[ATTR_ENTITY_ID] for call in calls] == [targets["second"]]
+
+
+async def test_event_time_presence_requires_a_usable_home_mobile_route(
+    hass: HomeAssistant,
+) -> None:
+    """Retain a batch only for recipients reachable when its change occurs."""
+    entry = _entry()
+    targets = _set_recipient_states(hass)
+
+    assert home_notification_recipient_persons(hass, entry) == ()
+
+    async def send_message(_: ServiceCall) -> None:
+        pass
+
+    hass.services.async_register(NOTIFY_DOMAIN, SERVICE_SEND_MESSAGE, send_message)
+    assert home_notification_recipient_persons(hass, entry) == ("person.first",)
+
+    hass.states.async_set(targets["second"], "unknown")
+    assert home_notification_recipient_persons(hass, entry) == (
+        "person.first",
+        "person.second",
+    )

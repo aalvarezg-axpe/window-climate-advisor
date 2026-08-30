@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, override
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_HOME, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Event, HomeAssistant, callback
-from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -20,6 +21,7 @@ from .adapters.home_assistant import build_snapshot, configured_entity_ids
 from .adapters.notifications import (
     async_deliver_arrival_candidate,
     async_deliver_notification_candidate,
+    home_notification_recipient_persons,
 )
 from .application.evaluator import (
     AdvisorEvaluation,
@@ -28,7 +30,13 @@ from .application.evaluator import (
     evaluate_snapshot,
 )
 from .application.notifications import OpeningFeedback, arrival_notification_candidate
-from .application.state import AdvisorState, state_from_dict, state_to_dict
+from .application.state import (
+    AdvisorState,
+    NotificationCandidate,
+    merge_notification_candidates,
+    state_from_dict,
+    state_to_dict,
+)
 from .config_flow import (
     has_duplicate_entity_links,
     profiles_from_options,
@@ -48,6 +56,7 @@ from .domain.profiles import SelectionMode, select_season
 
 _LOGGER = logging.getLogger(__name__)
 _UPDATE_INTERVAL = timedelta(minutes=5)
+_NOTIFICATION_BATCH_WINDOW = timedelta(minutes=10)
 _STORE_VERSION = 1
 
 
@@ -106,6 +115,9 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
             f"{DOMAIN}.{entry.entry_id}",
         )
         self._pending_arrivals: set[str] = set()
+        self._pending_notification: NotificationCandidate | None = None
+        self._pending_notification_people: set[str] = set()
+        self._cancel_notification_timer: Callable[[], None] | None = None
 
         @callback
         def request_refresh(event: Event[Any]) -> None:
@@ -119,6 +131,58 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 configured_entity_ids(entry),
                 request_refresh,
             )
+        )
+        entry.async_on_unload(self._cancel_notification_batch)
+
+    @callback
+    def _cancel_notification_batch(self) -> None:
+        """Discard the deliberately non-persistent ordinary delivery batch."""
+        if self._cancel_notification_timer is not None:
+            self._cancel_notification_timer()
+        self._cancel_notification_timer = None
+        self._pending_notification = None
+        self._pending_notification_people.clear()
+
+    @callback
+    def _queue_notification_candidate(
+        self,
+        candidate: NotificationCandidate | None,
+        arriving_person_ids: tuple[str, ...],
+    ) -> None:
+        """Retain one bounded batch without creating an away-time queue."""
+        self._pending_notification_people.difference_update(arriving_person_ids)
+        if candidate is None:
+            return
+        eligible_people = set(
+            home_notification_recipient_persons(self.hass, self.config_entry)
+        )
+        eligible_people.difference_update(arriving_person_ids)
+        if not eligible_people:
+            return
+        self._pending_notification = merge_notification_candidates(
+            self._pending_notification,
+            candidate,
+        )
+        self._pending_notification_people.update(eligible_people)
+        if self._cancel_notification_timer is None:
+            self._cancel_notification_timer = async_call_later(
+                self.hass,
+                _NOTIFICATION_BATCH_WINDOW,
+                self._async_flush_notification_batch,
+            )
+
+    async def _async_flush_notification_batch(self, _: datetime) -> None:
+        """Deliver and clear one fixed ordinary notification batch."""
+        candidate = self._pending_notification
+        included_people = set(self._pending_notification_people)
+        self._cancel_notification_timer = None
+        self._pending_notification = None
+        self._pending_notification_people.clear()
+        await async_deliver_notification_candidate(
+            self.hass,
+            self.config_entry,
+            candidate,
+            included_person_entity_ids=included_people,
         )
 
     @override
@@ -202,9 +266,7 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self._state = evaluation.state
         if state_changed:
             await self._store.async_save(state_to_dict(self._state))
-        await async_deliver_notification_candidate(
-            self.hass,
-            self.config_entry,
+        self._queue_notification_candidate(
             evaluation.notification_candidate,
             arriving_person_ids,
         )

@@ -1,6 +1,6 @@
 # Phase 02 notification validation
 
-- Candidate: `v0.2.0b6`
+- Candidate: `v0.2.0b7`
 - Route: public GitHub prerelease through the existing custom HACS repository
 - Integration/operational rollback: live-verified `v0.1.0b5`
 - Behavioural baseline only: immutable `v4.17_pre` fixture; no longer deployed
@@ -9,15 +9,15 @@
 
 ## Local acceptance
 
-P02-T12's optimizer/application/replay gate passes 29 tests; adding the
-manifest gate passes 32. The complete candidate gate passes 180 tests at
-95.77% coverage with Ruff, formatting, strict mypy, artifact/secret checks,
+P02-T13's state/notification/coordinator gate passes 33 tests; adding the
+manifest gate passes 36. The complete candidate gate passes 183 tests at
+95.73% coverage with Ruff, formatting, strict mypy, artifact/secret checks,
 integration lifecycle, replay, privacy and safety checks.
 
 | Boundary | Redacted evidence |
 |---|---|
 | Lifecycle | Schema-v4 revision-1 recipients migrate in place to person-only revision 2 without changing subentry identity or the loadable major-version downgrade path; setup, unload, reload, restart-state restoration, and migration tests pass. |
-| Ordinary delivery | Native person→Mobile App tracker→device→notify joins, per-device home filtering, several devices per person, malformed shared-target deduplication, away/unavailable/disabled/missing paths, deterministic ordering, one grouped message per target, unchanged/degraded suppression, and exact-call-count tests pass. |
+| Ordinary delivery | Native person→Mobile App tracker→device→notify joins, per-device home filtering at change and delivery time, several devices per person, malformed shared-target deduplication, away/unavailable/disabled/missing paths, deterministic 10-minute latest-target batching, one grouped message per target, unchanged/degraded suppression, unload discard, and exact-call-count tests pass. |
 | Failure isolation | A native notification failure is redacted, does not block another recipient, and cannot change evaluation or actuator state. |
 | Arrival | Only a real configured non-home-to-`home` edge requests fresh advice for that person. Startup, repeated `home`, and unavailable recovery do not count; the arriving person is excluded from any simultaneous ordinary message. |
 | Actionability | Contact/cover feedback removes targets already satisfied. Missing physical feedback does not claim success, and an unobservable manual blind position is identified explicitly. |
@@ -364,3 +364,31 @@ The `Pruebas` component card retains six configured room sources and seven
 opening rows. No entity rename, synthetic notification or physical action was
 called. P02-T12 terminates; P02-T04 remains open only for the naturally
 observed presence/arrival delivery matrix.
+
+## Local b7 notification batching and profile preparation
+
+The owner's natural-device evidence showed stable room transitions arriving as
+separate notifications about five minutes apart and rejected the generic
+`Mejor equilibrio térmico` text as non-explanatory. P02-T13 removes only that
+optimizer parenthetical while retaining rain, wind and unobservable-manual-
+blind reasons in ordinary and arrival summaries.
+
+Ordinary candidates now share one non-resetting 10-minute in-memory window
+from the first retained change. The latest target/reason per opening and the
+union of changed window/blind components are rendered once in deterministic
+order. Only people with a usable home Mobile App route when a retained change
+occurs are eligible, delivery checks home/availability again, and an arriving
+person is removed from the pending ordinary batch before receiving immediate
+fresh arrival advice. Unload cancels and discards the batch; no setting,
+persisted queue, helper, entity, dependency, schema, service or actuator path
+was added.
+
+The focused gate passes 33/33, focused plus manifest passes 36/36, and the
+canonical gate passes 183/183 at 95.73% with Ruff, formatting, strict mypy,
+artifact/secret, replay, privacy and zero-actuator checks green. The first
+style command accidentally began recreating the ignored repository `.venv`
+without the established external environment override; it was stopped and the
+reproducible environment was then fully restored from the frozen lock. No
+tracked artifact or Home Assistant state was affected. Consolidated Ponytail
+review removed one redundant exclusion collection and parameter, then reported
+`Lean already. Ship.` Publication and protected b7 deployment remain.

@@ -32,7 +32,6 @@ from ..const import (
     SUBENTRY_TYPE_RECIPIENT,
     SUBENTRY_TYPE_ROOM,
 )
-from ..domain.models import WindowState
 from ..domain.policy import ReasonCode
 
 _LOGGER = logging.getLogger(__name__)
@@ -43,7 +42,6 @@ _NOTIFICATION_TEXT = {
         "closed": "Closed",
         "tilt": "Tilt",
         "open": "Open",
-        "thermal_balance": "Better thermal balance",
         "manual": "manual position not observable",
         ReasonCode.WIND_CLOSE.value: "Wind",
         ReasonCode.WIND_TILT_ONLY.value: "Wind",
@@ -56,7 +54,6 @@ _NOTIFICATION_TEXT = {
         "closed": "Cerrada",
         "tilt": "Oscilobatiente",
         "open": "Abierta",
-        "thermal_balance": "Mejor equilibrio térmico",
         "manual": "posición manual no observable",
         ReasonCode.WIND_CLOSE.value: "Viento",
         ReasonCode.WIND_TILT_ONLY.value: "Viento",
@@ -119,13 +116,6 @@ def _note(reason: ReasonCode, text: dict[str, str], *, manual: bool = False) -> 
     return f" ({'; '.join(notes)})" if notes else ""
 
 
-def _window_note(state: WindowState, reason: ReasonCode, text: dict[str, str]) -> str:
-    """Explain why an optimizer target stops short of full opening."""
-    if reason is ReasonCode.OPTIMIZER and state is not WindowState.OPEN:
-        return f" ({text['thermal_balance']})"
-    return _note(reason, text)
-
-
 def _format_message(
     windows: tuple[str, ...], blinds: tuple[str, ...], language: str
 ) -> str:
@@ -157,7 +147,7 @@ def _message_rows(
                 (
                     sort_key,
                     f"{label}: {text[change.state.window.value]}"
-                    f"{_window_note(change.state.window, change.reason, text)}",
+                    f"{_note(change.reason, text)}",
                 )
             )
         if change.blind_changed and has_blind:
@@ -194,8 +184,7 @@ def _arrival_message_rows(
             windows.append(
                 (
                     sort_key,
-                    f"{label}: {text[advice.window.value]}"
-                    f"{_window_note(advice.window, advice.reason, text)}",
+                    f"{label}: {text[advice.window.value]}{_note(advice.reason, text)}",
                 )
             )
         if advice.blind is not None:
@@ -264,6 +253,35 @@ def notification_targets_for_person(
     return tuple(sorted(targets))
 
 
+def home_notification_recipient_persons(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+) -> tuple[str, ...]:
+    """Return configured people with a usable Mobile App route currently home."""
+    if not hass.services.has_service(NOTIFY_DOMAIN, SERVICE_SEND_MESSAGE):
+        return ()
+    try:
+        recipients = _recipients(entry)
+    except ValueError:
+        _LOGGER.warning(
+            "Skipped notification delivery: invalid recipient configuration"
+        )
+        return ()
+    return tuple(
+        person_entity_id
+        for person_entity_id in sorted(recipients)
+        if any(
+            (target := hass.states.get(target_entity_id)) is not None
+            and target.state != STATE_UNAVAILABLE
+            for target_entity_id in notification_targets_for_person(
+                hass,
+                person_entity_id,
+                home_only=True,
+            )
+        )
+    )
+
+
 async def _async_send_message(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -295,7 +313,8 @@ async def async_deliver_notification_candidate(
     hass: HomeAssistant,
     entry: ConfigEntry,
     candidate: NotificationCandidate | None,
-    excluded_person_entity_ids: Collection[str] = (),
+    *,
+    included_person_entity_ids: Collection[str] | None = None,
 ) -> int:
     """Deliver one grouped change to each currently home valid recipient."""
     if candidate is None or not candidate.changes:
@@ -318,7 +337,10 @@ async def async_deliver_notification_candidate(
     delivered = 0
     seen_targets: set[str] = set()
     for person_entity_id in sorted(recipients):
-        if person_entity_id in excluded_person_entity_ids:
+        if (
+            included_person_entity_ids is not None
+            and person_entity_id not in included_person_entity_ids
+        ):
             continue
         for target in notification_targets_for_person(
             hass, person_entity_id, home_only=True

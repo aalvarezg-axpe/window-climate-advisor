@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.22
+> Document version: 0.23
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-30
 > Current state: **active / Phase 02**
@@ -276,6 +276,13 @@ multiplier as the owner's accepted best defensible unmeasured estimate for the
 initial product: a first-order 0–100% uncovered-area geometry bound, not an
 empirical airflow curve or a calibrated building simulation.
 
+The owner selected a 21–24 °C live Summer comfort band on 2026-08-30 with a
+22 °C in-band preconditioning target and 0.5 °C hysteresis. This is dwelling
+configuration applied through the supported options flow, not a hidden product
+default or migration. Under the accepted Summer policy, free cooling remains
+active above 21.5 °C when the thermal and safety model favours it; at or below
+that stop boundary the optimizer seeks neutrality.
+
 Published experiments require device/geometry/flow-specific correction, while
 current Recorder history lacks actual manual blind/window positions, airflow
 observations, and an identifiable room response. The owner ruled out a
@@ -350,17 +357,24 @@ still targets entity IDs through Home Assistant's fixed
 `notify.send_message` action. Names and arbitrary action strings are never
 stored or inferred.
 
-An accepted stable window or blind target change is delivered once to every
-resolved recipient device that is currently `home`; a person with several home
-devices may therefore receive the same consolidated advice on each of them.
+Accepted ordinary stable window or blind target changes are retained only in
+one non-persistent batch beginning with the first change and delivered at most
+once after its fixed 10-minute window. The latest state and reason per opening
+win while its changed window/blind components are combined. A recipient is
+eligible only if a usable linked device is `home` when a retained change occurs
+and remains `home` at delivery; a person with several home devices may receive
+the same consolidated advice on each of them. Unload cancels and discards the
+batch rather than persisting a notification queue.
 If every linked device is away, the integration sends nothing and stores no
 backlog. When a configured person later enters `home`, the integration performs
 a fresh evaluation and sends only to that arriving person's linked devices that
 are then home any recommendation that remains current and actionable. It does
 not replay obsolete away-time transitions. Arrival delivery is deduplicated per
-real away-to-home transition and remains restart-safe. Contact and cover
-feedback suppress targets already satisfied; when a manual blind position
-cannot be observed, the arrival message states that explicitly.
+real away-to-home transition and remains restart-safe. An arriving person is
+removed from any pending ordinary batch and receives only this immediate fresh
+summary. Contact and cover feedback suppress targets already satisfied; when a
+manual blind position cannot be observed, the arrival message states that
+explicitly.
 
 Notification bodies separate `Windows` and `Blinds` into multiline bullet
 sections and include only the component that changed or remains actionable. A
@@ -368,10 +382,9 @@ room with one opening is identified only by its room title; a room with several
 openings appends the shortest configured opening suffix needed to distinguish
 them without repeating the room title. Weather-forced rows include a concise
 reason propagated from the evaluated policy result rather than inferred during
-delivery. When the optimizer itself selects `tilt` or `closed`, the window row
-states that this is the better thermal balance; the note is omitted for full
-opening and blind-only rows. Ordering is deterministic and degraded rows remain
-non-actionable.
+delivery. Generic optimizer choices carry no parenthetical because that wording
+does not explain a concrete constraint; ordering is deterministic and degraded
+rows remain non-actionable.
 
 ## 7. Safety and privacy gates
 

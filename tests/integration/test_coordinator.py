@@ -1,6 +1,7 @@
 """Tests for coordinator scheduling, degradation, and persistence."""
 
-from unittest.mock import AsyncMock, patch
+from datetime import timedelta
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from homeassistant.components.weather import SERVICE_GET_FORECASTS
@@ -8,8 +9,13 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import STATE_HOME, STATE_NOT_HOME, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.util import dt as dt_util
 
 from custom_components.window_climate_advisor.application.evaluator import InputIssue
+from custom_components.window_climate_advisor.application.state import (
+    NotificationCandidate,
+    OpeningChange,
+)
 from custom_components.window_climate_advisor.const import (
     CONF_PERSON_ENTITY_ID,
     CONF_WIND_GUST_ENTITY_ID,
@@ -19,9 +25,19 @@ from custom_components.window_climate_advisor.const import (
 from custom_components.window_climate_advisor.coordinator import (
     WindowClimateAdvisorCoordinator,
 )
+from custom_components.window_climate_advisor.domain.models import (
+    BlindOpening,
+    WindowState,
+)
 from custom_components.window_climate_advisor.domain.optimizer import optimize_opening
-from custom_components.window_climate_advisor.domain.policy import Recommendation
+from custom_components.window_climate_advisor.domain.policy import (
+    ReasonCode,
+    Recommendation,
+)
 from custom_components.window_climate_advisor.domain.profiles import Season
+from custom_components.window_climate_advisor.domain.state_machine import (
+    OpeningStabilityState,
+)
 from tests.integration.test_adapters import entry, set_ready_states
 from tests.integration.test_config_flow import VALID_OPTIONS
 
@@ -73,20 +89,14 @@ async def test_configured_coordinator_uses_forecast_persists_and_refreshes(
             "custom_components.window_climate_advisor.application.evaluator.optimize_opening",
             wraps=optimize_opening,
         ) as optimizer,
-        patch(
-            "custom_components.window_climate_advisor.coordinator.async_deliver_notification_candidate",
-            new_callable=AsyncMock,
-            return_value=0,
-        ) as deliver,
+        patch.object(coordinator, "_queue_notification_candidate") as queue,
     ):
         await coordinator.async_config_entry_first_refresh()
 
     assert coordinator.data.evaluation.season is Season.SUMMER
     assert coordinator.data.profile_forecast_available
     optimizer.assert_called_once()
-    deliver.assert_awaited_once_with(
-        hass,
-        config_entry,
+    queue.assert_called_once_with(
         coordinator.data.evaluation.notification_candidate,
         (),
     )
@@ -197,11 +207,7 @@ async def test_only_real_arrival_runs_fresh_targeted_delivery(
     coordinator = WindowClimateAdvisorCoordinator(hass, config_entry)
 
     with (
-        patch(
-            "custom_components.window_climate_advisor.coordinator.async_deliver_notification_candidate",
-            new_callable=AsyncMock,
-            return_value=0,
-        ) as ordinary,
+        patch.object(coordinator, "_queue_notification_candidate") as ordinary,
         patch(
             "custom_components.window_climate_advisor.coordinator.async_deliver_arrival_candidate",
             new_callable=AsyncMock,
@@ -233,7 +239,7 @@ async def test_only_real_arrival_runs_fresh_targeted_delivery(
                 config_entry,
                 "person.resident",
             )
-            assert ordinary.await_args.args[3] == ("person.resident",)
+            assert ordinary.call_args.args[1] == ("person.resident",)
 
             arrival.reset_mock()
             hass.states.async_set("person.resident", STATE_HOME, {"source": "update"})
@@ -249,3 +255,96 @@ async def test_only_real_arrival_runs_fresh_targeted_delivery(
             await hass.async_block_till_done()
             await coordinator.async_refresh()
             arrival.assert_not_awaited()
+
+
+async def test_ordinary_changes_use_one_fixed_batch_and_discard_on_unload(
+    hass: HomeAssistant,
+) -> None:
+    """Merge staggered rows once without retaining away or arrival advice."""
+    config_entry = entry(recipient=True)
+    config_entry.add_to_hass(hass)
+    coordinator = WindowClimateAdvisorCoordinator(hass, config_entry)
+    first = NotificationCandidate(
+        (
+            OpeningChange(
+                "opening-b",
+                OpeningStabilityState(WindowState.TILT, BlindOpening(100)),
+                ReasonCode.OPTIMIZER,
+                True,
+                False,
+            ),
+        )
+    )
+    second = NotificationCandidate(
+        (
+            OpeningChange(
+                "opening-a",
+                OpeningStabilityState(WindowState.CLOSED, BlindOpening(0)),
+                ReasonCode.WIND_CLOSE,
+                True,
+                True,
+            ),
+        )
+    )
+    scheduled: list[object] = []
+    cancel = Mock()
+
+    def schedule(_: object, delay: timedelta, action: object) -> Mock:
+        assert delay == timedelta(minutes=10)
+        scheduled.append(action)
+        return cancel
+
+    with (
+        patch(
+            "custom_components.window_climate_advisor.coordinator.home_notification_recipient_persons",
+            side_effect=[
+                (),
+                ("person.resident",),
+                ("person.resident",),
+                ("person.resident",),
+                ("person.resident",),
+            ],
+        ),
+        patch(
+            "custom_components.window_climate_advisor.coordinator.async_call_later",
+            side_effect=schedule,
+        ) as call_later,
+        patch(
+            "custom_components.window_climate_advisor.coordinator.async_deliver_notification_candidate",
+            new_callable=AsyncMock,
+            return_value=1,
+        ) as deliver,
+    ):
+        coordinator._queue_notification_candidate(first, ())
+        call_later.assert_not_called()
+
+        coordinator._queue_notification_candidate(first, ())
+        coordinator._queue_notification_candidate(second, ())
+        call_later.assert_called_once()
+        assert len(scheduled) == 1
+
+        callback = scheduled[0]
+        assert callable(callback)
+        await callback(dt_util.utcnow())
+
+        deliver.assert_awaited_once()
+        delivered = deliver.await_args.args[2]
+        assert isinstance(delivered, NotificationCandidate)
+        assert [change.opening_id for change in delivered.changes] == [
+            "opening-a",
+            "opening-b",
+        ]
+        assert deliver.await_args.kwargs["included_person_entity_ids"] == {
+            "person.resident"
+        }
+
+        deliver.reset_mock()
+        coordinator._queue_notification_candidate(first, ())
+        coordinator._queue_notification_candidate(None, ("person.resident",))
+        await scheduled[1](dt_util.utcnow())
+        assert deliver.await_args.kwargs["included_person_entity_ids"] == set()
+
+        coordinator._queue_notification_candidate(first, ())
+        coordinator._cancel_notification_batch()
+        cancel.assert_called()
+        assert coordinator._pending_notification is None

@@ -61,6 +61,28 @@ class EvaluationTransition:
     notification_candidate: NotificationCandidate | None
 
 
+def merge_notification_candidates(
+    current: NotificationCandidate | None,
+    incoming: NotificationCandidate,
+) -> NotificationCandidate:
+    """Merge a bounded delivery batch using each opening's latest target."""
+    changes = (
+        {}
+        if current is None
+        else {change.opening_id: change for change in current.changes}
+    )
+    for change in incoming.changes:
+        previous = changes.get(change.opening_id)
+        changes[change.opening_id] = OpeningChange(
+            change.opening_id,
+            change.state,
+            change.reason,
+            change.window_changed or (previous is not None and previous.window_changed),
+            change.blind_changed or (previous is not None and previous.blind_changed),
+        )
+    return NotificationCandidate(tuple(changes[key] for key in sorted(changes)))
+
+
 def advance_evaluation(
     previous: AdvisorState,
     samples: Mapping[str, StabilityInput],

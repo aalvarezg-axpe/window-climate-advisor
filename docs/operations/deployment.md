@@ -4,7 +4,7 @@
 
 - Repository: `https://github.com/aalvarezg-axpe/window-climate-advisor`
 - HACS category: Integration / custom repository
-- Candidate: GitHub prerelease `v0.2.0b6` from `release/0.2.0`
+- Candidate: GitHub prerelease `v0.2.0b7` from `release/0.2.0`
 - Minimum Home Assistant: 2026.8.0
 - Integration/operational rollback: live-verified `v0.1.0b5`
 - Behavioural baseline only: immutable `v4.17_pre` fixture; no longer deployed
@@ -28,9 +28,9 @@ service, retain a notification backlog, or control a physical device.
 
 ## Install
 
-1. In the existing HACS custom repository, select and download `v0.2.0b6`.
+1. In the existing HACS custom repository, select and download `v0.2.0b7`.
    Enable prerelease tracking if HACS hides beta versions.
-2. Confirm HACS reports exactly `v0.2.0b6` before continuing.
+2. Confirm HACS reports exactly `v0.2.0b7` before continuing.
 3. Restart Home Assistant once; do not reload only the integration after a new
    custom-component install.
 4. Keep the existing dwelling entry. In its configure flow, add each recipient
@@ -38,6 +38,9 @@ service, retain a notification backlog, or control a physical device.
    native Mobile App trackers to sibling `notify` entities through registry
    relationships; it never compares names or coordinates. Do not edit YAML or
    `.storage`.
+5. In the existing entry options, preserve every unrelated value and set the
+   Summer band to 21–24 °C, preconditioning target to 22 °C and hysteresis to
+   0.5 °C. Submit the complete supported form once; do not edit storage.
 
 ## Verify before accepting the beta
 
@@ -66,7 +69,7 @@ service, retain a notification backlog, or control a physical device.
 ## Roll back
 
 1. Capture redacted diagnostics and errors.
-2. While `v0.2.0b6` is loaded, remove recipient subentries through the config
+2. While `v0.2.0b7` is loaded, remove recipient subentries through the config
    flow if rolling back only the notification feature.
 3. In HACS, redownload `v0.1.0b5` and restart Home Assistant once. For complete
    removal, remove the config entry and HACS download instead.

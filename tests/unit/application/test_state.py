@@ -7,7 +7,9 @@ import pytest
 from custom_components.window_climate_advisor.application.state import (
     AdvisorState,
     NotificationCandidate,
+    OpeningChange,
     advance_evaluation,
+    merge_notification_candidates,
     state_from_dict,
     state_to_dict,
 )
@@ -114,6 +116,50 @@ def test_evaluation_returns_at_most_one_sorted_grouped_candidate() -> None:
 
     repeated = advance_evaluation(result.state, samples, NOW, SETTINGS)
     assert repeated.notification_candidate is None
+
+
+def test_notification_batch_keeps_latest_target_and_combines_components() -> None:
+    """Merge staggered changes once without losing an earlier component."""
+    first_state = OpeningStabilityState(WindowState.TILT, BlindOpening(100))
+    latest_state = OpeningStabilityState(WindowState.OPEN, BlindOpening(70))
+    current = NotificationCandidate(
+        (
+            OpeningChange(
+                "room-b",
+                first_state,
+                ReasonCode.OPTIMIZER,
+                True,
+                False,
+            ),
+        )
+    )
+    incoming = NotificationCandidate(
+        (
+            OpeningChange(
+                "room-a",
+                first_state,
+                ReasonCode.WIND_TILT_ONLY,
+                True,
+                False,
+            ),
+            OpeningChange(
+                "room-b",
+                latest_state,
+                ReasonCode.RAIN_TILT_ONLY,
+                False,
+                True,
+            ),
+        )
+    )
+
+    merged = merge_notification_candidates(current, incoming)
+
+    assert [change.opening_id for change in merged.changes] == ["room-a", "room-b"]
+    latest = merged.changes[1]
+    assert latest.state == latest_state
+    assert latest.reason is ReasonCode.RAIN_TILT_ONLY
+    assert latest.window_changed
+    assert latest.blind_changed
 
 
 def test_missing_openings_are_preserved_and_new_ones_start_from_observation() -> None:

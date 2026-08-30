@@ -38,16 +38,22 @@ content.
 - Ordinary and arrival bodies use the same deterministic two-section format:
   window rows, then blind rows. Single-opening rooms use the room title alone;
   multi-opening rooms add a non-duplicated opening suffix. Only changed or
-  still-actionable components appear, weather-forced rows show a concise
-  reason, and an optimizer-selected `tilt` or `closed` window row identifies
-  the better thermal balance without adding noise to full-open or blind-only
-  rows.
+  still-actionable components appear and weather-forced rows show a concise
+  reason. Generic optimizer choices have no parenthetical because they do not
+  identify a concrete constraint.
+- Ordinary candidates are merged for one fixed 10-minute window beginning at
+  the first change. The latest target/reason per opening and combined changed
+  components produce at most one deterministic message. The batch is memory
+  only, is discarded on unload, and does not introduce a configurable timer or
+  persisted queue.
 - Away-time changes are discarded rather than queued.
 - A later arrival uses the native non-home to `home` person-state edge and a
   fresh evaluation sent only to that person's associated devices then home;
   startup restoration is ignored, so no presence ledger is needed.
-- The arriving person is excluded from ordinary change delivery in that same
-  evaluation. Contact and cover feedback remove targets already satisfied;
+- Ordinary eligibility requires a usable home route both when a retained
+  change occurs and at delivery. An arriving person is removed from a pending
+  ordinary batch and receives only the fresh arrival summary. Contact and cover
+  feedback remove targets already satisfied;
   absent feedback never claims success, and manual blind advice says that its
   applied position is not observable.
 - No helper, service-name parser, new entity, dependency, notification queue,

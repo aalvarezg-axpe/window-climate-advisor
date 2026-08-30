@@ -5,6 +5,25 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0b7 - 2026-08-30
+
+### Changed
+
+- Ordinary stable changes received during one fixed 10-minute window are now
+  combined into at most one deterministic notification instead of being sent
+  room by room. Arrival advice remains fresh and immediate.
+- Removed the generic `Better thermal balance` / `Mejor equilibrio térmico`
+  parenthetical; concrete rain, wind and manual-blind reasons remain.
+- The deployed Summer comfort profile is adjusted separately through supported
+  options to 21–24 °C, target 22 °C and 0.5 °C hysteresis.
+
+### Safety and privacy
+
+- A recipient must have a usable home Mobile App route both when a retained
+  change occurs and at delivery. The in-memory batch is discarded on unload,
+  never becomes an away-time queue, and adds no option, entity, dependency,
+  schema, service or physical action.
+
 ## 0.2.0b6 - 2026-08-30
 
 ### Changed
