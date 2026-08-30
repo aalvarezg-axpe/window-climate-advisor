@@ -70,5 +70,5 @@ service, or control a physical device.
    return Home Assistant to the verified baseline.
 
 For a later candidate, HACS **Redownload** may select the last verified version;
-`v0.1.0b4` is the last live-verified configuration fallback. Full removal while
+`v0.1.0b5` is the last live-verified configuration fallback. Full removal while
 retaining `v4.17_pre` remains the clean rollback for the integration.

@@ -1,7 +1,9 @@
 # Phase 01 shadow status
 
-- Status: four-day observation closed; acceptance blocked on comparison scope
-- Candidate: `v0.1.0b4` / commit `f9d91aa`
+- Status: four-day observation and b5 corrective gate closed; acceptance blocked
+  only on comparison scope
+- Corrective candidate: `v0.1.0b5` / commit `c12d9d7`
+- Four-day observation candidate: `v0.1.0b4` / commit `f9d91aa`
 - Candidate route: public GitHub prerelease installed through custom HACS
 - Target: Home Assistant Core 2026.8.2
 - Baseline: one available `v4.17_pre` automation
@@ -240,10 +242,42 @@ behaviour-match percentage is asserted.
 All structural, integrity, ready-target, fail-safe, error/action, release, and
 weather-coverage gates pass. P01-T10 remains blocked because its approved live
 comparison scope is unresolved: the owner must either accept the operational
-four-day evidence together with the existing replays, or require a new shadow
-with resolved-target instrumentation. In either case, the selected 125-minute
-room age still requires supported-options deployment and a live gate before
-P01-T10 can complete.
+four-day evidence together with the existing replays and the b5 corrective
+gate below, or require a new b5 shadow with resolved-target instrumentation.
+
+## Post-shadow corrective gate
+
+On 2026-08-30, annotated tag and GitHub prerelease `v0.1.0b5`, remote
+`release/0.1.0`, and candidate commit `c12d9d7` were verified as one immutable
+target before deployment through the existing custom HACS repository. A new
+supported Home Assistant backup completed before mutation; automatic retention
+kept the repository at eight backups. Configuration validation was invoked,
+HACS installed the exact beta, and both required restarts plus the explicit
+config-entry reload recovered successfully.
+
+The supported options flow preserved all other values and changed only the
+slow room-temperature age from 60 to the owner-approved 125 minutes; the
+15-minute safety/environmental age was not changed. The sole dashboard consumer
+was saved once after b5 loaded, removing its single `hold` mapping; a complete
+post-save comparison found zero other dashboard changes and zero remaining
+`hold` occurrences.
+
+The final redacted live gate reports one loaded schema-v4 entry, 4 rooms, 5
+openings, 17 enabled entities with 17 unique entity IDs and 17 unique IDs, five
+recommendation/blind/safety triplets, and zero target-coherence errors. Recorder
+now retains a resolved `open`/`tilt`/`close`/`degraded` target plus bounded reason
+for all five recommendation series. Historical b4 `hold` records remain
+unchanged as provenance. Diagnostics expose only
+`profile_forecast_available`, pass the privacy scan, and contain zero Repairs.
+There are zero integration-attributable errors or warnings, owned service
+domains, and owned persistent notifications; `v4.17_pre` remains available.
+
+At the final instant, 11 of 12 source classes were ready and one was explicit
+`missing_input`, leaving one recommendation degraded. Its blind and safety
+entities were unavailable, while all four ready recommendations had bounded
+blind targets and every non-closed target had a positive blind opening. This is
+not a 125-minute failure: an absent value remains absent and fail-safe rather
+than being converted into a favourable observation.
 
 Shadow start UTC: 2026-08-25T08:26:50Z
 

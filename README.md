@@ -7,10 +7,11 @@ comfort policy.
 
 The project is in the **post-shadow Phase 01 correction wave**. The completed
 four-day observation identified explicit forecast, seasonal-policy, public
-state, and blind-airflow follow-ups. Candidate `v0.1.0b5` contains the accepted
-corrections; installed `v0.1.0b4` remains the live fallback until the candidate
-is verified. Neither build controls physical actuators. The deployed automation
-`v4.17_pre` remains the operational baseline and rollback.
+state, and blind-airflow follow-ups. Installed candidate `v0.1.0b5` contains
+the accepted corrections and has passed its live technical gates; `v0.1.0b4`
+remains the previous live-verified fallback. Neither build controls physical
+actuators. The deployed automation `v4.17_pre` remains the operational baseline
+and rollback.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
 tracked in
