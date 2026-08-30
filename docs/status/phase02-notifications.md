@@ -54,15 +54,22 @@ after a valid Home Assistant configuration check and a completed supported
 backup. Home Assistant 2026.8.3 recovered after installation and again after
 the final verification restart.
 
-The person-only native subentry form registered all four owner-authorized
-persons. The registry join resolves five person-to-Mobile-App-device links:
-three persons have one link and one has two. One endpoint is shared across
-persons, so the five links intentionally collapse to four unique notification
-targets; all four were enabled and available, and duplicate-call suppression
-prevents two messages to the shared endpoint. No target is selected or stored.
+The first broad person-only registration added all four Home Assistant persons.
+The registry join then exposed five person-to-Mobile-App-device links and four
+unique targets: the owner's phone was linked to both the owner and `Codex`
+persons. Duplicate-call suppression prevented an ordinary double send, but
+retaining `Codex` would have left an incorrect arrival route to the owner's
+phone.
 
-Post-reload/restart evidence reports one loaded schema-v4 revision-2 entry,
-four recipient subentries, 4 rooms, 5 openings, 6 integration devices, and 17
+After the owner's clarification, the supported subentry API removed only the
+`Codex` recipient. The current configuration has three explicitly authorized
+persons, four person-device links, and four distinct enabled/available Mobile
+App targets. The owner's person retains the phone route; the underlying Home
+Assistant person/tracker association is unchanged, and no target is selected
+or stored by the integration.
+
+Post-correction reload evidence reports one loaded schema-v4 revision-2 entry,
+three recipient subentries, 4 rooms, 5 openings, 6 integration devices, and 17
 enabled entities with unique identities. Fifteen entities and 11/12 source
 classes are ready; one `missing_input` safely degrades one opening and its
 blind/safety pair. The four ready recommendations and their blind positions

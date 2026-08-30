@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.16
+> Document version: 0.17
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-30
 > Current state: **active / Phase 02**
@@ -210,7 +210,9 @@ not use Core's build-time `strings.json` pipeline.
   adapter follows that person's configured Mobile App `device_tracker`
   entities through the entity/device registries to their sibling native
   `notify` entities. Configuration stores neither a target nor a service/action
-  name.
+  name. Only explicitly selected occupants are recipients: a tracker shared by
+  several Home Assistant persons does not implicitly authorize every one of
+  those persons.
 - Reconfigure flow: structural changes and entity replacements.
 - Options flow: infrequent tuning and calibration.
 - Native `select`, `number`, or `switch` entities: only controls that users
@@ -419,5 +421,6 @@ The first useful milestone is complete only when:
 7. the integration runs in shadow mode for the agreed comparison period;
 8. Home Assistant shows the expected integration, devices/entities, aliasing,
    availability, diagnostics, and no duplicates or config errors;
-9. the old automation remains a verified rollback until cutover is approved;
+9. the immutable old-automation fixture remains characterized, while the last
+   live-verified integration remains the operational rollback after cutover;
 10. no physical action path exists.
