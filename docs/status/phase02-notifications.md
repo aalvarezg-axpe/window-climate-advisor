@@ -290,6 +290,26 @@ The focused ordinary/arrival formatter gate passes 12 tests; adding the
 manifest gate passes 15. The canonical gate passes 179 tests at 95.77% with
 Ruff, formatting, strict mypy, replay, privacy, artifact/secret and
 zero-actuator checks green. Consolidated Ponytail review found no further
-layer to remove. Publication, installation and natural-device rendering remain
-in progress; no synthetic message or Home Assistant mutation was used for the
-local correction.
+layer to remove. No synthetic message or Home Assistant mutation was used for
+the local correction.
+
+## Live b5 thermal-explanation installation
+
+Commit `b8a3864`, remote `release/0.2.0`, annotated tag and public prerelease
+identify the same `v0.2.0b5` candidate. HACS refreshed only this custom
+repository and exposed exactly b5. A new supported full backup including the
+database completed with one stored copy, the backup manager idle and zero
+agent errors before the native update entity downloaded the exact beta.
+Configuration validation passed and the single required restart produced an
+observed down/up recovery on Home Assistant 2026.8.3.
+
+The redacted post-live gate confirms installed b5/schema v4, one loaded entry,
+6 rooms, 7 openings, 3 recipients, 8 integration devices and 23/23 available
+unique entities. Diagnostics contain 14 ready source classes and seven valid
+recommendation/blind/safety results with no invalid target. The retained legacy
+window/blind automation remains off. Duplicate identities, integration
+Repairs, log matches, services and owned persistent notifications are zero.
+No synthetic message, configuration/recipient change or physical action was
+called. P02-T11 and P02-T04 retain only natural-device rendering/presence
+evidence; the new wording will be accepted when the next genuine applicable
+change produces it.
