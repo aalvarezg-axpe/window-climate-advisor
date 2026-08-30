@@ -6,8 +6,8 @@
 - HACS category: Integration / custom repository
 - Candidate: GitHub prerelease `v0.2.0b2` from `release/0.2.0`
 - Minimum Home Assistant: 2026.8.0
-- Integration fallback: live-verified `v0.1.0b5`
-- Operational rollback: frozen `v4.17_pre`
+- Integration/operational rollback: live-verified `v0.1.0b5`
+- Behavioural baseline only: immutable `v4.17_pre` fixture; no longer deployed
 
 The candidate may call only fixed `notify.send_message` for Mobile App devices
 associated through native registries with explicitly configured persons, and
@@ -19,7 +19,8 @@ service, retain a notification backlog, or control a physical device.
 1. Run `uv run --frozen python scripts/verify.py` at the candidate commit.
 2. Confirm the candidate commit is the head of remote `release/0.2.0` and the
    GitHub prerelease points to that exact commit.
-3. In Home Assistant, confirm `v4.17_pre` is available and unchanged.
+3. Confirm `v0.1.0b5` remains downloadable. Do not restore the retired
+   `v4.17_pre` automation as part of this beta deployment.
 4. Create or confirm a current full backup before installing the notification
    beta; do not record its private identifier in Git.
 5. Record the backup, candidate commit, and observed baseline in
@@ -60,7 +61,7 @@ service, retain a notification backlog, or control a physical device.
 7. Confirm failed delivery leaves recommendation/safety entities available,
    no owned persistent notification/backlog exists, the integration registers
    no service, and no window, blind, HVAC, or other actuator call occurs.
-8. Confirm `v0.1.0b5` remains downloadable and `v4.17_pre` remains available.
+8. Confirm `v0.1.0b5` remains downloadable.
 
 ## Roll back
 
@@ -70,9 +71,9 @@ service, retain a notification backlog, or control a physical device.
 3. In HACS, redownload `v0.1.0b5` and restart Home Assistant once. For complete
    removal, remove the config entry and HACS download instead.
 4. Confirm recommendations and safety remain available, notifications stop,
-   Repairs/logs are clean, and `v4.17_pre` remains available and operational.
+   and Repairs/logs are clean.
 5. Restore the pre-beta backup only if normal rollback does not return Home
    Assistant to the verified baseline.
 
-`v0.1.0b5` is the last live-verified integration fallback. Full removal while
-retaining `v4.17_pre` remains the clean operational rollback.
+`v0.1.0b5` is the last live-verified integration and operational fallback.
+`v4.17_pre` remains only as an immutable characterization fixture.

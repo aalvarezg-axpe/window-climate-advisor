@@ -47,8 +47,9 @@ scope or weaken safety, privacy, rollback, or acceptance gates.
   Assistant's entity/device registries. Deliver only to linked trackers that
   are currently `home`. Never derive an action name from a person, device, or
   entity name; never replay a stale away-time queue when somebody arrives.
-- Preserve the deployed v4.17_pre automation as the rollback and behavioural
-  baseline until a shadow comparison has passed its acceptance gate.
+- Preserve `v4.17_pre` as an immutable behavioural fixture. It is no longer
+  deployed after the accepted migration; the last live-verified integration
+  `v0.1.0b5` is the operational rollback for notification betas.
 
 ## Planning and traceability
 

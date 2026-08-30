@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.15
+> Document version: 0.16
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-30
 > Current state: **active / Phase 02**
@@ -61,13 +61,13 @@ any future action layer.
 
 ## 3. Migration baseline
 
-The behavioural baseline is the deployed automation
+The behavioural baseline was the deployed automation
 `asesor_ventanas_automatizacion_v4_17_pre.yaml` and its existing regression,
 thermal-balance, blind-percentage, wind-exposure, notification, and simulation
 tests in the predecessor repository.
 
-The predecessor remains immutable and operational during migration. Its
-automation is the rollback until the new integration has:
+The predecessor remained immutable and operational during migration. Its
+automation was the rollback until the new integration had:
 
 1. characterized the baseline with versioned fixtures;
 2. matched or intentionally superseded every accepted behaviour;
@@ -75,6 +75,12 @@ automation is the rollback until the new integration has:
 4. passed an agreed comparison period;
 5. been deployed and verified as a single available config entry without
    duplicate entities or configuration errors.
+
+Those gates passed in Phase 01 and the owner accepted continuing exclusively
+on the custom integration. The old automation is no longer deployed or an
+operational rollback; its exact fixture and characterization evidence remain
+immutable. The last live-verified integration `v0.1.0b5` is the operational
+rollback for the Phase 02 notification beta.
 
 The owner fixed the Phase 01 shadow period at four consecutive calendar days
 on 2026-08-25 because the expected interval includes rain, heat, and sun. Its

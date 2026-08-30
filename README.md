@@ -10,8 +10,9 @@ The project is in **Phase 02 contextual-notification validation**. Candidate
 Assistant Mobile App devices through native registries, sends stable-change
 summaries only to those devices currently home, and gives fresh advice when a
 configured occupant arrives. Live-verified `v0.1.0b5` remains the integration
-fallback. Neither build controls physical actuators; the frozen automation
-`v4.17_pre` remains the operational rollback.
+fallback and operational rollback. Neither build controls physical actuators;
+the retired `v4.17_pre` automation remains only as an immutable behavioural
+fixture.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
 tracked in
@@ -72,9 +73,9 @@ Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
    subentries by selecting each `person`. Associated Mobile App devices are
    discovered automatically and only devices currently home are notified.
 
-This installs a recommendation and contextual-notification advisor beside the
-frozen `v4.17_pre`; it does not replace that automation or perform physical
-actions. Follow the backup, verification, and rollback procedure in
+This installs a recommendation and contextual-notification advisor without
+restoring the retired `v4.17_pre` automation or performing physical actions.
+Follow the backup, verification, and rollback procedure in
 [`docs/operations/deployment.md`](docs/operations/deployment.md).
 
 ## Local development

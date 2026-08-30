@@ -2,8 +2,8 @@
 
 - Candidate: `v0.2.0b2`
 - Route: public GitHub prerelease through the existing custom HACS repository
-- Integration fallback: live-verified `v0.1.0b5`
-- Operational rollback: frozen `v4.17_pre`
+- Integration/operational rollback: live-verified `v0.1.0b5`
+- Behavioural baseline only: immutable `v4.17_pre` fixture; no longer deployed
 - Privacy: evidence records counts and outcomes only; no private entity ID,
   person/device name, presence state, message content, endpoint, or token
 
@@ -46,16 +46,40 @@ recipients. The owner then rejected b1's redundant explicit target selector;
 the live deployment remains valid evidence for installation/lifecycle only and
 will be superseded by b2 before recipient configuration.
 
-## Pending b2 live acceptance
+## Live b2 installation and recipient registration
 
-Publish and install `v0.2.0b2`, verify schema v4 revision 2, then add all four
-owner-authorized persons through supported config subentry flows. A redacted
-preflight resolved five associated Mobile App targets (three single-device
-persons and one two-device person) without names. No target is selected or
-stored explicitly.
+The published feature/release candidate, annotated tag, and non-draft GitHub
+prerelease point to `v0.2.0b2`. HACS refreshed and downloaded that exact beta
+after a valid Home Assistant configuration check and a completed supported
+backup. Home Assistant 2026.8.3 recovered after installation and again after
+the final verification restart.
 
-After configuration, record only installed version/schema revision, recipient
-and associated-device counts, structure and availability counts, clean
-Repairs/log outcomes, absence of owned backlog/services/physical calls, and
-verified fallback availability. Do not send a synthetic notification solely
-for verification.
+The person-only native subentry form registered all four owner-authorized
+persons. The registry join resolves five person-to-Mobile-App-device links:
+three persons have one link and one has two. One endpoint is shared across
+persons, so the five links intentionally collapse to four unique notification
+targets; all four were enabled and available, and duplicate-call suppression
+prevents two messages to the shared endpoint. No target is selected or stored.
+
+Post-reload/restart evidence reports one loaded schema-v4 revision-2 entry,
+four recipient subentries, 4 rooms, 5 openings, 6 integration devices, and 17
+enabled entities with unique identities. Fifteen entities and 11/12 source
+classes are ready; one `missing_input` safely degrades one opening and its
+blind/safety pair. The four ready recommendations and their blind positions
+are coherent, including a positive blind opening for every non-closed window
+target; the degraded opening does not report safe.
+
+There are zero integration Repairs, system-log records, registered services,
+or owned persistent notifications. The fixed native `notify.send_message`
+surface is available. No synthetic message, queue, YAML, `.storage` edit, or
+physical action was used. `v0.1.0b5` remains the operational fallback;
+read-only inspection found that `v4.17_pre` is no longer deployed, so living
+rollback documentation now retains it only as an immutable behavioural
+fixture.
+
+## Remaining live acceptance
+
+The real present/away/mixed/stable-change/arrival delivery matrix remains to
+be observed through natural events. Configuration and lifecycle evidence are
+complete, but no synthetic notification will be sent solely to close that
+gate.
