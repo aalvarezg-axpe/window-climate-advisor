@@ -74,6 +74,8 @@ bedrooms share the same north-east orientation and overhang geometry; the
 bathroom has its own south-west overhang and rain protection. Migration work
 must retain that provenance rather than infer that those rooms or openings
 never existed merely because their blocks were commented pending real sensors.
+The owner identifies historical Dormitorio 1 as Eli's room and Dormitorio 2 as
+Anto's room; their remaining physical parameters are identical.
 
 The predecessor remained immutable and operational during migration. Its
 automation was the rollback until the new integration had:

@@ -252,3 +252,25 @@ The legacy automation remains off, and duplicate identities, Repairs,
 integration errors/services and owned persistent notifications are zero.
 Focused integration coverage passes 32 tests; the canonical gate passes all
 179 tests at 95.75% coverage. P02-T10 is complete.
+
+### Bedroom identity correction
+
+The owner subsequently identified historical Dormitorio 1 as Eli's room and
+Dormitorio 2 as Anto's room; every other physical parameter is identical. The
+first restoration had allocated those stable identities in the opposite
+direction. A safe-refactoring audit found zero consumers of the three
+provisional Eli entities across dashboards, automations, scripts, scenes,
+config-entry data/options, UI groups and state attributes. The inherited
+opening retained three existing dashboard references.
+
+Supported subentry APIs deleted only the zero-consumer provisional Eli pair,
+reconfigured the inherited room/opening and Eli display sources in place, and
+recreated Anto from the identical geometry. The inherited three entity IDs now
+belong to Eli and their dashboard references remain intact; the new Anto triple
+has no stale references. One final reload retained 6 rooms, 7 openings,
+3 recipients, 8 integration devices, 23/23 available unique entities,
+14 ready sources and seven valid recommendation/blind/safety triples. All
+17 dashboard references resolve, the legacy automation remains off, and
+Repairs, integration errors/services, owned persistent notifications and
+invalid targets remain zero. No entity-registry rename, dashboard write,
+synthetic message or physical action occurred.
