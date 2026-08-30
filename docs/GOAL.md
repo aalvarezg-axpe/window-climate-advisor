@@ -2,10 +2,10 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.2
+> Document version: 0.13
 > Initial date: 2026-08-24
-> Last reviewed: 2026-08-24
-> Initial state: **planned / bootstrap**
+> Last reviewed: 2026-08-30
+> Current state: **active / Phase 01**
 > Home Assistant display timezone: `Europe/Madrid`
 > Internal operational timezone: UTC
 
@@ -45,7 +45,9 @@ recommends per opening whether to:
 - close to preserve coolness or warmth;
 - raise a blind to capture useful solar gain;
 - lower a blind to reduce solar load or night heat loss;
-- keep the current action when no meaningful advantage exists;
+- keep the stable physical target when no meaningful advantage exists, without
+  exposing a separate public `hold` state;
+- never pair a non-closed recommended window target with 0% blind opening;
 - recommend a blind opening percentage without creating noisy intermediate
   notifications.
 
@@ -74,6 +76,10 @@ automation is the rollback until the new integration has:
 5. been deployed and verified as a single available config entry without
    duplicate entities or configuration errors.
 
+The owner fixed the Phase 01 shadow period at four consecutive calendar days
+on 2026-08-25 because the expected interval includes rain, heat, and sun. Its
+UTC clock starts only after the deployed-entry verification gate passes.
+
 The predecessor also contains a planned but unimplemented v4.18_pre backlog.
 That backlog is a requirements source, not a second behavioural baseline and
 not an instruction to create another YAML automation. Its accepted intent is
@@ -90,6 +96,7 @@ implemented in the custom integration and traced as follows:
 | F04-07 stability and notification control | P01-T07 | Carried forward; shadow mode does not own notifications. |
 | F04-08 seasonal simulation | P01-T08 | Carried forward with versioned replay scenarios and comparison against v4.17_pre. |
 | F04-09 version, regression, and deployment | P01-T09 and P01-T10 | Adapted to an integration build and reversible shadow deployment; no v4.18 YAML automation is created. |
+| Imported HANDOFF solar-geometry scenarios 1–6 | P01-T11 | Close the recorded inventory gap by projecting global radiation onto each façade and overhang before deployment. |
 
 ## 4. Scope
 
@@ -100,12 +107,16 @@ implemented in the custom integration and traced as follows:
 - Reconfigurable room subentries with temperature and optional humidity/CO2
   sources.
 - Reconfigurable opening subentries linked to rooms, including orientation,
-  dimensions, overhang geometry, rain protection, optional contact sensor, and
-  optional blind/cover entity.
+  dimensions, overhang geometry, rain protection, physical blind capability,
+  optional contact sensor, and optional automated blind/cover entity.
 - Global outdoor-temperature, weather/forecast, radiation, wind, and rain
   source selection through typed Home Assistant selectors; solar position comes
   from Home Assistant's built-in `sun` integration when the evaluator consumes
-  it.
+  it. Daily forecast maxima currently select only the seasonal profile and are
+  labelled accordingly. The live optimizer has no thermal forecast horizon
+  because the standard weather contract and configured sources do not provide
+  future irradiance; the product states that absence explicitly and applies
+  its missing-horizon penalty instead of inventing solar or indoor conditions.
 - Pure Python domain models for geometry, solar exposure, ventilation, thermal
   balance, safety, strategy, hysteresis, and recommendation aggregation.
 - Deterministic joint evaluation of window state and recommended blind opening,
@@ -115,7 +126,8 @@ implemented in the custom integration and traced as follows:
   and manual override.
 - Native informational entities and diagnostics.
 - Supported config-entry schema migrations and restart-safe state.
-- Stable, consolidated recommendation notifications only after shadow parity.
+- Stable, consolidated, presence-aware recommendation notifications only after
+  shadow parity, as the separately activated Phase 02 delivery.
 
 ### 4.2 Explicitly outside the initial release
 
@@ -124,8 +136,10 @@ implemented in the custom integration and traced as follows:
   Assistant config-flow forms and subentries are sufficient initially.
 - Cloud services, multi-user accounts, external databases, MQTT publication, or
   a standalone web service.
-- Submission to Home Assistant Core, public HACS distribution, or a public
-  license before local stability and ownership decisions.
+- Submission to Home Assistant Core, inclusion in HACS's default catalog, or a
+  public license before shadow stability and ownership decisions. The owner
+  approved a public GitHub custom repository on 2026-08-25 solely as the
+  versioned installation channel for the local HACS shadow deployment.
 - Inventing missing room sensors, cover entities, positions, or geometry.
 
 ## 5. Architecture
@@ -205,9 +219,51 @@ result set. Relevant entity changes trigger a debounced evaluation; a bounded
 periodic evaluation provides recovery. One coordinator owns scheduling,
 availability, and entity updates.
 
+Boundary tests must prove that every advertised decision input reaches the
+typed domain request used in production. The four-day follow-up audit found
+that the live coordinator could report forecast availability while the adapter
+supplied `None` as every opening's thermal forecast horizon; domain-only replay
+coverage did not detect that disconnect. Phase 01 cannot close until the
+forecast contract is either implemented end to end or deliberately narrowed in
+the public product contract. P01-T16 deliberately narrows it: the diagnostic
+flag describes profile selection only, and a production-boundary regression
+proves the daily maxima do not enter `OptimizationRequest` as thermal
+conditions. A later real horizon requires a demonstrated, time-aligned future
+irradiance source and an explicit indoor reference contract.
+
+The owner froze one-sided seasonal intent on 2026-08-30. Summer may actively
+remove heat, but once cooling is no longer required it must seek thermal
+neutrality rather than deliberately admit hotter outdoor air or solar gain to
+heat a cool room. Winter is the inverse: it may actively add heat, but once
+heating is no longer required it must stop further gains and seek neutrality
+rather than deliberately admit colder outdoor air to cool a warm room. Weather
+safety remains absolute. Shoulder-season keeps the existing symmetric comfort
+objective until separately reviewed; this decision does not silently alter it.
+Phase 01 must encode these directions explicitly, cover the measured hot-sun
+and cool-evening cases, and keep the provisional blind-airflow relation as a
+separate bounded calibration task.
+
+P01-T19 retains the linear blind/free-area multiplier only as an explicitly
+uncalibrated 0–100% geometry bound. Published experiments require
+device/geometry/flow-specific correction, while current Recorder history lacks
+actual manual blind/window positions, airflow observations, and a calibrated
+room response. Phase 01 must not invent an exponent or discharge coefficient;
+calibration resumes only from manufacturer free-area/pressure-loss data or a
+repeatable physical experiment at known positions.
+
 Missing or stale safety inputs do not become zero wind, no rain, or favourable
 temperature. Degradation is explicit in recommendation, availability, reason
 code, and diagnostics.
+
+Safety and environmental observations use an independent, strict maximum age.
+Slow battery room-temperature observations may use one separately configured
+maximum age; changing that room boundary must never relax wind, gust, rain,
+outdoor-temperature, radiation, or solar-position freshness. Four-day shadow
+evidence rejected the initial 60-minute room boundary for continuous
+availability. The owner selected 125 minutes—two expected 60-minute report
+cycles plus five minutes of margin—for later deployment through supported
+options and live verification. It is not deployed by the read-only shadow; the
+independent 15-minute safety/environmental boundary remains unchanged.
 
 ## 6. Entity contract
 
@@ -216,14 +272,36 @@ initial design favours:
 
 - one enum-like recommendation sensor per opening;
 - one recommended blind-position sensor per opening when a blind exists;
+- the existing recommendation sensor always exposes its resolved stable window
+  target; `hold` is not a public state, and unchanged evaluations produce no
+  notification candidate;
+- the current reason is Recorder-visible through the smallest verified surface,
+  preferably a bounded attribute on that same sensor rather than another
+  entity;
 - explicit safety/availability state;
 - global strategy and last-evaluation sensors;
-- disabled-by-default diagnostics for thermal watts, airflow, effective solar
-  load, source age, confidence, and reason codes.
+- redacted downloadable diagnostics for reason codes, source quality, and
+  bounded engine results; no rapidly changing diagnostic sensors in Phase 01.
 
 Avoid large or rapidly changing attributes that inflate Recorder. Configuration
 belongs in config entries; detailed troubleshooting belongs in redacted
 diagnostics.
+
+### 6.1 Presence-aware notification contract
+
+Notification delivery is deferred to the draft
+[`Phase 02 plan`](phases/02-contextual-notifications/PLAN.md) and remains outside
+the active Phase 01 build. Each recipient maps one configured `person` entity to
+an explicitly selected and runtime-validated notification action; names are
+never inferred from a person or device.
+
+An accepted stable window or blind target change is delivered only to
+recipients whose person is `home` at delivery time. If everybody is away, the
+integration sends nothing and stores no backlog of messages. When a configured
+person later enters `home`, the integration performs a fresh evaluation and
+sends only that arriving recipient any recommendation that is still current and
+actionable. It does not replay obsolete away-time transitions. Arrival delivery
+is deduplicated per real away-to-home transition and remains restart-safe.
 
 ## 7. Safety and privacy gates
 
@@ -257,6 +335,8 @@ The integration aims beyond the minimum custom-integration skeleton:
 - deterministic domain tests independent of Home Assistant;
 - full config-flow and migration coverage;
 - setup, unload, reload, restart, entity identity, and availability tests;
+- production-boundary tests that distinguish an input-availability indicator
+  from actual delivery of that input to the optimizer;
 - at least 90% branch coverage overall and near-complete useful coverage for
   safety/state transitions;
 - Ruff formatting/lint, mypy strict, pytest, coverage, manifest/translation
@@ -285,10 +365,24 @@ migrations, deployment verification, or rollback.
 - Completed phases merge `--no-ff` to `develop`.
 - Releases merge to `main`, receive an annotated tag, and merge back to
   `develop`.
+- HACS shadow candidates use numbered beta GitHub prereleases from the matching
+  `release/<version>` branch. They do not make `main` releasable or replace the
+  final annotated stable tag.
+- During the initial beta-only bootstrap, the public repository may temporarily
+  use that matching `release/<version>` branch as its GitHub default because
+  HACS validates custom-repository structure from the default branch before it
+  can expose a prerelease. `main` still contains accepted releases only; restore
+  it as the GitHub default when the first accepted release is merged there.
 
 No phase is complete until its plan records tests, review, artifact inventory,
 and relevant external verification. Deployment and Home Assistant mutation are
 root-owned and require exact target verification.
+
+The authorized public remote is
+`https://github.com/aalvarezg-axpe/window-climate-advisor`. It is a custom HACS
+repository, not a request for inclusion in HACS's default catalog. Public
+visibility does not grant a public license; that remains a separate owner
+decision.
 
 ## 10. Initial milestone criteria
 

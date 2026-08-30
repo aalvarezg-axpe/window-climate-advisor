@@ -12,7 +12,7 @@
           "wind_speed_entity_id": "Wind speed",
           "wind_direction_entity_id": "Wind direction",
           "wind_gust_entity_id": "Wind gust",
-          "rain_entity_id": "Rain"
+          "rain_entity_id": "Rain rate or wet/dry sensor"
         }
       },
       "reconfigure": {
@@ -26,12 +26,108 @@
           "wind_speed_entity_id": "Wind speed",
           "wind_direction_entity_id": "Wind direction",
           "wind_gust_entity_id": "Wind gust",
-          "rain_entity_id": "Rain"
+          "rain_entity_id": "Rain rate or wet/dry sensor"
         }
       }
     },
     "abort": {
       "reconfigure_successful": "The dwelling was reconfigured."
+    },
+    "error": {
+      "duplicate_entity_link": "Each Home Assistant entity can be assigned to only one dwelling input."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Comfort profiles",
+        "description": "Enter measured or chosen bounds for every season. No comfort defaults are assumed.",
+        "data": {
+          "selection_mode": "Profile selection",
+          "summer_lower_c": "Summer lower bound",
+          "summer_upper_c": "Summer upper bound",
+          "summer_preconditioning_target_c": "Summer preconditioning target",
+          "summer_hysteresis_c": "Summer hysteresis",
+          "shoulder_lower_c": "Shoulder-season lower bound",
+          "shoulder_upper_c": "Shoulder-season upper bound",
+          "shoulder_preconditioning_target_c": "Shoulder-season preconditioning target",
+          "shoulder_hysteresis_c": "Shoulder-season hysteresis",
+          "winter_lower_c": "Winter lower bound",
+          "winter_upper_c": "Winter upper bound",
+          "winter_preconditioning_target_c": "Winter preconditioning target",
+          "winter_hysteresis_c": "Winter hysteresis",
+          "blind_step_percent": "Blind recommendation step",
+          "window_movement_penalty_w": "Window movement penalty",
+          "blind_full_travel_penalty_w": "Blind full-travel penalty",
+          "missing_forecast_change_penalty_w": "Missing-forecast change penalty",
+          "minimum_benefit_w": "Minimum accepted benefit",
+          "blind_deadband_percent": "Blind deadband",
+          "source_stale_minutes": "Maximum safety and environmental source age",
+          "room_temperature_stale_minutes": "Maximum room temperature age"
+        }
+      }
+    },
+    "error": {
+      "invalid_options": "Check all profile relationships and runtime settings. Blind step must divide 100 and maximum source ages must be positive."
+    }
+  },
+  "selector": {
+    "selection_mode": {
+      "options": {
+        "auto": "Automatic",
+        "summer": "Summer",
+        "shoulder": "Shoulder season",
+        "winter": "Winter"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "recommendation": {
+        "name": "Recommendation",
+        "state": {
+          "open": "Open",
+          "tilt": "Tilt",
+          "close": "Close",
+          "degraded": "Degraded"
+        },
+        "state_attributes": {
+          "reason": {
+            "name": "Reason",
+            "state": {
+              "optimizer": "Thermal optimization",
+              "wind_close": "Wind requires closing",
+              "wind_tilt_only": "Wind allows tilt only",
+              "rain_close": "Rain requires closing",
+              "rain_tilt_only": "Rain allows protected tilt only",
+              "missing_safety_data": "Safety data is missing",
+              "stale_safety_data": "Safety data is stale",
+              "configuration_required": "Configuration is required",
+              "missing_input": "Required input is missing",
+              "stale_input": "Required input is stale"
+            }
+          }
+        }
+      },
+      "recommended_blind_position": {
+        "name": "Recommended blind position"
+      },
+      "active_profile": {
+        "name": "Active comfort profile",
+        "state": {
+          "summer": "Summer",
+          "shoulder": "Shoulder season",
+          "winter": "Winter"
+        }
+      },
+      "last_evaluation": {
+        "name": "Last evaluation"
+      }
+    },
+    "binary_sensor": {
+      "safe_to_open": {
+        "name": "Safe to open"
+      }
     }
   },
   "config_subentries": {
@@ -56,6 +152,9 @@
             "co2_entity_id": "Carbon dioxide"
           }
         }
+      },
+      "error": {
+        "duplicate_entity_link": "This entity is already assigned to another dwelling input."
       }
     },
     "opening": {
@@ -66,15 +165,16 @@
           "data": {
             "name": "Opening name",
             "room_subentry_id": "Room",
-            "facade_azimuth": "Façade azimuth",
-            "width": "Width",
-            "height": "Height",
-            "overhang_depth": "Overhang depth",
-            "overhang_gap": "Vertical overhang gap",
+            "facade_azimuth_deg": "Façade azimuth",
+            "width_m": "Width",
+            "height_m": "Height",
+            "overhang_depth_m": "Overhang depth",
+            "overhang_gap_m": "Vertical overhang gap",
             "supports_tilt": "Supports tilt position",
             "rain_protected": "Protected from direct rain",
+            "has_blind": "Has a blind or shutter",
             "contact_entity_id": "Window contact",
-            "cover_entity_id": "Blind or shutter"
+            "cover_entity_id": "Automated blind or shutter entity (optional)"
           }
         },
         "reconfigure": {
@@ -82,20 +182,25 @@
           "data": {
             "name": "Opening name",
             "room_subentry_id": "Room",
-            "facade_azimuth": "Façade azimuth",
-            "width": "Width",
-            "height": "Height",
-            "overhang_depth": "Overhang depth",
-            "overhang_gap": "Vertical overhang gap",
+            "facade_azimuth_deg": "Façade azimuth",
+            "width_m": "Width",
+            "height_m": "Height",
+            "overhang_depth_m": "Overhang depth",
+            "overhang_gap_m": "Vertical overhang gap",
             "supports_tilt": "Supports tilt position",
             "rain_protected": "Protected from direct rain",
+            "has_blind": "Has a blind or shutter",
             "contact_entity_id": "Window contact",
-            "cover_entity_id": "Blind or shutter"
+            "cover_entity_id": "Automated blind or shutter entity (optional)"
           }
         }
       },
       "abort": {
         "no_rooms": "Add a room before adding an opening."
+      },
+      "error": {
+        "cover_without_blind": "An automated blind entity requires the opening to have a blind or shutter.",
+        "duplicate_entity_link": "This entity is already assigned to another dwelling input."
       }
     }
   }

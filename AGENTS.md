@@ -42,6 +42,10 @@ scope or weaken safety, privacy, rollback, or acceptance gates.
 - Expose recommendations and diagnostics through native entities. Do not
   control windows, blinds, shutters, awnings, HVAC, or any physical actuator
   until `docs/GOAL.md` contains a separately approved safety phase.
+- Notification delivery, when its later phase is activated, uses configured
+  `person` presence and explicitly selected, validated notification actions.
+  Never derive an action name from a person, device, or entity name; never
+  replay a stale away-time queue when somebody arrives.
 - Preserve the deployed v4.17_pre automation as the rollback and behavioural
   baseline until a shadow comparison has passed its acceptance gate.
 
@@ -118,6 +122,15 @@ Git integration, and final acceptance. It also retains work when delegation
 tooling is unavailable, the write set cannot be isolated, or delegation cost
 exceeds the task; record the concrete exception in the phase plan.
 
+Each execution capsule defines an observable progress checkpoint. If an
+executor produces neither a requested status nor an allowed artifact across two
+consecutive manager checkpoints and one direct status request, the root
+interrupts the wave and records the exception instead of waiting repeatedly.
+After the same persistent session stalls this way in two consecutive waves,
+the root retains subsequent work until that session is replaced or the owner
+directs another attempt. A slow successful gate is progress; silence with no
+artifact is not.
+
 An executor handoff may report only `listo para revisión`, `parcial`, or
 `bloqueado`. Only the root decides whether a task or phase is complete.
 
@@ -167,6 +180,15 @@ entities for hypothetical consumers.
 - Test behaviour, failure modes, stale/unavailable inputs, DST/UTC boundaries,
   config migrations, entity identity, setup/unload/reload, and external
   contracts affected by a change.
+- For every advertised runtime input, include one production-boundary test that
+  proves the normalized value reaches the actual domain request. A source
+  availability flag, successful provider call, or domain-only unit test is not
+  evidence that the live evaluator consumed it.
+- Before starting a behavioural shadow, verify that Recorder can retain the
+  resolved target and reason needed by its acceptance comparison. Public
+  recommendation state is the stable resolved target, not a transient
+  `hold`/change indicator; if the surface cannot retain the required evidence,
+  stop before deployment and correct the contract.
 - Target at least 90% branch coverage for owned code and near-complete useful
   coverage for safety, availability, state transitions, and config flows.
 - Do not hide failures with broad exception handlers, silent fallbacks, skipped
@@ -185,6 +207,9 @@ entities for hypothetical consumers.
 - Merge completed phases into `develop` with `--no-ff` after all gates pass.
 - Create `release/<version>` only for a release candidate; merge it to `main`,
   create an annotated tag, and merge it back to `develop`.
+- A HACS shadow candidate may use a `v<version>bN` GitHub prerelease from its
+  `release/<version>` branch. It is not an accepted release: stable annotated
+  tags still originate from `main` only after the shadow gate passes.
 - Do not commit directly to `main`, force-push, rewrite shared history, or
   change branches unless the active plan assigns that action.
 

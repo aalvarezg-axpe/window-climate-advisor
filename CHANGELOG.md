@@ -21,3 +21,59 @@ Semantic Versioning after the first distributable integration release.
   YAML/Jinja, version-independence, and recommendation-only characterization.
 - Frozen Phase 1 optimizer/shadow plan with all v4.18_pre requirements mapped,
   exact local gates, bounded write sets, and deployment stop conditions.
+- Versioned v4.17_pre behaviour catalog separating weather safety, replaceable
+  thermal heuristics, state stability, and unavailable-data handling.
+- Pure coupled opening/blind model with explicit geometry, solar transmission,
+  unilateral airflow, thermal-load components, bounds, and assumption tests.
+- User-supplied Summer, Shoulder-season, and Winter comfort profiles with
+  deterministic automatic/manual selection and a translated options flow.
+- Dependency-free exhaustive window/blind optimizer with current/forecast
+  scoring, explicit movement/uncertainty costs, and stable tie-breaking.
+- Negative migration gate preventing `terraza_caliente` from becoming a new
+  thermal-policy input while retaining measured radiation and real geometry.
+- Typed recommendation-only weather policy with fail-closed degraded inputs,
+  absolute rain/gust priority, continuous façade wind limits, and protected
+  tilt geometry.
+- Cost/benefit and time-based recommendation stability with versioned UTC
+  memory, blind-direction deduplication, and one delivery-free grouped
+  notification candidate per evaluation.
+- Versioned synthetic Summer, Shoulder-season, and Winter replay evidence with
+  v4.17 action provenance, physical-model comparison, and bounded sensitivity.
+- Corrected joint window/blind feasibility so every non-closed resolved target
+  requires a positive blind opening.
+- Version-2 unit-explicit opening geometry migration and required runtime
+  optimizer, stability, and source-age options.
+- Typed Home Assistant source/forecast adapters, conservative degradation, one
+  five-minute event-aware coordinator, and restart-safe state storage.
+- Stable recommendation, blind-position, active-profile, evaluation-time, and
+  safety entities with translated English/Spanish state names.
+- Duplicate entity-link validation and redacted diagnostics that omit names,
+  entity IDs, raw states, tokens, coordinates, and household history.
+- Bounded per-façade solar projection from global radiation, `sun.sun`,
+  orientation, opening height, and overhang shade.
+- Public custom-HACS repository metadata, inline brand icon, and reversible
+  numbered-beta installation contract, currently `0.1.0b5`.
+
+### Fixed
+
+- Forecast diagnostics now describe only daily-profile selection. The live
+  optimizer explicitly keeps its thermal horizon unavailable because the
+  configured sources provide no future irradiance, avoiding invented solar or
+  indoor conditions.
+- Seasonal optimization is one-sided by explicit profile season: Summer no
+  longer seeks heat and Winter no longer seeks cooling on their inactive side;
+  each seeks minimum absolute thermal load there, while Shoulder season remains
+  symmetric and weather safety is unchanged.
+- Recommendation entities expose the resolved stable `open`, `tilt`, or
+  `close` target instead of the ambiguous public `hold` state. A translated,
+  bounded reason attribute preserves Recorder reconstruction without changing
+  entity identity or adding an entity.
+- Home Assistant 2026.8 can serialize every config-flow schema for its HTTP
+  frontend while empty and whitespace-only dwelling, room, and opening names
+  remain rejected.
+- Manual blinds are represented independently from optional automated Home
+  Assistant cover entities, retaining recommendations and persisted position
+  without introducing an actuator path.
+- Slow room-temperature observations have one explicit maximum age independent
+  from the stricter safety/environmental-source age. Version-3 entries migrate
+  without changing behaviour until the new option is confirmed.

@@ -12,7 +12,7 @@
           "wind_speed_entity_id": "Velocidad del viento",
           "wind_direction_entity_id": "Dirección del viento",
           "wind_gust_entity_id": "Ráfaga de viento",
-          "rain_entity_id": "Lluvia"
+          "rain_entity_id": "Intensidad de lluvia o sensor seco/mojado"
         }
       },
       "reconfigure": {
@@ -26,12 +26,108 @@
           "wind_speed_entity_id": "Velocidad del viento",
           "wind_direction_entity_id": "Dirección del viento",
           "wind_gust_entity_id": "Ráfaga de viento",
-          "rain_entity_id": "Lluvia"
+          "rain_entity_id": "Intensidad de lluvia o sensor seco/mojado"
         }
       }
     },
     "abort": {
       "reconfigure_successful": "La vivienda se ha reconfigurado."
+    },
+    "error": {
+      "duplicate_entity_link": "Cada entidad de Home Assistant solo puede asignarse a una entrada de la vivienda."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Perfiles de confort",
+        "description": "Introduce los límites medidos o elegidos para cada estación. No se presuponen valores de confort.",
+        "data": {
+          "selection_mode": "Selección de perfil",
+          "summer_lower_c": "Límite inferior de verano",
+          "summer_upper_c": "Límite superior de verano",
+          "summer_preconditioning_target_c": "Objetivo de preacondicionamiento de verano",
+          "summer_hysteresis_c": "Histéresis de verano",
+          "shoulder_lower_c": "Límite inferior de entretiempo",
+          "shoulder_upper_c": "Límite superior de entretiempo",
+          "shoulder_preconditioning_target_c": "Objetivo de preacondicionamiento de entretiempo",
+          "shoulder_hysteresis_c": "Histéresis de entretiempo",
+          "winter_lower_c": "Límite inferior de invierno",
+          "winter_upper_c": "Límite superior de invierno",
+          "winter_preconditioning_target_c": "Objetivo de preacondicionamiento de invierno",
+          "winter_hysteresis_c": "Histéresis de invierno",
+          "blind_step_percent": "Paso de recomendación de persiana",
+          "window_movement_penalty_w": "Penalización por mover la ventana",
+          "blind_full_travel_penalty_w": "Penalización por recorrido completo de persiana",
+          "missing_forecast_change_penalty_w": "Penalización por cambio sin previsión",
+          "minimum_benefit_w": "Beneficio mínimo aceptado",
+          "blind_deadband_percent": "Banda muerta de persiana",
+          "source_stale_minutes": "Antigüedad máxima de fuentes meteorológicas y de seguridad",
+          "room_temperature_stale_minutes": "Antigüedad máxima de temperatura interior"
+        }
+      }
+    },
+    "error": {
+      "invalid_options": "Revisa las relaciones de los perfiles y los ajustes de ejecución. El paso de persiana debe dividir 100 y las antigüedades máximas deben ser positivas."
+    }
+  },
+  "selector": {
+    "selection_mode": {
+      "options": {
+        "auto": "Automática",
+        "summer": "Verano",
+        "shoulder": "Entretiempo",
+        "winter": "Invierno"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "recommendation": {
+        "name": "Recomendación",
+        "state": {
+          "open": "Abrir",
+          "tilt": "Oscilobatiente",
+          "close": "Cerrar",
+          "degraded": "Degradado"
+        },
+        "state_attributes": {
+          "reason": {
+            "name": "Motivo",
+            "state": {
+              "optimizer": "Optimización térmica",
+              "wind_close": "El viento requiere cerrar",
+              "wind_tilt_only": "El viento solo permite oscilobatiente",
+              "rain_close": "La lluvia requiere cerrar",
+              "rain_tilt_only": "La lluvia solo permite oscilobatiente protegido",
+              "missing_safety_data": "Faltan datos de seguridad",
+              "stale_safety_data": "Los datos de seguridad están desactualizados",
+              "configuration_required": "Se requiere configuración",
+              "missing_input": "Falta una entrada necesaria",
+              "stale_input": "Una entrada necesaria está desactualizada"
+            }
+          }
+        }
+      },
+      "recommended_blind_position": {
+        "name": "Posición de persiana recomendada"
+      },
+      "active_profile": {
+        "name": "Perfil de confort activo",
+        "state": {
+          "summer": "Verano",
+          "shoulder": "Entretiempo",
+          "winter": "Invierno"
+        }
+      },
+      "last_evaluation": {
+        "name": "Última evaluación"
+      }
+    },
+    "binary_sensor": {
+      "safe_to_open": {
+        "name": "Es seguro abrir"
+      }
     }
   },
   "config_subentries": {
@@ -56,6 +152,9 @@
             "co2_entity_id": "Dióxido de carbono"
           }
         }
+      },
+      "error": {
+        "duplicate_entity_link": "Esta entidad ya está asignada a otra entrada de la vivienda."
       }
     },
     "opening": {
@@ -66,15 +165,16 @@
           "data": {
             "name": "Nombre del hueco",
             "room_subentry_id": "Estancia",
-            "facade_azimuth": "Azimut de la fachada",
-            "width": "Anchura",
-            "height": "Altura",
-            "overhang_depth": "Profundidad del alero",
-            "overhang_gap": "Separación vertical del alero",
+            "facade_azimuth_deg": "Azimut de la fachada",
+            "width_m": "Anchura",
+            "height_m": "Altura",
+            "overhang_depth_m": "Profundidad del alero",
+            "overhang_gap_m": "Separación vertical del alero",
             "supports_tilt": "Admite posición oscilobatiente",
             "rain_protected": "Protegido de la lluvia directa",
+            "has_blind": "Tiene persiana o contraventana",
             "contact_entity_id": "Contacto de ventana",
-            "cover_entity_id": "Persiana o contraventana"
+            "cover_entity_id": "Entidad de persiana automatizada (opcional)"
           }
         },
         "reconfigure": {
@@ -82,20 +182,25 @@
           "data": {
             "name": "Nombre del hueco",
             "room_subentry_id": "Estancia",
-            "facade_azimuth": "Azimut de la fachada",
-            "width": "Anchura",
-            "height": "Altura",
-            "overhang_depth": "Profundidad del alero",
-            "overhang_gap": "Separación vertical del alero",
+            "facade_azimuth_deg": "Azimut de la fachada",
+            "width_m": "Anchura",
+            "height_m": "Altura",
+            "overhang_depth_m": "Profundidad del alero",
+            "overhang_gap_m": "Separación vertical del alero",
             "supports_tilt": "Admite posición oscilobatiente",
             "rain_protected": "Protegido de la lluvia directa",
+            "has_blind": "Tiene persiana o contraventana",
             "contact_entity_id": "Contacto de ventana",
-            "cover_entity_id": "Persiana o contraventana"
+            "cover_entity_id": "Entidad de persiana automatizada (opcional)"
           }
         }
       },
       "abort": {
         "no_rooms": "Añade una estancia antes de añadir un hueco."
+      },
+      "error": {
+        "cover_without_blind": "Una entidad de persiana automatizada requiere que el hueco tenga persiana o contraventana.",
+        "duplicate_entity_link": "Esta entidad ya está asignada a otra entrada de la vivienda."
       }
     }
   }

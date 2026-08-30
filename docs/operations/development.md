@@ -46,22 +46,10 @@ These variables are sufficient for pure Python development, tests, and the Home
 Assistant REST/WebSocket checks already used by the predecessor project. Never
 print either value.
 
-Installing a custom integration additionally requires writing files below Home
-Assistant's `config/custom_components` directory. The REST API token does not by
-itself provide that file channel. P00-T04 found no available route; before
-deployed tests, P01-T10 must select one of these mutually exclusive contracts:
-
-1. a server-visible mounted config path, represented by
-   `WCA_HOME_ASSISTANT_CONFIG_PATH`; or
-2. SSH/SFTP using `WCA_HOME_ASSISTANT_SSH_HOST`,
-   `WCA_HOME_ASSISTANT_SSH_PORT`, `WCA_HOME_ASSISTANT_SSH_USER`, and
-   `WCA_HOME_ASSISTANT_SSH_KEY_PATH`; or
-3. an approved Git/HACS installation workflow, which needs repository hosting
-   rather than extra Home Assistant credentials.
-
-Prefer a key or mounted path over a password. Do not register all alternatives;
-choose one, document its consumer, and keep its private value in `.env` or the
-deployment secret store.
+P01-T10 selected the public Git/HACS route at
+`https://github.com/aalvarezg-axpe/window-climate-advisor`. HACS owns the write
+to Home Assistant's `config/custom_components` directory, so no mounted-path,
+SSH, GitHub, or HACS credential belongs in this repository's `.env`.
 
 Room sensors, window contacts, cover entities, geometry, thresholds, schedules,
 comfort settings, and notification destinations are product configuration.

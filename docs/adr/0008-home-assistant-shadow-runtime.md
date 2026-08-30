@@ -1,0 +1,109 @@
+# ADR 0008 — Home Assistant shadow runtime
+
+- Status: accepted for P01-T09; amended by P01-T16
+- Date: 2026-08-25
+- Sources: ADR 0003, P01-T01–P01-T08, and predecessor F04-09
+
+## Decision
+
+Connect the accepted pure engine through one config-entry coordinator. It
+evaluates every configured opening from one coherent Home Assistant snapshot,
+refreshes every five minutes, and requests a debounced refresh when a referenced
+entity changes. It stores only `AdvisorState` through Home Assistant's supported
+`Store` API under a key scoped by config-entry ID. The v4.17 automation remains
+operational; this integration registers no service, action, notification, or
+physical-control platform.
+
+The coordinator owns translation and scheduling. Home Assistant state objects,
+service responses, units, and entity IDs do not cross the adapter boundary.
+The application evaluator receives typed conditions, safety snapshots, opening
+capabilities, selected profiles, and prior state. Missing, unavailable,
+malformed, wrong-unit, or stale required observations produce a `degraded`
+recommendation and unsafe-to-open result; they never become zero or favourable.
+An `on` binary rain source is conservatively treated as more than light rain.
+A numeric rain source is accepted only in mm/h.
+
+Daily weather forecast temperatures are used only for automatic profile
+selection. Diagnostics name that narrow fact
+`profile_forecast_available`; they do not advertise a thermal forecast. The
+Home Assistant weather contract supplies no future irradiance, and read-only
+capability inspection on 2026-08-30 found no configured entity carrying a
+future irradiance payload. The live optimizer therefore receives no forecast
+horizon and its already accepted missing-forecast penalty applies. No future
+indoor temperature, façade irradiance, wind, or gust is invented.
+
+Profiles plus these runtime parameters are required in the options flow and
+have no hidden operational defaults:
+
+- blind step percentage;
+- window movement penalty in watt-equivalent units;
+- blind full-travel penalty in watt-equivalent units;
+- missing-forecast change penalty in watt-equivalent units;
+- minimum accepted benefit in watts;
+- blind deadband percentage;
+- maximum safety/environmental-source age in minutes;
+- maximum room-temperature age in minutes.
+
+The options validator constructs the existing typed optimizer and stability
+settings. Until a complete valid option set exists, the entry remains loaded
+and publishes explicit degraded recommendations so the user can configure it
+through the UI.
+
+Config-entry version 2 renamed stored geometry keys to include units
+(`*_deg`, `*_m`). Version 3 separates required physical `has_blind` capability
+from the optional automated `cover_entity_id`. Migration preserves config-entry
+ID, subentry IDs, and entity identity; for v1/v2 data, an existing cover is the
+only safe evidence from which to infer a blind. Runtime state remains the
+independently versioned application schema and fails explicitly when
+structurally invalid.
+
+Version 4 gives slow room-temperature observations their own maximum age while
+leaving the stricter safety/environmental boundary unchanged. The v3→v4
+migration copies the old shared source age into the new room key so deployment
+cannot silently weaken or strengthen an existing entry. Phase 01 explicitly
+sets the room key to a provisional 60 minutes after migration; this is one
+dwelling-wide option, not a per-entity exception system.
+
+## Entity and diagnostics surface
+
+The only enabled platforms are `sensor` and `binary_sensor`:
+
+- per opening: resolved recommendation enum with one bounded translated reason
+  attribute, and a safe-to-open binary sensor;
+- per opening with a physical blind: recommended blind position sensor;
+- per dwelling: active profile enum and last-evaluation timestamp sensor.
+
+Unique IDs follow ADR 0003 exactly. Opening entities share a device identified
+by config-entry/subentry ID and dwelling entities share a config-entry device.
+Recommendation always exposes the persisted stable physical target, independent
+of whether it differs from an observed contact. A new opening starts closed,
+and unchanged evaluations produce no grouped notification candidate. A
+configured but unreadable cover position degrades that opening. Without a
+cover, a physical blind uses its persisted stable recommendation and starts at
+100%. Only an opening explicitly configured without a physical blind is fixed
+at 100% and omits the blind-position entity.
+
+The recommendation sensor's low-cardinality `reason` attribute is stored with
+its state so Recorder can distinguish optimizer, weather-safety, input-quality,
+and recovery intervals even when the target is unchanged. Home Assistant
+diagnostics return configuration shape, source quality, reason codes,
+timestamps, and accepted engine results. Entity IDs and config
+names are redacted; tokens, raw entity states, household history, contacts, and
+coordinates are absent. No rapidly changing diagnostic attributes or enabled
+diagnostic sensors are added in this phase. Subentry IDs are replaced with
+stable report-local aliases such as `room_1` and `opening_1`.
+
+All configured `*_entity_id` values are one-to-one across a dwelling. The UI
+flows reject duplicates and setup repeats the check defensively for migrated or
+corrupted stored data. This prevents one physical observation from silently
+standing in for two inputs with different units or meanings.
+
+## Consequences
+
+- Setup, unload, reload, migration, persistence, and entity identity can be
+  tested locally without Home Assistant deployment credentials.
+- A missing optional forecast reduces confidence conservatively but does not
+  disguise missing safety or current thermal data.
+- P01-T10 remains a separate reversible deployment and shadow-observation task.
+- Additional entities, tuning defaults, notification delivery, and actuator
+  paths require a later traced decision rather than extension points here.

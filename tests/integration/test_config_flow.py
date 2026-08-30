@@ -1,5 +1,8 @@
 """Tests for the parent dwelling configuration flow."""
 
+import math
+from unittest.mock import AsyncMock, patch
+
 import pytest
 import voluptuous as vol
 from homeassistant.config_entries import (
@@ -10,33 +13,59 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from voluptuous_serialize import convert
 
 from custom_components.window_climate_advisor.config_flow import (
     CONFIG_SCHEMA,
+    OPTIONS_SCHEMA,
     ROOM_SCHEMA,
+    settings_from_options,
 )
 from custom_components.window_climate_advisor.const import (
+    CONF_BLIND_DEADBAND_PERCENT,
+    CONF_BLIND_FULL_TRAVEL_PENALTY_W,
+    CONF_BLIND_STEP_PERCENT,
     CONF_CO2_ENTITY_ID,
     CONF_CONTACT_ENTITY_ID,
     CONF_COVER_ENTITY_ID,
-    CONF_FACADE_AZIMUTH,
-    CONF_HEIGHT,
+    CONF_FACADE_AZIMUTH_DEG,
+    CONF_HAS_BLIND,
+    CONF_HEIGHT_M,
     CONF_HUMIDITY_ENTITY_ID,
+    CONF_MINIMUM_BENEFIT_W,
+    CONF_MISSING_FORECAST_CHANGE_PENALTY_W,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
-    CONF_OVERHANG_DEPTH,
-    CONF_OVERHANG_GAP,
+    CONF_OVERHANG_DEPTH_M,
+    CONF_OVERHANG_GAP_M,
     CONF_RAIN_ENTITY_ID,
     CONF_RAIN_PROTECTED,
     CONF_ROOM_SUBENTRY_ID,
+    CONF_ROOM_TEMPERATURE_STALE_MINUTES,
+    CONF_SELECTION_MODE,
+    CONF_SHOULDER_HYSTERESIS_C,
+    CONF_SHOULDER_LOWER_C,
+    CONF_SHOULDER_PRECONDITIONING_TARGET_C,
+    CONF_SHOULDER_UPPER_C,
     CONF_SOLAR_RADIATION_ENTITY_ID,
+    CONF_SOURCE_STALE_MINUTES,
+    CONF_SUMMER_HYSTERESIS_C,
+    CONF_SUMMER_LOWER_C,
+    CONF_SUMMER_PRECONDITIONING_TARGET_C,
+    CONF_SUMMER_UPPER_C,
     CONF_SUPPORTS_TILT,
     CONF_TEMPERATURE_ENTITY_ID,
     CONF_WEATHER_ENTITY_ID,
-    CONF_WIDTH,
+    CONF_WIDTH_M,
     CONF_WIND_DIRECTION_ENTITY_ID,
     CONF_WIND_GUST_ENTITY_ID,
     CONF_WIND_SPEED_ENTITY_ID,
+    CONF_WINDOW_MOVEMENT_PENALTY_W,
+    CONF_WINTER_HYSTERESIS_C,
+    CONF_WINTER_LOWER_C,
+    CONF_WINTER_PRECONDITIONING_TARGET_C,
+    CONF_WINTER_UPPER_C,
     DOMAIN,
     SUBENTRY_TYPE_OPENING,
     SUBENTRY_TYPE_ROOM,
@@ -58,6 +87,35 @@ ROOM_INPUT = {
     CONF_HUMIDITY_ENTITY_ID: "sensor.living_room_humidity",
     CONF_CO2_ENTITY_ID: "sensor.living_room_co2",
 }
+VALID_OPTIONS = {
+    CONF_SELECTION_MODE: "auto",
+    CONF_SUMMER_LOWER_C: 22,
+    CONF_SUMMER_UPPER_C: 25,
+    CONF_SUMMER_PRECONDITIONING_TARGET_C: 23,
+    CONF_SUMMER_HYSTERESIS_C: 0.5,
+    CONF_SHOULDER_LOWER_C: 20,
+    CONF_SHOULDER_UPPER_C: 24,
+    CONF_SHOULDER_PRECONDITIONING_TARGET_C: 22,
+    CONF_SHOULDER_HYSTERESIS_C: 0.5,
+    CONF_WINTER_LOWER_C: 19,
+    CONF_WINTER_UPPER_C: 23,
+    CONF_WINTER_PRECONDITIONING_TARGET_C: 21,
+    CONF_WINTER_HYSTERESIS_C: 0.5,
+    CONF_BLIND_STEP_PERCENT: 10,
+    CONF_WINDOW_MOVEMENT_PENALTY_W: 20,
+    CONF_BLIND_FULL_TRAVEL_PENALTY_W: 10,
+    CONF_MISSING_FORECAST_CHANGE_PENALTY_W: 30,
+    CONF_MINIMUM_BENEFIT_W: 50,
+    CONF_BLIND_DEADBAND_PERCENT: 10,
+    CONF_SOURCE_STALE_MINUTES: 15,
+    CONF_ROOM_TEMPERATURE_STALE_MINUTES: 60,
+}
+
+
+@pytest.fixture
+def expected_lingering_timers() -> bool:
+    """Allow the built-in sun dependency's interval timer in flow-only tests."""
+    return True
 
 
 async def _create_room(hass: HomeAssistant, entry: ConfigEntry) -> ConfigSubentry:
@@ -103,6 +161,80 @@ async def test_user_flow_shows_typed_form_and_creates_entry(
     assert result["data"] == VALID_INPUT
 
 
+async def test_flows_reject_duplicate_entity_links(hass: HomeAssistant) -> None:
+    """Prevent one physical entity from filling multiple semantic inputs."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            **VALID_INPUT,
+            CONF_SOLAR_RADIATION_ENTITY_ID: VALID_INPUT[
+                CONF_OUTDOOR_TEMPERATURE_ENTITY_ID
+            ],
+        },
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "duplicate_entity_link"}
+
+    entry = MockConfigEntry(domain=DOMAIN, data=VALID_INPUT, title="Casa")
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_ROOM), context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={
+            **ROOM_INPUT,
+            CONF_TEMPERATURE_ENTITY_ID: VALID_INPUT[CONF_OUTDOOR_TEMPERATURE_ENTITY_ID],
+        },
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "duplicate_entity_link"}
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], user_input=ROOM_INPUT
+    )
+    assert result["type"] == "create_entry"
+    room = next(iter(entry.subentries.values()))
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": SOURCE_RECONFIGURE, "entry_id": entry.entry_id},
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            **VALID_INPUT,
+            CONF_OUTDOOR_TEMPERATURE_ENTITY_ID: ROOM_INPUT[CONF_TEMPERATURE_ENTITY_ID],
+        },
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "duplicate_entity_link"}
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_OPENING), context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_NAME: "Ventana sur",
+            CONF_ROOM_SUBENTRY_ID: room.subentry_id,
+            CONF_FACADE_AZIMUTH_DEG: 180,
+            CONF_WIDTH_M: 1.6,
+            CONF_HEIGHT_M: 1.2,
+            CONF_OVERHANG_DEPTH_M: 0.5,
+            CONF_OVERHANG_GAP_M: 0.2,
+            CONF_SUPPORTS_TILT: True,
+            CONF_RAIN_PROTECTED: False,
+            CONF_HAS_BLIND: False,
+            CONF_CONTACT_ENTITY_ID: VALID_INPUT[CONF_RAIN_ENTITY_ID],
+        },
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "duplicate_entity_link"}
+
+
 async def test_reconfigure_flow_updates_existing_entry(hass: HomeAssistant) -> None:
     """Reconfigure a dwelling without replacing its config-entry identity."""
     entry = MockConfigEntry(domain=DOMAIN, data=VALID_INPUT, title="Casa")
@@ -126,6 +258,7 @@ async def test_reconfigure_flow_updates_existing_entry(hass: HomeAssistant) -> N
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input=updated_input
     )
+    await hass.async_block_till_done()
 
     assert result["type"] == "abort"
     assert result["reason"] == "reconfigure_successful"
@@ -143,6 +276,13 @@ def test_invalid_entity_domain_is_rejected() -> None:
     with pytest.raises(vol.Invalid):
         CONFIG_SCHEMA(invalid_input)
 
+    assert (
+        CONFIG_SCHEMA({**VALID_INPUT, CONF_RAIN_ENTITY_ID: "sensor.rain_rate"})[
+            CONF_RAIN_ENTITY_ID
+        ]
+        == "sensor.rain_rate"
+    )
+
 
 def test_blank_dwelling_name_is_rejected() -> None:
     """Reject a dwelling name containing no visible text."""
@@ -150,10 +290,85 @@ def test_blank_dwelling_name_is_rejected() -> None:
         CONFIG_SCHEMA({**VALID_INPUT, CONF_NAME: "   "})
 
 
+def test_root_schemas_serialize_for_home_assistant_frontend() -> None:
+    """Keep config forms convertible by Home Assistant's HTTP flow API."""
+    for schema in (CONFIG_SCHEMA, ROOM_SCHEMA, OPTIONS_SCHEMA):
+        assert convert(schema, custom_serializer=cv.custom_serializer)
+
+
 def test_room_schema_rejects_wrong_sensor_domain() -> None:
     """Reject non-sensor room sources through native selectors."""
     with pytest.raises(vol.Invalid):
         ROOM_SCHEMA({**ROOM_INPUT, CONF_TEMPERATURE_ENTITY_ID: "weather.living_room"})
+
+
+def test_options_schema_rejects_invalid_mode_and_numeric_bounds() -> None:
+    """Use native selectors for enum and individual numeric bounds."""
+    with pytest.raises(vol.Invalid):
+        OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_SELECTION_MODE: "legacy"})
+    with pytest.raises(vol.Invalid):
+        OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_SUMMER_LOWER_C: 4.9})
+    with pytest.raises(vol.Invalid):
+        OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_SOURCE_STALE_MINUTES: 0})
+    with pytest.raises(vol.Invalid):
+        OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_ROOM_TEMPERATURE_STALE_MINUTES: 0})
+
+    for blind_step in (True, "10", 10.5):
+        with pytest.raises(ValueError):
+            settings_from_options(
+                {**VALID_OPTIONS, CONF_BLIND_STEP_PERCENT: blind_step}
+            )
+    for age_key in (
+        CONF_SOURCE_STALE_MINUTES,
+        CONF_ROOM_TEMPERATURE_STALE_MINUTES,
+    ):
+        for source_age in (0, math.nan):
+            with pytest.raises(ValueError):
+                settings_from_options({**VALID_OPTIONS, age_key: source_age})
+
+
+async def test_options_flow_validates_and_stores_complete_profiles(
+    hass: HomeAssistant,
+) -> None:
+    """Reject cross-field errors and reload after storing valid options."""
+    entry = MockConfigEntry(domain=DOMAIN, data=VALID_INPUT, title="Casa")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+    assert result["step_id"] == "init"
+    assert set(result["data_schema"].schema) == set(VALID_OPTIONS)
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            **VALID_OPTIONS,
+            CONF_SUMMER_LOWER_C: 26,
+            CONF_SUMMER_UPPER_C: 25,
+        },
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "invalid_options"}
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={**VALID_OPTIONS, CONF_BLIND_STEP_PERCENT: 30},
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "invalid_options"}
+
+    with patch.object(
+        hass.config_entries, "async_reload", new_callable=AsyncMock
+    ) as async_reload:
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], user_input=VALID_OPTIONS
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == "create_entry"
+    assert entry.options == VALID_OPTIONS
+    async_reload.assert_awaited_once_with(entry.entry_id)
 
 
 async def test_room_subentry_create_and_reconfigure(hass: HomeAssistant) -> None:
@@ -207,13 +422,14 @@ async def test_opening_subentry_create_validate_and_reconfigure(
     opening_input = {
         CONF_NAME: "Ventana sur",
         CONF_ROOM_SUBENTRY_ID: room.subentry_id,
-        CONF_FACADE_AZIMUTH: 180,
-        CONF_WIDTH: 1.6,
-        CONF_HEIGHT: 1.2,
-        CONF_OVERHANG_DEPTH: 0.5,
-        CONF_OVERHANG_GAP: 0.2,
+        CONF_FACADE_AZIMUTH_DEG: 180,
+        CONF_WIDTH_M: 1.6,
+        CONF_HEIGHT_M: 1.2,
+        CONF_OVERHANG_DEPTH_M: 0.5,
+        CONF_OVERHANG_GAP_M: 0.2,
         CONF_SUPPORTS_TILT: True,
         CONF_RAIN_PROTECTED: False,
+        CONF_HAS_BLIND: True,
         CONF_CONTACT_ENTITY_ID: "binary_sensor.south_window",
         CONF_COVER_ENTITY_ID: "cover.south_blind",
     }
@@ -222,11 +438,19 @@ async def test_opening_subentry_create_validate_and_reconfigure(
         (entry.entry_id, SUBENTRY_TYPE_OPENING), context={"source": SOURCE_USER}
     )
     assert result["type"] == "form"
+    assert convert(result["data_schema"], custom_serializer=cv.custom_serializer)
     schema = result["data_schema"]
     with pytest.raises(vol.Invalid):
         schema({**opening_input, CONF_ROOM_SUBENTRY_ID: "missing"})
     with pytest.raises(vol.Invalid):
-        schema({**opening_input, CONF_WIDTH: 0})
+        schema({**opening_input, CONF_WIDTH_M: 0})
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={**opening_input, CONF_HAS_BLIND: False},
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "cover_without_blind"}
 
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], user_input=opening_input
@@ -245,6 +469,13 @@ async def test_opening_subentry_create_validate_and_reconfigure(
     )
     assert result["type"] == "form"
     updated = {**opening_input, CONF_NAME: "Ventana sur principal"}
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={**updated, CONF_HAS_BLIND: False},
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "cover_without_blind"}
+
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], user_input=updated
     )

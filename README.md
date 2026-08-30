@@ -1,33 +1,76 @@
 # Window Climate Advisor
 
-Custom integration for Home Assistant that will recommend how to use windows,
+Custom integration for Home Assistant that recommends how to use windows,
 tilt positions, blinds, shutters, and solar protection from room conditions,
 outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
-The project starts in **bootstrap and shadow-only mode**. It does not control
-physical actuators. The deployed automation `v4.17_pre` remains the operational
-baseline and rollback while the Python engine is characterized and compared.
+The project is in the **post-shadow Phase 01 correction wave**. The completed
+four-day observation identified explicit forecast, seasonal-policy, public
+state, and blind-airflow follow-ups. Installed candidate `v0.1.0b5` contains
+the accepted corrections and has passed its live technical gates; `v0.1.0b4`
+remains the previous live-verified fallback. Neither build controls physical
+actuators. The deployed automation `v4.17_pre` remains the operational baseline
+and rollback.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
-tracked in [`docs/phases/00-bootstrap/PLAN.md`](docs/phases/00-bootstrap/PLAN.md),
+tracked in
+[`docs/phases/01-domain-optimizer/PLAN.md`](docs/phases/01-domain-optimizer/PLAN.md),
 and repository-wide rules are in [`AGENTS.md`](AGENTS.md).
 
 ## Intended architecture
 
-The distributable code will live under
-`custom_components/window_climate_advisor`. Home Assistant entrypoints will be
-thin adapters around a typed, I/O-free domain engine. Configuration will use a
-UI config flow plus room and opening subentries; no user-authored YAML will be
+The distributable code lives under
+`custom_components/window_climate_advisor`. Home Assistant entrypoints are
+thin adapters around a typed, I/O-free domain engine. Configuration uses a UI
+config flow plus room and opening subentries; no user-authored YAML is
 required.
 
-The initial entity surface will be informational:
+Current solar load is projected per opening from global radiation,
+`sun.sun`, façade orientation, and overhang geometry. Missing source or sun
+position data degrades the recommendation instead of inventing a favourable
+value.
 
-- recommendation per opening;
-- recommended blind position;
-- safety and availability status;
-- thermal balance, airflow, solar load, and confidence diagnostics;
-- global strategy and reason codes.
+Daily weather maxima select the automatic comfort profile. The live adapter
+does not claim a thermal forecast horizon: Home Assistant's standard weather
+forecast has no future irradiance field, and no configured source provides one.
+The optimizer therefore applies its explicit missing-horizon penalty instead
+of inventing future solar load or indoor temperature.
+
+Seasonal intent is explicit at the optimizer boundary. Summer may cool but is
+neutral when heating would otherwise be requested; Winter may heat but is
+neutral when cooling would otherwise be requested. Shoulder season retains the
+symmetric heat/cool/neutral objective. Weather safety remains absolute.
+
+The initial entity surface is informational:
+
+- resolved `open`/`tilt`/`close` recommendation per opening, or explicit
+  degradation, with one bounded Recorder-visible reason attribute;
+- recommended blind position for each physical blind, including manual ones;
+- safety-to-open status;
+- active comfort profile and last-evaluation timestamp;
+- redacted downloadable diagnostics with reason codes and source quality.
+
+There are no services, notifications, helpers, YAML automations, or actuator
+platforms in the integration.
+
+## Install the shadow candidate with HACS
+
+Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
+
+1. In HACS, open the menu and select **Custom repositories**.
+2. Add `https://github.com/aalvarezg-axpe/window-climate-advisor` as type
+   **Integration**.
+3. Download the explicit prerelease `v0.1.0b5`; enable prerelease tracking for
+   this repository if HACS does not initially show it.
+4. Restart Home Assistant.
+5. Go to **Settings → Devices & services → Add integration**, search for
+   **Window Climate Advisor**, and complete its UI flows.
+
+This installs an informational shadow advisor beside `v4.17_pre`; it does not
+replace that automation or create notifications or physical actions. Follow
+the backup, verification, and rollback procedure in
+[`docs/operations/deployment.md`](docs/operations/deployment.md).
 
 ## Local development
 
@@ -42,7 +85,7 @@ Luna/max executor, and the three Ponytail skills. Repository-local
 agent-profile folders are not used. See
 [`docs/operations/development.md`](docs/operations/development.md).
 
-## Bootstrap checks
+## Local checks
 
 ```powershell
 uv sync --frozen --group dev
@@ -58,12 +101,12 @@ requires POSIX modules such as `fcntl`.
 ## Environment
 
 Copy `.env.example` to the ignored `.env`. Live Home Assistant API checks need
-`HOME_ASSISTANT_URL` and `HOME_ASSISTANT_ACCESS_TOKEN`. A separate safe route
-for installing files into Home Assistant's `config/custom_components` directory
-must be selected before deployed integration testing.
+`HOME_ASSISTANT_URL` and `HOME_ASSISTANT_ACCESS_TOKEN`. HACS is the selected
+file-installation route and needs no additional `.env` variables.
 
 ## Safety and publication
 
-No license or public distribution channel has been selected. Do not publish the
-repository or enable physical actions until the corresponding decisions and
-safety gates are explicitly approved.
+The owner approved this public GitHub repository only as a custom HACS
+installation channel. No public license or default HACS catalog submission has
+been selected. Do not enable physical actions until the separate safety gate is
+explicitly approved.
