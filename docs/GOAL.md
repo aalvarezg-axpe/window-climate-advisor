@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.20
+> Document version: 0.21
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-30
 > Current state: **active / Phase 02**
@@ -365,7 +365,10 @@ room with one opening is identified only by its room title; a room with several
 openings appends the shortest configured opening suffix needed to distinguish
 them without repeating the room title. Weather-forced rows include a concise
 reason propagated from the evaluated policy result rather than inferred during
-delivery. Ordering is deterministic and degraded rows remain non-actionable.
+delivery. When the optimizer itself selects `tilt` or `closed`, the window row
+states that this is the better thermal balance; the note is omitted for full
+opening and blind-only rows. Ordering is deterministic and degraded rows remain
+non-actionable.
 
 ## 7. Safety and privacy gates
 

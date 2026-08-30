@@ -5,6 +5,20 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0b5 - 2026-08-30
+
+### Changed
+
+- Optimizer-selected `Oscilobatiente` and `Cerrada` window rows now explain
+  that they provide the better thermal balance. The note appears in ordinary
+  and arrival notifications, while full-open and blind-only rows stay compact.
+
+### Safety and privacy
+
+- Existing wind/rain explanations retain priority. No optimizer, safety,
+  source, recipient, entity, queue, dependency, notification action, or
+  physical-action behaviour changed.
+
 ## 0.2.0b4 - 2026-08-30
 
 ### Changed

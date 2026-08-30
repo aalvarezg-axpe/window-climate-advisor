@@ -1,6 +1,6 @@
 # Phase 02 notification validation
 
-- Candidate: `v0.2.0b4`
+- Candidate: `v0.2.0b5`
 - Route: public GitHub prerelease through the existing custom HACS repository
 - Integration/operational rollback: live-verified `v0.1.0b5`
 - Behavioural baseline only: immutable `v4.17_pre` fixture; no longer deployed
@@ -9,8 +9,9 @@
 
 ## Local acceptance
 
-The P02-T07 focused gate passes 28 tests. The complete candidate gate passes
-167 tests at 95.75% coverage with Ruff, formatting, strict mypy,
+The P02-T11 focused gate passes 12 tests; adding the manifest gate passes 15.
+The complete candidate gate passes 179 tests at 95.77% coverage with Ruff,
+formatting, strict mypy,
 artifact/secret checks, integration lifecycle, replay, and safety checks.
 
 | Boundary | Redacted evidence |
@@ -274,3 +275,21 @@ has no stale references. One final reload retained 6 rooms, 7 openings,
 Repairs, integration errors/services, owned persistent notifications and
 invalid targets remain zero. No entity-registry rename, dashboard write,
 synthetic message or physical action occurred.
+
+## Local b5 thermal explanation
+
+The owner observed a natural Salón notification rendered as
+`Oscilobatiente` without a parenthetical explanation. A read-only check found
+the bounded reason was `optimizer`; the formatter already covered every
+wind/rain restriction. P02-T11 therefore adds only one presentation rule:
+optimizer-selected `tilt` and `closed` window rows say `Mejor equilibrio
+térmico` (or `Better thermal balance`). Full-open rows, blind-only changes,
+weather reasons, routing, policy and action boundaries remain unchanged.
+
+The focused ordinary/arrival formatter gate passes 12 tests; adding the
+manifest gate passes 15. The canonical gate passes 179 tests at 95.77% with
+Ruff, formatting, strict mypy, replay, privacy, artifact/secret and
+zero-actuator checks green. Consolidated Ponytail review found no further
+layer to remove. Publication, installation and natural-device rendering remain
+in progress; no synthetic message or Home Assistant mutation was used for the
+local correction.

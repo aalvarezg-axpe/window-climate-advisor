@@ -6,7 +6,7 @@ outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
 The project is in **Phase 02 contextual-notification validation**. Candidate
-`v0.2.0b4` stores only recipient persons, discovers their associated Home
+`v0.2.0b5` stores only recipient persons, discovers their associated Home
 Assistant Mobile App devices through native registries, sends stable-change
 summaries only to those devices currently home, and gives fresh advice when a
 configured occupant arrives. Live-verified `v0.1.0b5` remains the integration
@@ -17,7 +17,9 @@ fixture.
 Notification summaries use separate window and blind bullet sections. Rooms
 with one opening appear once by room name; rooms with several openings retain
 only the configured suffix needed to distinguish them. Weather-forced changes
-include their evaluated safety reason.
+include their evaluated safety reason. A thermally optimized window target
+that stops short of full opening explains that it offers the better thermal
+balance; full-open and blind-only rows remain compact.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
 tracked in
@@ -82,7 +84,7 @@ Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
 1. In HACS, open the menu and select **Custom repositories**.
 2. Add `https://github.com/aalvarezg-axpe/window-climate-advisor` as type
    **Integration**.
-3. Download the explicit prerelease `v0.2.0b4`; enable prerelease tracking for
+3. Download the explicit prerelease `v0.2.0b5`; enable prerelease tracking for
    this repository if HACS does not initially show it.
 4. Restart Home Assistant.
 5. Go to **Settings → Devices & services → Add integration**, search for

@@ -32,6 +32,7 @@ from ..const import (
     SUBENTRY_TYPE_RECIPIENT,
     SUBENTRY_TYPE_ROOM,
 )
+from ..domain.models import WindowState
 from ..domain.policy import ReasonCode
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ _NOTIFICATION_TEXT = {
         "closed": "Closed",
         "tilt": "Tilt",
         "open": "Open",
+        "thermal_balance": "Better thermal balance",
         "manual": "manual position not observable",
         ReasonCode.WIND_CLOSE.value: "Wind",
         ReasonCode.WIND_TILT_ONLY.value: "Wind",
@@ -54,6 +56,7 @@ _NOTIFICATION_TEXT = {
         "closed": "Cerrada",
         "tilt": "Oscilobatiente",
         "open": "Abierta",
+        "thermal_balance": "Mejor equilibrio térmico",
         "manual": "posición manual no observable",
         ReasonCode.WIND_CLOSE.value: "Viento",
         ReasonCode.WIND_TILT_ONLY.value: "Viento",
@@ -116,6 +119,13 @@ def _note(reason: ReasonCode, text: dict[str, str], *, manual: bool = False) -> 
     return f" ({'; '.join(notes)})" if notes else ""
 
 
+def _window_note(state: WindowState, reason: ReasonCode, text: dict[str, str]) -> str:
+    """Explain why an optimizer target stops short of full opening."""
+    if reason is ReasonCode.OPTIMIZER and state is not WindowState.OPEN:
+        return f" ({text['thermal_balance']})"
+    return _note(reason, text)
+
+
 def _format_message(
     windows: tuple[str, ...], blinds: tuple[str, ...], language: str
 ) -> str:
@@ -142,13 +152,22 @@ def _message_rows(
         if labelled is None or change.reason in _UNACTIONABLE_REASONS:
             continue
         sort_key, label, has_blind = labelled
-        note = _note(change.reason, text)
         if change.window_changed:
             windows.append(
-                (sort_key, f"{label}: {text[change.state.window.value]}{note}")
+                (
+                    sort_key,
+                    f"{label}: {text[change.state.window.value]}"
+                    f"{_window_note(change.state.window, change.reason, text)}",
+                )
             )
         if change.blind_changed and has_blind:
-            blinds.append((sort_key, f"{label}: {change.state.blind.percent:g}%{note}"))
+            blinds.append(
+                (
+                    sort_key,
+                    f"{label}: {change.state.blind.percent:g}%"
+                    f"{_note(change.reason, text)}",
+                )
+            )
     windows.sort(key=lambda item: item[0])
     blinds.sort(key=lambda item: item[0])
     return (
@@ -175,7 +194,8 @@ def _arrival_message_rows(
             windows.append(
                 (
                     sort_key,
-                    f"{label}: {text[advice.window.value]}{_note(advice.reason, text)}",
+                    f"{label}: {text[advice.window.value]}"
+                    f"{_window_note(advice.window, advice.reason, text)}",
                 )
             )
         if advice.blind is not None:

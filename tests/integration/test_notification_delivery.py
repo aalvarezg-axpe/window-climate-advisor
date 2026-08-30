@@ -175,7 +175,7 @@ def _change(
 def _candidate(entry: MockConfigEntry) -> NotificationCandidate:
     return NotificationCandidate(
         (
-            _change(entry, "Salón · SE", WindowState.OPEN, 70),
+            _change(entry, "Salón · SE", WindowState.TILT, 70),
             _change(entry, "Norte", WindowState.OPEN, 100),
             _change(
                 entry,
@@ -307,7 +307,7 @@ async def test_delivery_filters_presence_and_consolidates_in_stable_order(
             "- Cocina NO: Cerrada (Lluvia y viento)\n"
             "- Cocina SO: Cerrada (Lluvia y viento)\n"
             "- Dormitorio: Abierta\n"
-            "- Salón: Abierta\n\n"
+            "- Salón: Oscilobatiente (Mejor equilibrio térmico)\n\n"
             "Persianas:\n"
             "- Cocina NO: 0% (Lluvia y viento)\n"
             "- Cocina SO: 0% (Lluvia y viento)\n"
@@ -348,6 +348,13 @@ async def test_delivery_lists_only_changed_components_and_skips_degraded_rows(
             ),
             _change(
                 entry,
+                "Norte",
+                WindowState.CLOSED,
+                100,
+                blind_changed=False,
+            ),
+            _change(
+                entry,
                 "Cocina · SO",
                 WindowState.CLOSED,
                 0,
@@ -359,7 +366,12 @@ async def test_delivery_lists_only_changed_components_and_skips_degraded_rows(
     assert await async_deliver_notification_candidate(hass, entry, candidate) == 1
     assert calls[0].data == {
         ATTR_ENTITY_ID: targets["first"],
-        ATTR_MESSAGE: ("Windows:\n- Cocina NO: Closed (Wind)\n\nBlinds:\n- Salón: 70%"),
+        ATTR_MESSAGE: (
+            "Windows:\n"
+            "- Cocina NO: Closed (Wind)\n"
+            "- Dormitorio: Closed (Better thermal balance)\n\n"
+            "Blinds:\n- Salón: 70%"
+        ),
         ATTR_TITLE: "Casa",
     }
 
@@ -475,7 +487,7 @@ async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_bl
         (
             ArrivalOpeningAdvice(
                 opening_id,
-                WindowState.OPEN,
+                WindowState.TILT,
                 BlindOpening(70),
                 manual_blind_unobserved=True,
                 reason=ReasonCode.OPTIMIZER,
@@ -490,7 +502,7 @@ async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_bl
     assert len(calls) == 2
     expected = {
         ATTR_MESSAGE: (
-            "Windows:\n- Salón: Open\n\n"
+            "Windows:\n- Salón: Tilt (Better thermal balance)\n\n"
             "Blinds:\n- Salón: 70% (manual position not observable)"
         ),
         ATTR_TITLE: "Casa",

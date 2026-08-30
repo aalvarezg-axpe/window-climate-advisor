@@ -38,8 +38,10 @@ content.
 - Ordinary and arrival bodies use the same deterministic two-section format:
   window rows, then blind rows. Single-opening rooms use the room title alone;
   multi-opening rooms add a non-duplicated opening suffix. Only changed or
-  still-actionable components appear, and weather-forced rows show a concise
-  reason.
+  still-actionable components appear, weather-forced rows show a concise
+  reason, and an optimizer-selected `tilt` or `closed` window row identifies
+  the better thermal balance without adding noise to full-open or blind-only
+  rows.
 - Away-time changes are discarded rather than queued.
 - A later arrival uses the native non-home to `home` person-state edge and a
   fresh evaluation sent only to that person's associated devices then home;
