@@ -7,6 +7,7 @@ VERSION: Final = 4
 
 SUBENTRY_TYPE_ROOM: Final = "room"
 SUBENTRY_TYPE_OPENING: Final = "opening"
+SUBENTRY_TYPE_RECIPIENT: Final = "recipient"
 
 CONF_NAME: Final = "name"
 CONF_OUTDOOR_TEMPERATURE_ENTITY_ID: Final = "outdoor_temperature_entity_id"
@@ -16,6 +17,8 @@ CONF_WIND_SPEED_ENTITY_ID: Final = "wind_speed_entity_id"
 CONF_WIND_DIRECTION_ENTITY_ID: Final = "wind_direction_entity_id"
 CONF_WIND_GUST_ENTITY_ID: Final = "wind_gust_entity_id"
 CONF_RAIN_ENTITY_ID: Final = "rain_entity_id"
+CONF_PERSON_ENTITY_ID: Final = "person_entity_id"
+CONF_NOTIFY_ENTITY_ID: Final = "notify_entity_id"
 
 CONF_TEMPERATURE_ENTITY_ID: Final = "temperature_entity_id"
 CONF_HUMIDITY_ENTITY_ID: Final = "humidity_entity_id"

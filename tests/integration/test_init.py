@@ -13,13 +13,16 @@ from custom_components.window_climate_advisor.const import (
     CONF_HAS_BLIND,
     CONF_HEIGHT_M,
     CONF_NAME,
+    CONF_NOTIFY_ENTITY_ID,
     CONF_OVERHANG_DEPTH_M,
     CONF_OVERHANG_GAP_M,
+    CONF_PERSON_ENTITY_ID,
     CONF_ROOM_TEMPERATURE_STALE_MINUTES,
     CONF_SOURCE_STALE_MINUTES,
     CONF_WIDTH_M,
     DOMAIN,
     SUBENTRY_TYPE_OPENING,
+    SUBENTRY_TYPE_RECIPIENT,
     SUBENTRY_TYPE_ROOM,
     VERSION,
 )
@@ -31,7 +34,7 @@ async def test_entry_setup_unload_and_update_listener_reload(
     hass: HomeAssistant,
 ) -> None:
     """Set up, update, reload, and unload the advisor platforms."""
-    entry = advisor_entry()
+    entry = advisor_entry(recipient=True)
     entry.add_to_hass(hass)
     set_ready_states(hass)
 
@@ -167,3 +170,31 @@ async def test_v3_migration_preserves_shared_source_age_semantics(
         CONF_SOURCE_STALE_MINUTES: 15,
         CONF_ROOM_TEMPERATURE_STALE_MINUTES: 15,
     }
+
+
+async def test_current_schema_preserves_optional_recipient_subentry(
+    hass: HomeAssistant,
+) -> None:
+    """Keep schema-v4 entries valid with or without notification recipients."""
+    data = {
+        CONF_PERSON_ENTITY_ID: "person.resident",
+        CONF_NOTIFY_ENTITY_ID: "notify.phone",
+    }
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=VERSION,
+        subentries_data=[
+            {
+                "subentry_type": SUBENTRY_TYPE_RECIPIENT,
+                "title": "person.resident",
+                "data": data,
+                "unique_id": None,
+            }
+        ],
+    )
+    entry.add_to_hass(hass)
+    recipient_id = next(iter(entry.subentries))
+
+    assert await async_migrate_entry(hass, entry)
+    assert entry.version == VERSION
+    assert entry.subentries[recipient_id].data == data

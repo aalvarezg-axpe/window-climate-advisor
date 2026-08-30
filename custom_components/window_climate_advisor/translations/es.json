@@ -202,6 +202,29 @@
         "cover_without_blind": "Una entidad de persiana automatizada requiere que el hueco tenga persiana o contraventana.",
         "duplicate_entity_link": "Esta entidad ya está asignada a otra entrada de la vivienda."
       }
+    },
+    "recipient": {
+      "title": "Destinatario de notificaciones",
+      "step": {
+        "user": {
+          "title": "Añadir destinatario de notificaciones",
+          "data": {
+            "person_entity_id": "Persona",
+            "notify_entity_id": "Destino de notificación"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigurar destinatario de notificaciones",
+          "data": {
+            "person_entity_id": "Persona",
+            "notify_entity_id": "Destino de notificación"
+          }
+        }
+      },
+      "error": {
+        "duplicate_entity_link": "Esta persona o destino de notificación ya está asignado.",
+        "notification_target_unavailable": "Selecciona entidades de persona y notificación existentes mientras la acción notify.send_message esté disponible."
+      }
     }
   }
 }

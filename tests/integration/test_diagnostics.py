@@ -15,7 +15,7 @@ async def test_diagnostics_redact_household_identifiers_and_raw_state(
     hass: HomeAssistant,
 ) -> None:
     """Expose source quality and engine evidence without private identifiers."""
-    config_entry = entry()
+    config_entry = entry(recipient=True)
     object.__setattr__(
         config_entry,
         "options",
@@ -42,6 +42,7 @@ async def test_diagnostics_redact_household_identifiers_and_raw_state(
     }
     assert all(str(value) not in serialized for value in private_values)
     assert report["config"]["opening_count"] == 1
+    assert report["config"]["recipient_count"] == 1
     assert report["evaluation"]["openings"][0]["alias"] == "opening_1"
     assert report["evaluation"]["openings"][0]["has_blind"] is True
     assert report["evaluation"]["openings"][0]["evaluated_candidates"] == 31

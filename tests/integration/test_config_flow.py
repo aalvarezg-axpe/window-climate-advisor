@@ -5,6 +5,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 import voluptuous as vol
+from homeassistant.components.notify.const import (
+    DOMAIN as NOTIFY_DOMAIN,
+)
+from homeassistant.components.notify.const import (
+    SERVICE_SEND_MESSAGE,
+)
 from homeassistant.config_entries import (
     SOURCE_RECONFIGURE,
     SOURCE_USER,
@@ -20,6 +26,7 @@ from voluptuous_serialize import convert
 from custom_components.window_climate_advisor.config_flow import (
     CONFIG_SCHEMA,
     OPTIONS_SCHEMA,
+    RECIPIENT_SCHEMA,
     ROOM_SCHEMA,
     settings_from_options,
 )
@@ -36,9 +43,11 @@ from custom_components.window_climate_advisor.const import (
     CONF_HUMIDITY_ENTITY_ID,
     CONF_MINIMUM_BENEFIT_W,
     CONF_MISSING_FORECAST_CHANGE_PENALTY_W,
+    CONF_NOTIFY_ENTITY_ID,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
     CONF_OVERHANG_DEPTH_M,
     CONF_OVERHANG_GAP_M,
+    CONF_PERSON_ENTITY_ID,
     CONF_RAIN_ENTITY_ID,
     CONF_RAIN_PROTECTED,
     CONF_ROOM_SUBENTRY_ID,
@@ -68,6 +77,7 @@ from custom_components.window_climate_advisor.const import (
     CONF_WINTER_UPPER_C,
     DOMAIN,
     SUBENTRY_TYPE_OPENING,
+    SUBENTRY_TYPE_RECIPIENT,
     SUBENTRY_TYPE_ROOM,
 )
 
@@ -86,6 +96,10 @@ ROOM_INPUT = {
     CONF_TEMPERATURE_ENTITY_ID: "sensor.living_room_temperature",
     CONF_HUMIDITY_ENTITY_ID: "sensor.living_room_humidity",
     CONF_CO2_ENTITY_ID: "sensor.living_room_co2",
+}
+RECIPIENT_INPUT = {
+    CONF_PERSON_ENTITY_ID: "person.resident",
+    CONF_NOTIFY_ENTITY_ID: "notify.phone",
 }
 VALID_OPTIONS = {
     CONF_SELECTION_MODE: "auto",
@@ -292,8 +306,18 @@ def test_blank_dwelling_name_is_rejected() -> None:
 
 def test_root_schemas_serialize_for_home_assistant_frontend() -> None:
     """Keep config forms convertible by Home Assistant's HTTP flow API."""
-    for schema in (CONFIG_SCHEMA, ROOM_SCHEMA, OPTIONS_SCHEMA):
+    for schema in (CONFIG_SCHEMA, ROOM_SCHEMA, RECIPIENT_SCHEMA, OPTIONS_SCHEMA):
         assert convert(schema, custom_serializer=cv.custom_serializer)
+
+
+def test_recipient_schema_rejects_wrong_entity_domains() -> None:
+    """Constrain both sides of the recipient mapping through native selectors."""
+    with pytest.raises(vol.Invalid):
+        RECIPIENT_SCHEMA(
+            {**RECIPIENT_INPUT, CONF_PERSON_ENTITY_ID: "device_tracker.resident"}
+        )
+    with pytest.raises(vol.Invalid):
+        RECIPIENT_SCHEMA({**RECIPIENT_INPUT, CONF_NOTIFY_ENTITY_ID: "sensor.phone"})
 
 
 def test_room_schema_rejects_wrong_sensor_domain() -> None:
@@ -394,6 +418,73 @@ async def test_room_subentry_create_and_reconfigure(hass: HomeAssistant) -> None
     assert result["reason"] == "reconfigure_successful"
     assert entry.subentries[room_id].title == "Salón principal"
     assert entry.subentries[room_id].data == updated
+
+
+async def test_recipient_subentry_validates_native_action_and_reconfigures(
+    hass: HomeAssistant,
+) -> None:
+    """Require real entities plus notify.send_message and preserve identity."""
+    entry = MockConfigEntry(domain=DOMAIN, data=VALID_INPUT, title="Casa")
+    entry.add_to_hass(hass)
+    hass.states.async_set(RECIPIENT_INPUT[CONF_PERSON_ENTITY_ID], "home")
+    hass.states.async_set(RECIPIENT_INPUT[CONF_NOTIFY_ENTITY_ID], "unknown")
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_RECIPIENT), context={"source": SOURCE_USER}
+    )
+    assert result["type"] == "form"
+    assert set(result["data_schema"].schema) == set(RECIPIENT_INPUT)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], user_input=RECIPIENT_INPUT
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "notification_target_unavailable"}
+
+    async def send_message(_: object) -> None:
+        pass
+
+    hass.services.async_register(NOTIFY_DOMAIN, SERVICE_SEND_MESSAGE, send_message)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], user_input=RECIPIENT_INPUT
+    )
+    assert result["type"] == "create_entry"
+    recipient = next(
+        subentry
+        for subentry in entry.subentries.values()
+        if subentry.subentry_type == SUBENTRY_TYPE_RECIPIENT
+    )
+    recipient_id = recipient.subentry_id
+    assert recipient.data == RECIPIENT_INPUT
+
+    hass.states.async_set("notify.tablet", "unavailable")
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_RECIPIENT), context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={**RECIPIENT_INPUT, CONF_NOTIFY_ENTITY_ID: "notify.tablet"},
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "duplicate_entity_link"}
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_RECIPIENT),
+        context={"source": SOURCE_RECONFIGURE, "subentry_id": recipient_id},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={**RECIPIENT_INPUT, CONF_NOTIFY_ENTITY_ID: "notify.missing"},
+    )
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "notification_target_unavailable"}
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={**RECIPIENT_INPUT, CONF_NOTIFY_ENTITY_ID: "notify.tablet"},
+    )
+    assert result["type"] == "abort"
+    assert result["reason"] == "reconfigure_successful"
+    assert recipient_id in entry.subentries
+    assert entry.subentries[recipient_id].data[CONF_NOTIFY_ENTITY_ID] == "notify.tablet"
 
 
 async def test_opening_subentry_requires_an_existing_room(

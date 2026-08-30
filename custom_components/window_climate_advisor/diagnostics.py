@@ -10,6 +10,7 @@ from .const import (
     CONF_COVER_ENTITY_ID,
     CONF_HAS_BLIND,
     SUBENTRY_TYPE_OPENING,
+    SUBENTRY_TYPE_RECIPIENT,
     SUBENTRY_TYPE_ROOM,
 )
 from .coordinator import WindowClimateAdvisorConfigEntry
@@ -48,6 +49,10 @@ async def async_get_config_entry_diagnostics(
         subentry_id
         for subentry_id, subentry in entry.subentries.items()
         if subentry.subentry_type == SUBENTRY_TYPE_OPENING
+    )
+    recipient_count = sum(
+        subentry.subentry_type == SUBENTRY_TYPE_RECIPIENT
+        for subentry in entry.subentries.values()
     )
     room_aliases = {
         subentry_id: f"room_{index}"
@@ -100,6 +105,7 @@ async def async_get_config_entry_diagnostics(
             "configured_option_keys": sorted(entry.options),
             "room_count": len(room_ids),
             "opening_count": len(opening_ids),
+            "recipient_count": recipient_count,
         },
         "evaluation": {
             "evaluated_at": data.evaluation.evaluated_at.isoformat(),

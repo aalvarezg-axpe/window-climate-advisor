@@ -5,6 +5,12 @@ from math import isfinite
 from typing import Any, override
 
 import voluptuous as vol
+from homeassistant.components.notify.const import (
+    DOMAIN as NOTIFY_DOMAIN,
+)
+from homeassistant.components.notify.const import (
+    SERVICE_SEND_MESSAGE,
+)
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -13,9 +19,11 @@ from homeassistant.config_entries import (
     OptionsFlow,
     SubentryFlowResult,
 )
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
 
+from .application.notifications import notification_recipient_from_mapping
 from .const import (
     CONF_BLIND_DEADBAND_PERCENT,
     CONF_BLIND_FULL_TRAVEL_PENALTY_W,
@@ -30,9 +38,11 @@ from .const import (
     CONF_MINIMUM_BENEFIT_W,
     CONF_MISSING_FORECAST_CHANGE_PENALTY_W,
     CONF_NAME,
+    CONF_NOTIFY_ENTITY_ID,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
     CONF_OVERHANG_DEPTH_M,
     CONF_OVERHANG_GAP_M,
+    CONF_PERSON_ENTITY_ID,
     CONF_RAIN_ENTITY_ID,
     CONF_RAIN_PROTECTED,
     CONF_ROOM_SUBENTRY_ID,
@@ -62,6 +72,7 @@ from .const import (
     CONF_WINTER_UPPER_C,
     DOMAIN,
     SUBENTRY_TYPE_OPENING,
+    SUBENTRY_TYPE_RECIPIENT,
     SUBENTRY_TYPE_ROOM,
 )
 from .const import (
@@ -136,6 +147,33 @@ ROOM_SCHEMA = vol.Schema(
         vol.Optional(CONF_CO2_ENTITY_ID): _entity_selector("sensor"),
     }
 )
+
+RECIPIENT_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_PERSON_ENTITY_ID): _entity_selector("person"),
+        vol.Required(CONF_NOTIFY_ENTITY_ID): _entity_selector(NOTIFY_DOMAIN),
+    }
+)
+
+
+def _entity_exists(hass: HomeAssistant, entity_id: str) -> bool:
+    """Accept a current or registered entity, including unavailable targets."""
+    return (
+        hass.states.get(entity_id) is not None
+        or er.async_get(hass).async_get(entity_id) is not None
+    )
+
+
+def _recipient_target_available(
+    hass: HomeAssistant, user_input: Mapping[str, object]
+) -> bool:
+    """Validate the selected entities and fixed native notification action."""
+    recipient = notification_recipient_from_mapping(user_input)
+    return (
+        _entity_exists(hass, recipient.person_entity_id)
+        and _entity_exists(hass, recipient.notify_entity_id)
+        and hass.services.has_service(NOTIFY_DOMAIN, SERVICE_SEND_MESSAGE)
+    )
 
 
 def _number_selector(
@@ -316,6 +354,7 @@ class WindowClimateAdvisorConfigFlow(ConfigFlow, domain=DOMAIN):
         return {
             SUBENTRY_TYPE_ROOM: RoomSubentryFlow,
             SUBENTRY_TYPE_OPENING: OpeningSubentryFlow,
+            SUBENTRY_TYPE_RECIPIENT: RecipientSubentryFlow,
         }
 
     @override
@@ -440,6 +479,65 @@ class RoomSubentryFlow(ConfigSubentryFlow):
             step_id="reconfigure",
             data_schema=self.add_suggested_values_to_schema(
                 ROOM_SCHEMA, user_input or dict(subentry.data)
+            ),
+            errors=errors,
+        )
+
+
+class RecipientSubentryFlow(ConfigSubentryFlow):
+    """Create and reconfigure one explicit notification recipient."""
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Create a recipient after validating the native notification surface."""
+        entry = self._get_entry()
+        if user_input is not None:
+            if not _recipient_target_available(self.hass, user_input):
+                errors = {"base": "notification_target_unavailable"}
+            elif has_duplicate_entity_links(*_entry_mappings(entry), user_input):
+                errors = {"base": "duplicate_entity_link"}
+            else:
+                return self.async_create_entry(
+                    title=user_input[CONF_PERSON_ENTITY_ID], data=user_input
+                )
+        else:
+            errors = None
+        return self.async_show_form(
+            step_id="user",
+            data_schema=self.add_suggested_values_to_schema(
+                RECIPIENT_SCHEMA, user_input
+            ),
+            errors=errors,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Reconfigure a recipient without changing its subentry identity."""
+        subentry = self._get_reconfigure_subentry()
+        entry = self._get_entry()
+        if user_input is not None:
+            if not _recipient_target_available(self.hass, user_input):
+                errors = {"base": "notification_target_unavailable"}
+            elif has_duplicate_entity_links(
+                *_entry_mappings(entry, exclude_subentry_id=subentry.subentry_id),
+                user_input,
+            ):
+                errors = {"base": "duplicate_entity_link"}
+            else:
+                return self.async_update_and_abort(
+                    entry,
+                    subentry,
+                    title=user_input[CONF_PERSON_ENTITY_ID],
+                    data=user_input,
+                )
+        else:
+            errors = None
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(
+                RECIPIENT_SCHEMA, user_input or dict(subentry.data)
             ),
             errors=errors,
         )

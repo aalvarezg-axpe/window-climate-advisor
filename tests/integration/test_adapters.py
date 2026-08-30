@@ -36,9 +36,11 @@ from custom_components.window_climate_advisor.const import (
     CONF_HAS_BLIND,
     CONF_HEIGHT_M,
     CONF_NAME,
+    CONF_NOTIFY_ENTITY_ID,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
     CONF_OVERHANG_DEPTH_M,
     CONF_OVERHANG_GAP_M,
+    CONF_PERSON_ENTITY_ID,
     CONF_RAIN_ENTITY_ID,
     CONF_RAIN_PROTECTED,
     CONF_ROOM_SUBENTRY_ID,
@@ -52,6 +54,7 @@ from custom_components.window_climate_advisor.const import (
     CONF_WIND_SPEED_ENTITY_ID,
     DOMAIN,
     SUBENTRY_TYPE_OPENING,
+    SUBENTRY_TYPE_RECIPIENT,
     SUBENTRY_TYPE_ROOM,
     VERSION,
 )
@@ -73,6 +76,7 @@ def entry(
     cover: bool = True,
     contact: bool = True,
     has_blind: bool = True,
+    recipient: bool = False,
 ) -> MockConfigEntry:
     """Create a current-version dwelling with one room and opening."""
     data = {
@@ -102,27 +106,40 @@ def entry(
         opening_data[CONF_CONTACT_ENTITY_ID] = "binary_sensor.window"
     if cover:
         opening_data[CONF_COVER_ENTITY_ID] = "cover.blind"
+    subentries_data = [
+        {
+            "subentry_type": SUBENTRY_TYPE_ROOM,
+            "title": "Salón",
+            "data": {
+                CONF_NAME: "Salón",
+                CONF_TEMPERATURE_ENTITY_ID: "sensor.indoor",
+            },
+            "unique_id": "ROOM_ID",
+        },
+        {
+            "subentry_type": SUBENTRY_TYPE_OPENING,
+            "title": "Ventana",
+            "data": opening_data,
+            "unique_id": None,
+        },
+    ]
+    if recipient:
+        subentries_data.append(
+            {
+                "subentry_type": SUBENTRY_TYPE_RECIPIENT,
+                "title": "person.resident",
+                "data": {
+                    CONF_PERSON_ENTITY_ID: "person.resident",
+                    CONF_NOTIFY_ENTITY_ID: "notify.phone",
+                },
+                "unique_id": None,
+            },
+        )
     result = MockConfigEntry(
         domain=DOMAIN,
         data=data,
         version=VERSION,
-        subentries_data=[
-            {
-                "subentry_type": SUBENTRY_TYPE_ROOM,
-                "title": "Salón",
-                "data": {
-                    CONF_NAME: "Salón",
-                    CONF_TEMPERATURE_ENTITY_ID: "sensor.indoor",
-                },
-                "unique_id": "ROOM_ID",
-            },
-            {
-                "subentry_type": SUBENTRY_TYPE_OPENING,
-                "title": "Ventana",
-                "data": opening_data,
-                "unique_id": None,
-            },
-        ],
+        subentries_data=subentries_data,
     )
     room_id = next(
         subentry_id

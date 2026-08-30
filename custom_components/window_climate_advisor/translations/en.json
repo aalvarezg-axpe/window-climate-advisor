@@ -202,6 +202,29 @@
         "cover_without_blind": "An automated blind entity requires the opening to have a blind or shutter.",
         "duplicate_entity_link": "This entity is already assigned to another dwelling input."
       }
+    },
+    "recipient": {
+      "title": "Notification recipient",
+      "step": {
+        "user": {
+          "title": "Add notification recipient",
+          "data": {
+            "person_entity_id": "Person",
+            "notify_entity_id": "Notification target"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigure notification recipient",
+          "data": {
+            "person_entity_id": "Person",
+            "notify_entity_id": "Notification target"
+          }
+        }
+      },
+      "error": {
+        "duplicate_entity_link": "This person or notification target is already assigned.",
+        "notification_target_unavailable": "Select existing person and notification entities while the notify.send_message action is available."
+      }
     }
   }
 }
