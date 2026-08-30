@@ -105,6 +105,27 @@ recipient, room/opening name, or raw household state is retained here.
 The focused formatter/state/delivery gate passes 28 tests; adding the manifest
 gate passes 31. The complete b3 candidate gate passes 167 tests at 95.75%
 coverage with lint, formatting, strict typing, replay, privacy, artifact/secret,
-and zero-actuator checks green. Publication, HACS installation, restart, and
-natural-message observation remain; b2 stays installed until that reversible
-deployment completes.
+and zero-actuator checks green.
+
+## Live b3 installation
+
+Commit `f42817d`, the beta release branch, annotated tag and public prerelease
+identify the same `v0.2.0b3` candidate. HACS found that exact prerelease after a
+repository-scoped refresh. A recent supported backup was complete before the
+native update entity installed it, and the one required restart recovered on
+Home Assistant 2026.8.3.
+
+The post-restart gate reports installed b3/schema v4, one loaded entry, 4
+rooms, 5 openings, 6 devices, 17 enabled unique entities and the unchanged 3
+recipient subentries. The fixed native notification action is available, with
+zero integration Repairs, system-log records, registered services or owned
+persistent notifications. No synthetic message, configuration change or
+physical action was used.
+
+Current availability is explicitly degraded by two missing room-temperature
+inputs, not by a weather-safety input or the b3 formatter: 10/12 source classes,
+2/5 recommendations and 11/17 entities are ready. Three openings fail closed
+with `missing_input`; all emitted blind targets remain bounded and every
+non-closed target remains positive. P02-T07 is complete. The next natural
+stable change must still confirm the real-device multiline rendering, and the
+remaining presence/arrival matrix stays open under P02-T04.
