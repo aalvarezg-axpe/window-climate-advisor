@@ -200,14 +200,25 @@ one enabled native humidity sensor, so sensor identity is no longer ambiguous.
 The live integration nevertheless contains four room subentries—Salón,
 Despacho, Cocina and one generic Dormitorio—and five openings, only one of
 which belongs to that generic bedroom. Historical live gates show the same
-four-room topology from the component's first deployment. The immutable v4.17
-automation also actively models those four rooms; Baño appears only in a
-commented block explicitly pending a temperature entity. It was therefore not
-deleted during this task or after component deployment.
+four-room topology from the component's first deployment. This describes what
+was executable after migration, not the complete physical inventory.
 
-Anto and Eli are distinct bedrooms and the owner confirms that their façades
-share orientation. Orientation alone does not establish which bedroom owns the
-existing generic opening or the other opening's width, height, overhang,
-rain protection, tilt and blind geometry. P02-T10 therefore remains blocked
-before any partial source assignment. No room flow was submitted, no entry was
-reloaded, and no notification or physical action was called.
+The owner's correction prompted inspection of the full predecessor source and
+handoff. They preserve seven intended openings: the five executable v4.17
+blocks plus Dormitorio 2 NE and Baño SO, both fully parameterized and commented
+only while their real temperature entities were pending. The two bedroom
+blocks have the same north-east orientation, 0.50 m overhang, 0.50 m gap and
+1.20 m height. Baño retains its south-west orientation, 1.00 m overhang,
+0.50 m gap, 1.20 m height and rain protection. All windows were documented
+with manual blinds.
+
+The predecessor deliberately ignored window width. The five live migrated
+openings consistently use the same 1.60 m width estimate, 1.20 m height, tilt
+support and manual-blind capability, so the missing openings can use that
+already accepted migration boundary without inventing a new estimate. The
+generic bedroom identity/opening will be reused deterministically for Anto and
+an identical Eli opening will be created; swapping those labels has no thermal
+or safety effect because their frozen geometries are identical. P02-T10 now
+targets six rooms and seven openings transactionally. No room/opening flow had
+been submitted, no entry reloaded, and no notification or physical action
+called at this checkpoint.

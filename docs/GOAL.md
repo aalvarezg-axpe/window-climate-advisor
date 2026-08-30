@@ -66,6 +66,15 @@ The behavioural baseline was the deployed automation
 thermal-balance, blind-percentage, wind-exposure, notification, and simulation
 tests in the predecessor repository.
 
+The executable v4.17 list contained five openings because the second bedroom
+and bathroom temperature entities were still unavailable. This is a runtime
+baseline boundary, not an inventory boundary: the versioned source and its
+handoff preserve complete accepted geometry for both dormant openings. The two
+bedrooms share the same north-east orientation and overhang geometry; the
+bathroom has its own south-west overhang and rain protection. Migration work
+must retain that provenance rather than infer that those rooms or openings
+never existed merely because their blocks were commented pending real sensors.
+
 The predecessor remained immutable and operational during migration. Its
 automation was the rollback until the new integration had:
 
