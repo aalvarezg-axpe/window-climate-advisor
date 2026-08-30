@@ -151,7 +151,7 @@ After cutover, b3 remains one loaded schema-v4 entry with 4 rooms, 5 openings,
 off and its retained trace count did not change. No synthetic notification,
 recipient/config-entry/dashboard change, restart or physical action occurred.
 
-## Local b4 wind-driven rain correction
+## Live b4 wind-driven rain correction
 
 The owner rejected dwelling-wide closure for rain alone. The b4 policy keeps
 the absolute 45 km/h all-façade close but applies rain restrictions only when
@@ -167,4 +167,25 @@ configuration change. Unit coverage includes cardinal/intercardinal façades,
 zero and near-zero gust, leeward rain up to the absolute limit, protected tilt,
 missing/stale data and the production adapter's gust/direction delivery. The
 focused policy/application/adapter/notification/replay gate passes 75 tests;
-publication, HACS installation and live verification remain.
+the canonical gate passes 179 tests at 95.75% with lint, formatting, strict
+typing, replay, privacy, artifact/secret and zero-actuator checks green.
+
+Commit `ee69f38`, the beta release branch, annotated tag and public prerelease
+identify the same `v0.2.0b4` candidate. The automatic-backup action did not
+produce a verifiable artifact and was rejected; a supported full Supervisor
+backup including the database completed before HACS downloaded exactly b4.
+Configuration validation passed, and one observed down/up restart recovered on
+Home Assistant 2026.8.3.
+
+The post-restart gate confirms b4/schema v4, one loaded entry, 4 rooms, 5
+openings, 3 recipients, 6 devices and 17 enabled unique entities. The legacy
+automation remains present and off, leaving the component as the sole active
+advice route. The native notification action is available, with zero duplicate
+identities, integration Repairs, system-log records, services or owned
+persistent notifications. No synthetic message, configuration/recipient
+change or physical action occurred.
+
+Two missing external inputs currently leave 10/12 source classes, 2/5
+recommendations and 11/17 entities ready. All reported blind targets remain
+bounded and every non-closed target is positive. This does not block P02-T09;
+P02-T04 retains the natural-device multiline and presence/arrival matrix.
