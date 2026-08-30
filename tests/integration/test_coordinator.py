@@ -10,8 +10,10 @@ from homeassistant.exceptions import ConfigEntryNotReady
 
 from custom_components.window_climate_advisor.application.evaluator import InputIssue
 from custom_components.window_climate_advisor.const import (
+    CONF_PERSON_ENTITY_ID,
     CONF_WIND_GUST_ENTITY_ID,
     CONF_WIND_SPEED_ENTITY_ID,
+    SUBENTRY_TYPE_RECIPIENT,
 )
 from custom_components.window_climate_advisor.coordinator import (
     WindowClimateAdvisorCoordinator,
@@ -65,15 +67,27 @@ async def test_configured_coordinator_uses_forecast_persists_and_refreshes(
     )
     coordinator = WindowClimateAdvisorCoordinator(hass, config_entry)
 
-    with patch(
-        "custom_components.window_climate_advisor.application.evaluator.optimize_opening",
-        wraps=optimize_opening,
-    ) as optimizer:
+    with (
+        patch(
+            "custom_components.window_climate_advisor.application.evaluator.optimize_opening",
+            wraps=optimize_opening,
+        ) as optimizer,
+        patch(
+            "custom_components.window_climate_advisor.coordinator.async_deliver_notification_candidate",
+            new_callable=AsyncMock,
+            return_value=0,
+        ) as deliver,
+    ):
         await coordinator.async_config_entry_first_refresh()
 
     assert coordinator.data.evaluation.season is Season.SUMMER
     assert coordinator.data.profile_forecast_available
     optimizer.assert_called_once()
+    deliver.assert_awaited_once_with(
+        hass,
+        config_entry,
+        coordinator.data.evaluation.notification_candidate,
+    )
     assert optimizer.call_args.args[0].forecast_conditions is None
     assert coordinator.data.source_quality["options"] == "ready"
     with patch.object(
@@ -123,3 +137,42 @@ async def test_duplicate_stored_links_fail_setup_explicitly(
 
     with pytest.raises(ConfigEntryNotReady):
         await coordinator.async_config_entry_first_refresh()
+
+
+async def test_invalid_recipient_link_does_not_degrade_advisor(
+    hass: HomeAssistant,
+) -> None:
+    """Keep notification configuration failures outside climate evaluation."""
+    config_entry = entry(recipient=True)
+    object.__setattr__(
+        config_entry,
+        "options",
+        type(config_entry.options)(VALID_OPTIONS),
+    )
+    recipient = next(
+        subentry
+        for subentry in config_entry.subentries.values()
+        if subentry.subentry_type == SUBENTRY_TYPE_RECIPIENT
+    )
+    object.__setattr__(
+        recipient,
+        "data",
+        type(recipient.data)(
+            {
+                **recipient.data,
+                CONF_PERSON_ENTITY_ID: config_entry.data[CONF_WIND_SPEED_ENTITY_ID],
+            }
+        ),
+    )
+    config_entry.add_to_hass(hass)
+    config_entry.mock_state(hass, ConfigEntryState.SETUP_IN_PROGRESS)
+    set_ready_states(hass)
+    coordinator = WindowClimateAdvisorCoordinator(hass, config_entry)
+
+    await coordinator.async_config_entry_first_refresh()
+
+    assert coordinator.data.source_quality["options"] == "ready"
+    assert all(
+        opening.recommendation is not Recommendation.DEGRADED
+        for opening in coordinator.data.evaluation.openings.values()
+    )

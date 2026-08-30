@@ -16,6 +16,7 @@ from homeassistant.util import dt as dt_util
 
 from .adapters.forecast import async_daily_forecast
 from .adapters.home_assistant import build_snapshot, configured_entity_ids
+from .adapters.notifications import async_deliver_notification_candidate
 from .application.evaluator import (
     AdvisorEvaluation,
     EvaluationSettings,
@@ -28,7 +29,12 @@ from .config_flow import (
     profiles_from_options,
     settings_from_options,
 )
-from .const import CONF_SELECTION_MODE, CONF_WEATHER_ENTITY_ID, DOMAIN
+from .const import (
+    CONF_SELECTION_MODE,
+    CONF_WEATHER_ENTITY_ID,
+    DOMAIN,
+    SUBENTRY_TYPE_RECIPIENT,
+)
 from .domain.profiles import SelectionMode, select_season
 
 _LOGGER = logging.getLogger(__name__)
@@ -95,7 +101,11 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
         now = dt_util.utcnow()
         if has_duplicate_entity_links(
             self.config_entry.data,
-            *(subentry.data for subentry in self.config_entry.subentries.values()),
+            *(
+                subentry.data
+                for subentry in self.config_entry.subentries.values()
+                if subentry.subentry_type != SUBENTRY_TYPE_RECIPIENT
+            ),
         ):
             raise UpdateFailed("Duplicate entity links in advisor configuration")
         settings: EvaluationSettings | None = None
@@ -158,6 +168,11 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self._state = evaluation.state
         if state_changed:
             await self._store.async_save(state_to_dict(self._state))
+        await async_deliver_notification_candidate(
+            self.hass,
+            self.config_entry,
+            evaluation.notification_candidate,
+        )
         quality = dict(built.source_quality)
         quality["options"] = (
             "ready" if settings is not None else "configuration_required"
