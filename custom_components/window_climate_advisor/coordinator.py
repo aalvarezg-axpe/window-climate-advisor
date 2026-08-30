@@ -8,6 +8,7 @@ from datetime import timedelta
 from typing import Any, override
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import STATE_HOME, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.storage import Store
@@ -16,13 +17,17 @@ from homeassistant.util import dt as dt_util
 
 from .adapters.forecast import async_daily_forecast
 from .adapters.home_assistant import build_snapshot, configured_entity_ids
-from .adapters.notifications import async_deliver_notification_candidate
+from .adapters.notifications import (
+    async_deliver_arrival_candidate,
+    async_deliver_notification_candidate,
+)
 from .application.evaluator import (
     AdvisorEvaluation,
     EvaluationSettings,
     EvaluationSnapshot,
     evaluate_snapshot,
 )
+from .application.notifications import OpeningFeedback, arrival_notification_candidate
 from .application.state import AdvisorState, state_from_dict, state_to_dict
 from .config_flow import (
     has_duplicate_entity_links,
@@ -30,9 +35,13 @@ from .config_flow import (
     settings_from_options,
 )
 from .const import (
+    CONF_CONTACT_ENTITY_ID,
+    CONF_COVER_ENTITY_ID,
+    CONF_PERSON_ENTITY_ID,
     CONF_SELECTION_MODE,
     CONF_WEATHER_ENTITY_ID,
     DOMAIN,
+    SUBENTRY_TYPE_OPENING,
     SUBENTRY_TYPE_RECIPIENT,
 )
 from .domain.profiles import SelectionMode, select_season
@@ -40,6 +49,26 @@ from .domain.profiles import SelectionMode, select_season
 _LOGGER = logging.getLogger(__name__)
 _UPDATE_INTERVAL = timedelta(minutes=5)
 _STORE_VERSION = 1
+
+
+def _arrival_person_entity_id(entry: ConfigEntry, event: Event[Any]) -> str | None:
+    """Return a configured person only for a real non-home to home edge."""
+    old_state = event.data.get("old_state")
+    new_state = event.data.get("new_state")
+    if old_state is None or new_state is None or new_state.state != STATE_HOME:
+        return None
+    if old_state.state in {STATE_HOME, STATE_UNAVAILABLE, STATE_UNKNOWN}:
+        return None
+    entity_id = new_state.entity_id
+    if not isinstance(entity_id, str):
+        return None
+    if any(
+        subentry.subentry_type == SUBENTRY_TYPE_RECIPIENT
+        and subentry.data.get(CONF_PERSON_ENTITY_ID) == entity_id
+        for subentry in entry.subentries.values()
+    ):
+        return entity_id
+    return None
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,9 +105,12 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
             _STORE_VERSION,
             f"{DOMAIN}.{entry.entry_id}",
         )
+        self._pending_arrivals: set[str] = set()
 
         @callback
-        def request_refresh(_: Event[Any]) -> None:
+        def request_refresh(event: Event[Any]) -> None:
+            if person_entity_id := _arrival_person_entity_id(entry, event):
+                self._pending_arrivals.add(person_entity_id)
             hass.async_create_task(self.async_request_refresh())
 
         entry.async_on_unload(
@@ -98,6 +130,8 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
     @override
     async def _async_update_data(self) -> CoordinatorData:
         """Assemble, evaluate, persist, and publish one coherent snapshot."""
+        arriving_person_ids = tuple(sorted(self._pending_arrivals))
+        self._pending_arrivals.difference_update(arriving_person_ids)
         now = dt_util.utcnow()
         if has_duplicate_entity_links(
             self.config_entry.data,
@@ -172,7 +206,33 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
             self.hass,
             self.config_entry,
             evaluation.notification_candidate,
+            arriving_person_ids,
         )
+        if arriving_person_ids:
+            feedback_by_opening: dict[str, OpeningFeedback] = {}
+            for opening in built.openings:
+                subentry = self.config_entry.subentries.get(opening.opening_id)
+                data = (
+                    subentry.data
+                    if subentry is not None
+                    and subentry.subentry_type == SUBENTRY_TYPE_OPENING
+                    else {}
+                )
+                feedback_by_opening[opening.opening_id] = OpeningFeedback(
+                    opening.current_action,
+                    isinstance(data.get(CONF_CONTACT_ENTITY_ID), str),
+                    isinstance(data.get(CONF_COVER_ENTITY_ID), str),
+                )
+            arrival_candidate = arrival_notification_candidate(
+                evaluation, feedback_by_opening
+            )
+            for person_entity_id in arriving_person_ids:
+                await async_deliver_arrival_candidate(
+                    self.hass,
+                    self.config_entry,
+                    person_entity_id,
+                    arrival_candidate,
+                )
         quality = dict(built.source_quality)
         quality["options"] = (
             "ready" if settings is not None else "configuration_required"

@@ -30,5 +30,9 @@ content.
 - Away-time changes are discarded rather than queued.
 - A later arrival uses the native non-home to `home` state edge and a fresh
   evaluation; startup restoration is ignored, so no presence ledger is needed.
+- The arriving person is excluded from ordinary change delivery in that same
+  evaluation. Contact and cover feedback remove targets already satisfied;
+  absent feedback never claims success, and manual blind advice says that its
+  applied position is not observable.
 - No helper, service-name parser, new entity, dependency, notification queue,
   or physical-action path is introduced.

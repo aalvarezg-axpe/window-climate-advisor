@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.components.weather import SERVICE_GET_FORECASTS
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import STATE_HOME, STATE_NOT_HOME, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady
 
@@ -87,6 +88,7 @@ async def test_configured_coordinator_uses_forecast_persists_and_refreshes(
         hass,
         config_entry,
         coordinator.data.evaluation.notification_candidate,
+        (),
     )
     assert optimizer.call_args.args[0].forecast_conditions is None
     assert coordinator.data.source_quality["options"] == "ready"
@@ -176,3 +178,75 @@ async def test_invalid_recipient_link_does_not_degrade_advisor(
         opening.recommendation is not Recommendation.DEGRADED
         for opening in coordinator.data.evaluation.openings.values()
     )
+
+
+async def test_only_real_arrival_runs_fresh_targeted_delivery(
+    hass: HomeAssistant,
+) -> None:
+    """Ignore startup/recovery and send once for a real away-to-home edge."""
+    config_entry = entry(recipient=True)
+    object.__setattr__(
+        config_entry,
+        "options",
+        type(config_entry.options)(VALID_OPTIONS),
+    )
+    config_entry.add_to_hass(hass)
+    config_entry.mock_state(hass, ConfigEntryState.SETUP_IN_PROGRESS)
+    set_ready_states(hass)
+    hass.states.async_set("person.resident", STATE_HOME)
+    hass.states.async_set("notify.phone", "unknown")
+    coordinator = WindowClimateAdvisorCoordinator(hass, config_entry)
+
+    with (
+        patch(
+            "custom_components.window_climate_advisor.coordinator.async_deliver_notification_candidate",
+            new_callable=AsyncMock,
+            return_value=0,
+        ) as ordinary,
+        patch(
+            "custom_components.window_climate_advisor.coordinator.async_deliver_arrival_candidate",
+            new_callable=AsyncMock,
+            return_value=0,
+        ) as arrival,
+    ):
+        await coordinator.async_config_entry_first_refresh()
+        arrival.assert_not_awaited()
+
+        with patch.object(
+            coordinator, "async_request_refresh", new_callable=AsyncMock
+        ) as refresh:
+            ordinary.reset_mock()
+            hass.states.async_set("person.resident", STATE_NOT_HOME)
+            await hass.async_block_till_done()
+            refresh.assert_awaited_once()
+            arrival.assert_not_awaited()
+
+            refresh.reset_mock()
+            ordinary.reset_mock()
+            hass.states.async_set("person.resident", STATE_HOME)
+            await hass.async_block_till_done()
+            refresh.assert_awaited_once()
+            await coordinator.async_refresh()
+
+            arrival.assert_awaited_once()
+            assert arrival.await_args.args[0:3] == (
+                hass,
+                config_entry,
+                "person.resident",
+            )
+            assert ordinary.await_args.args[3] == ("person.resident",)
+
+            arrival.reset_mock()
+            hass.states.async_set("person.resident", STATE_HOME, {"source": "update"})
+            await hass.async_block_till_done()
+            await coordinator.async_refresh()
+            arrival.assert_not_awaited()
+
+            hass.states.async_set("person.resident", STATE_UNAVAILABLE)
+            await hass.async_block_till_done()
+            await coordinator.async_refresh()
+            arrival.reset_mock()
+            hass.states.async_set("person.resident", STATE_HOME)
+            await hass.async_block_till_done()
+            await coordinator.async_refresh()
+            arrival.assert_not_awaited()

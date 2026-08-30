@@ -4,6 +4,10 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from ..const import CONF_NOTIFY_ENTITY_ID, CONF_PERSON_ENTITY_ID
+from ..domain.models import BlindOpening, WindowState
+from ..domain.optimizer import CandidateAction
+from ..domain.policy import Recommendation
+from .evaluator import AdvisorEvaluation
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,6 +22,32 @@ class NotificationRecipient:
             raise ValueError("recipient person must be a person entity")
         if not self.notify_entity_id.startswith("notify."):
             raise ValueError("recipient target must be a notify entity")
+
+
+@dataclass(frozen=True, slots=True)
+class OpeningFeedback:
+    """Current physical feedback available for one opening."""
+
+    current_action: CandidateAction
+    window_observed: bool
+    blind_observed: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ArrivalOpeningAdvice:
+    """Still-actionable part of one opening recommendation on arrival."""
+
+    opening_id: str
+    window: WindowState | None
+    blind: BlindOpening | None
+    manual_blind_unobserved: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ArrivalNotificationCandidate:
+    """Fresh actionable summary for a recipient arriving home."""
+
+    openings: tuple[ArrivalOpeningAdvice, ...]
 
 
 def notification_recipient_from_mapping(
@@ -41,3 +71,41 @@ def notification_recipients_from_mappings(
     if len({recipient.notify_entity_id for recipient in recipients}) != len(recipients):
         raise ValueError("recipient notification targets must be unique")
     return recipients
+
+
+def arrival_notification_candidate(
+    evaluation: AdvisorEvaluation,
+    feedback_by_opening: Mapping[str, OpeningFeedback],
+) -> ArrivalNotificationCandidate | None:
+    """Build fresh advice, retaining only targets not proven already satisfied."""
+    openings: list[ArrivalOpeningAdvice] = []
+    for opening_id, result in sorted(evaluation.openings.items()):
+        if result.recommendation is Recommendation.DEGRADED:
+            continue
+        feedback = feedback_by_opening.get(opening_id)
+        window: WindowState | None = result.recommended_window_state
+        if (
+            feedback is not None
+            and feedback.window_observed
+            and feedback.current_action.window_state is window
+        ):
+            window = None
+        blind = result.recommended_blind
+        if (
+            blind is not None
+            and feedback is not None
+            and feedback.blind_observed
+            and feedback.current_action.blind == blind
+        ):
+            blind = None
+        if window is None and blind is None:
+            continue
+        openings.append(
+            ArrivalOpeningAdvice(
+                opening_id,
+                window,
+                blind,
+                blind is not None and (feedback is None or not feedback.blind_observed),
+            )
+        )
+    return ArrivalNotificationCandidate(tuple(openings)) if openings else None

@@ -306,6 +306,8 @@ person later enters `home`, the integration performs a fresh evaluation and
 sends only that arriving recipient any recommendation that is still current and
 actionable. It does not replay obsolete away-time transitions. Arrival delivery
 is deduplicated per real away-to-home transition and remains restart-safe.
+Contact and cover feedback suppress targets already satisfied; when a manual
+blind position cannot be observed, the arrival message states that explicitly.
 
 ## 7. Safety and privacy gates
 

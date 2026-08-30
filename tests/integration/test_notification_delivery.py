@@ -17,7 +17,12 @@ from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.window_climate_advisor.adapters.notifications import (
+    async_deliver_arrival_candidate,
     async_deliver_notification_candidate,
+)
+from custom_components.window_climate_advisor.application.notifications import (
+    ArrivalNotificationCandidate,
+    ArrivalOpeningAdvice,
 )
 from custom_components.window_climate_advisor.application.state import (
     NotificationCandidate,
@@ -242,3 +247,72 @@ async def test_delivery_failure_is_redacted_and_does_not_block_other_recipient(
     assert "Notification delivery failed for a configured recipient" in caplog.text
     assert all(private not in caplog.text for private in calls)
     assert "private failure" not in caplog.text
+
+
+async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_blind(
+    hass: HomeAssistant,
+) -> None:
+    """Send fresh advice to one person with explicit unobserved manual wording."""
+    entry = _entry()
+    _set_recipient_states(hass)
+    calls: list[ServiceCall] = []
+
+    async def send_message(call: ServiceCall) -> None:
+        calls.append(call)
+
+    hass.services.async_register(NOTIFY_DOMAIN, SERVICE_SEND_MESSAGE, send_message)
+    opening_id = next(
+        subentry_id
+        for subentry_id, subentry in entry.subentries.items()
+        if subentry.subentry_type == SUBENTRY_TYPE_OPENING and subentry.title == "Sur"
+    )
+    candidate = ArrivalNotificationCandidate(
+        (
+            ArrivalOpeningAdvice(
+                opening_id,
+                WindowState.OPEN,
+                BlindOpening(70),
+                manual_blind_unobserved=True,
+            ),
+        )
+    )
+
+    assert (
+        await async_deliver_arrival_candidate(hass, entry, "person.first", candidate)
+        == 1
+    )
+    assert len(calls) == 1
+    assert calls[0].data == {
+        ATTR_ENTITY_ID: "notify.first",
+        ATTR_MESSAGE: (
+            "Salón / Sur: Open · Recommended blind position: 70 % "
+            "(manual position not observable)"
+        ),
+        ATTR_TITLE: "Casa",
+    }
+
+
+async def test_ordinary_delivery_excludes_arriving_recipient(
+    hass: HomeAssistant,
+) -> None:
+    """Avoid duplicate ordinary and arrival messages in the same evaluation."""
+    entry = _entry()
+    _set_recipient_states(hass)
+    hass.states.async_set("notify.second", "unknown")
+    calls: list[ServiceCall] = []
+
+    async def send_message(call: ServiceCall) -> None:
+        calls.append(call)
+
+    hass.services.async_register(NOTIFY_DOMAIN, SERVICE_SEND_MESSAGE, send_message)
+
+    assert (
+        await async_deliver_notification_candidate(
+            hass,
+            entry,
+            _candidate(entry),
+            {"person.first"},
+        )
+        == 1
+    )
+    assert [call.data[ATTR_ENTITY_ID] for call in calls] == ["notify.second"]
