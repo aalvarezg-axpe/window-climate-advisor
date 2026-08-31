@@ -439,3 +439,28 @@ diagnostic coverage passes 118/118; publication and protected deployment remain.
 The canonical gate passes 187/187 at 95.75% branch coverage with Ruff,
 formatting, strict mypy, artifact/secret, replay, privacy and zero-actuator
 checks green. Consolidated Ponytail review reports `Lean already. Ship.`
+
+## Live b8 explanatory and coupled-target installation
+
+Commit `d5362ae`, remote `release/0.2.0`, annotated tag and public prerelease
+identify the same `v0.2.0b8` candidate. A repository-scoped HACS information
+refresh exposed exactly b8. A supported full backup then completed with Home
+Assistant and the database included and zero failed agents, folders or add-ons.
+The native update entity downloaded exactly b8, the supported configuration
+check passed, and one observed down/up restart recovered Home Assistant
+2026.8.3.
+
+The final redacted gate confirms installed b8/schema v4, one loaded entry,
+6 rooms, 7 openings, 3 recipients, 8 integration devices, 23/23 available
+unique entities, 14/14 ready source classes and seven valid recommendation,
+blind and safety triples. Salón, Despacho and Anto expose the bounded façade-
+radiation reason; Cocina exposes that outdoor air is no longer cooler. Eli's
+previously stale room source reported again after restart and recovered to a
+ready full-open result, proving degradation recovery without borrowing another
+room source.
+
+The legacy automation remains off. Duplicate identities, integration Repairs,
+log matches, services and owned persistent notifications are zero. No synthetic
+notification, configuration/source/recipient change or physical action was
+called. P02-T15 terminates; P02-T04 retains natural-device rendering and the
+present/away/mixed/arrival delivery matrix.
