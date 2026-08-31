@@ -503,3 +503,11 @@ replay coverage passes 71/71. The canonical WSL verifier passes 193/193 at
 95.74% branch coverage with Ruff, formatting, strict mypy, artifact/secret,
 replay, privacy and zero-actuator checks green. Protected publication and live
 verification remain.
+
+GitHub branch, annotated tag and prerelease published the verified b10 commit,
+but the live HACS comparator listed b10 while still ranking b9 as the available
+version. Installing that identifier would expose b9 as a false upgrade. The
+published b10 artifact remains immutable and uninstalled; rc1 reissues the
+same production correction with only manifest and release-document changes.
+A fresh full backup completed before any candidate installation with database
+and Home Assistant included and zero failed agents, add-ons or folders.

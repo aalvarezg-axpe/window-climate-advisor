@@ -5,6 +5,13 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0rc1 - 2026-08-31
+
+### Distribution
+
+- Reissues the verified `0.2.0b10` correction under a prerelease identifier
+  that HACS orders after `0.2.0b9`. No production logic changed.
+
 ## 0.2.0b10 - 2026-08-31
 
 ### Fixed
@@ -20,6 +27,10 @@ Semantic Versioning after the first distributable integration release.
   overrides, presence routing and the zero-actuator boundary remain. No
   selector, option, entity, schema, helper, dependency, queue or service was
   added.
+
+This immutable GitHub prerelease was not installed because the live HACS
+version comparator ranked `b9` above `b10`; `0.2.0rc1` carries the same verified
+production correction.
 
 ## 0.2.0b9 - 2026-08-31
 
