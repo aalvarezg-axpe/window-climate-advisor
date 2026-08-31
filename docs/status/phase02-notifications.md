@@ -417,3 +417,25 @@ Duplicate identities, integration Repairs, log matches, services and owned
 persistent notifications are zero. No synthetic notification or physical
 action was called. P02-T13 and P02-T14 terminate; P02-T04 remains open only for
 natural-device batching and present/away/mixed/arrival delivery evidence.
+
+## Local b8 explanatory and coupled-target correction
+
+The owner's natural-device report was reproduced without changing Home
+Assistant. Antonio and Despacho had converged to a closed window and 0% blind,
+but the 10-minute message batch could precede a new 15-minute blind-direction
+confirmation or omit a later percentage change in the already confirmed
+direction. Cocina's modest outdoor cooling was outweighed by estimated façade
+radiation, so tilt was thermally preferred to full opening. Eli alone was
+degraded because its room-temperature report exceeded the configured
+125-minute maximum; all shared environmental and safety sources were ready.
+
+B8 replaces the undifferentiated thermal reason with bounded Summer causes,
+keeps optimizer window/blind transitions coherent through the existing
+confirmation period, marks same-direction blind changes, and makes missing or
+stale room temperature explicit. The formatter only translates those evaluated
+codes. No entity, option, helper, queue, dependency, schema, service or actuator
+path was added. Focused domain/application/adapter/notification/entity and
+diagnostic coverage passes 118/118; publication and protected deployment remain.
+The canonical gate passes 187/187 at 95.75% branch coverage with Ruff,
+formatting, strict mypy, artifact/secret, replay, privacy and zero-actuator
+checks green. Consolidated Ponytail review reports `Lean already. Ship.`

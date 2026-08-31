@@ -39,6 +39,14 @@ room was still above its lower comfort edge. Summer therefore cools down to
 `lower + hysteresis`; the exact edge is neutral to avoid overcooling and churn.
 No Winter, Shoulder, physical-model, penalty, stability, or safety rule changes.
 
+P02-T15 exposes one bounded cause for a Summer optimum below full opening.
+The explanation follows the same selected profile and current thermal terms:
+lower comfort boundary, outdoor air not cooler, façade radiation outweighing
+ventilation cooling, or insufficient benefit after the existing stability
+costs. A retained non-open target waiting for its opening delay reports that
+confirmation explicitly. These codes explain the result; they do not add a
+new score, threshold, input, or control path.
+
 The total score in watt-equivalent comparison units is:
 
 ```text

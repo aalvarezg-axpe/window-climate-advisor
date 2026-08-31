@@ -2,7 +2,7 @@
 
 - Status: accepted for Phase 02
 - Date: 2026-08-30
-- Last amended: 2026-08-30
+- Last amended: 2026-08-31
 - Sources: owner presence requirements, P01-T17, and Home Assistant 2026.8
 
 ## Decision
@@ -39,13 +39,19 @@ content.
   window rows, then blind rows. Single-opening rooms use the room title alone;
   multi-opening rooms add a non-duplicated opening suffix. Only changed or
   still-actionable components appear and weather-forced rows show a concise
-  reason. Generic optimizer choices have no parenthetical because they do not
-  identify a concrete constraint.
+  reason. Summer optimizer targets below full opening carry the bounded cause
+  already selected by evaluation; delivery never infers it from text or state.
 - Ordinary candidates are merged for one fixed 10-minute window beginning at
   the first change. The latest target/reason per opening and combined changed
   components produce at most one deterministic message. The batch is memory
   only, is discarded on unload, and does not introduce a configurable timer or
   persisted queue.
+- A coupled optimizer window/blind target is published coherently: a new blind
+  direction reuses the existing 15-minute confirmation before the window state
+  changes, while a confirmed same-direction percentage change is explicitly
+  marked for notification. The deadband suppresses the target rather than
+  changing a published percentage silently. Weather restrictions stay
+  immediate.
 - Away-time changes are discarded rather than queued.
 - A later arrival uses the native non-home to `home` person-state edge and a
   fresh evaluation sent only to that person's associated devices then home;

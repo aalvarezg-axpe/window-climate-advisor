@@ -176,7 +176,13 @@ def _change(
 def _candidate(entry: MockConfigEntry) -> NotificationCandidate:
     return NotificationCandidate(
         (
-            _change(entry, "Salón · SE", WindowState.TILT, 70),
+            _change(
+                entry,
+                "Salón · SE",
+                WindowState.TILT,
+                70,
+                ReasonCode.SOLAR_GAIN,
+            ),
             _change(entry, "Norte", WindowState.OPEN, 100),
             _change(
                 entry,
@@ -308,11 +314,13 @@ async def test_delivery_filters_presence_and_consolidates_in_stable_order(
             "- Cocina NO: Cerrada (Lluvia y viento)\n"
             "- Cocina SO: Cerrada (Lluvia y viento)\n"
             "- Dormitorio: Abierta\n"
-            "- Salón: Oscilobatiente\n\n"
+            "- Salón: Oscilobatiente "
+            "(La radiación estimada en fachada supera la refrigeración al ventilar)\n\n"
             "Persianas:\n"
             "- Cocina NO: 0% (Lluvia y viento)\n"
             "- Cocina SO: 0% (Lluvia y viento)\n"
-            "- Salón: 70%"
+            "- Salón: 70% "
+            "(La radiación estimada en fachada supera la refrigeración al ventilar)"
         ),
         ATTR_TITLE: "Casa",
     }
@@ -491,7 +499,7 @@ async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_bl
                 WindowState.TILT,
                 BlindOpening(70),
                 manual_blind_unobserved=True,
-                reason=ReasonCode.OPTIMIZER,
+                reason=ReasonCode.SOLAR_GAIN,
             ),
         )
     )
@@ -503,8 +511,11 @@ async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_bl
     assert len(calls) == 2
     expected = {
         ATTR_MESSAGE: (
-            "Windows:\n- Salón: Tilt\n\n"
-            "Blinds:\n- Salón: 70% (manual position not observable)"
+            "Windows:\n- Salón: Tilt "
+            "(Estimated facade radiation exceeds ventilation cooling)\n\n"
+            "Blinds:\n- Salón: 70% "
+            "(Estimated facade radiation exceeds ventilation cooling; "
+            "manual position not observable)"
         ),
         ATTR_TITLE: "Casa",
     }

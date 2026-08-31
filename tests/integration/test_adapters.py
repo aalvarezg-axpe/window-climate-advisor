@@ -407,8 +407,29 @@ def test_room_temperature_has_independent_stale_age(
 
     assert ready.input_issue is None
     assert ready.current_conditions is not None
-    assert stale.input_issue is InputIssue.STALE_INPUT
+    assert stale.input_issue is InputIssue.STALE_ROOM_TEMPERATURE
     assert stale.current_conditions is None
+
+
+def test_missing_room_temperature_has_a_specific_input_issue(
+    hass: HomeAssistant,
+) -> None:
+    """Identify the room source instead of reporting an unspecified input."""
+    config_entry = entry()
+    set_ready_states(hass)
+    hass.states.async_set("sensor.indoor", "unavailable")
+
+    opening = build_snapshot(
+        hass,
+        config_entry,
+        AdvisorState(),
+        dt_util.utcnow(),
+        timedelta(minutes=15),
+        timedelta(minutes=125),
+    ).openings[0]
+
+    assert opening.input_issue is InputIssue.MISSING_ROOM_TEMPERATURE
+    assert opening.current_conditions is None
 
 
 async def test_daily_forecast_handles_service_success_failure_and_shape(

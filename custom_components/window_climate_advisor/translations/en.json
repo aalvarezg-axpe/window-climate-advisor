@@ -96,6 +96,11 @@
             "name": "Reason",
             "state": {
               "optimizer": "Thermal optimization",
+              "summer_comfort_floor": "The lower comfort limit prevents further cooling",
+              "outdoor_not_cooler": "Outdoor air is not cooler than the room",
+              "solar_gain": "Estimated facade radiation exceeds ventilation cooling",
+              "stability_margin": "Opening benefit is below the stability margin",
+              "stability_confirmation": "Waiting for stable confirmation before opening further",
               "wind_close": "Wind requires closing",
               "wind_tilt_only": "Wind allows tilt only",
               "rain_close": "Rain requires closing",
@@ -104,7 +109,9 @@
               "stale_safety_data": "Safety data is stale",
               "configuration_required": "Configuration is required",
               "missing_input": "Required input is missing",
-              "stale_input": "Required input is stale"
+              "stale_input": "Required input is stale",
+              "missing_room_temperature": "Room temperature is missing",
+              "stale_room_temperature": "Room temperature is stale"
             }
           }
         }

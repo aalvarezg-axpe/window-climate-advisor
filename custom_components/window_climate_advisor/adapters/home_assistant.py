@@ -424,11 +424,15 @@ def build_snapshot(
                 cover_issue.value if cover_issue is not None else "ready"
             )
 
-        input_issue = (
-            InputIssue.CONFIGURATION_REQUIRED
-            if indoor is None
-            else _merge_issue(
-                indoor,
+        input_issue: InputIssue | None
+        if indoor is None:
+            input_issue = InputIssue.CONFIGURATION_REQUIRED
+        elif indoor.issue is InputIssue.STALE_INPUT:
+            input_issue = InputIssue.STALE_ROOM_TEMPERATURE
+        elif indoor.issue is not None:
+            input_issue = InputIssue.MISSING_ROOM_TEMPERATURE
+        else:
+            input_issue = _merge_issue(
                 outdoor,
                 irradiance,
                 sun_azimuth,
@@ -436,7 +440,6 @@ def build_snapshot(
                 wind,
                 gust,
             )
-        )
         if contact_issue is not None or cover_issue is not None:
             input_issue = InputIssue.MISSING_INPUT
         current_conditions = None

@@ -152,6 +152,64 @@ def test_evaluator_delivers_explicit_season_to_optimizer() -> None:
     assert winter_result.best.thermal_cost_w == -winter_result.best.current_load.total_w
 
 
+def test_summer_non_open_targets_publish_concrete_thermal_causes() -> None:
+    """Explain the winning Summer constraint instead of saying optimizer."""
+    cases = (
+        (
+            replace(
+                opening(has_blind=True, conditions=ThermalConditions(27, 25, 500)),
+                current_action=CandidateAction(
+                    WindowState.CLOSED,
+                    BlindOpening(0),
+                ),
+            ),
+            SETTINGS,
+            ReasonCode.SOLAR_GAIN,
+        ),
+        (
+            opening(conditions=ThermalConditions(27, 30, 0)),
+            SETTINGS,
+            ReasonCode.OUTDOOR_NOT_COOLER,
+        ),
+        (
+            opening(conditions=ThermalConditions(23, 22.9, 0)),
+            EvaluationSettings(
+                OptimizerSettings(10, 1_000, 1_000, 1_000),
+                StabilitySettings(0, 0),
+            ),
+            ReasonCode.STABILITY_MARGIN,
+        ),
+        (
+            opening(conditions=ThermalConditions(22.5, 15, 0)),
+            SETTINGS,
+            ReasonCode.SUMMER_COMFORT_FLOOR,
+        ),
+    )
+
+    for item, settings, expected in cases:
+        profile = (
+            ComfortProfile(22, 25, 23, 0.5)
+            if expected is ReasonCode.SUMMER_COMFORT_FLOOR
+            else PROFILE
+        )
+        result = evaluate_snapshot(
+            EvaluationSnapshot(Season.SUMMER, profile, (item,)),
+            AdvisorState(),
+            NOW,
+            settings,
+        )
+
+        assert result.openings["opening"].reason is expected
+
+
+def test_pending_summer_opening_has_an_explicit_confirmation_reason() -> None:
+    """Explain a retained non-open state while a better opening awaits stability."""
+    result = evaluate_snapshot(snapshot(opening()), AdvisorState(), NOW, SETTINGS)
+
+    assert result.openings["opening"].recommendation is Recommendation.CLOSE
+    assert result.openings["opening"].reason is ReasonCode.STABILITY_CONFIRMATION
+
+
 def test_missing_safety_and_thermal_inputs_degrade_without_favourable_defaults() -> (
     None
 ):

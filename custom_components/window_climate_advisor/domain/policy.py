@@ -21,6 +21,11 @@ class ReasonCode(StrEnum):
     """Stable reason for the policy result."""
 
     OPTIMIZER = "optimizer"
+    SUMMER_COMFORT_FLOOR = "summer_comfort_floor"
+    OUTDOOR_NOT_COOLER = "outdoor_not_cooler"
+    SOLAR_GAIN = "solar_gain"
+    STABILITY_MARGIN = "stability_margin"
+    STABILITY_CONFIRMATION = "stability_confirmation"
     WIND_CLOSE = "wind_close"
     WIND_TILT_ONLY = "wind_tilt_only"
     RAIN_CLOSE = "rain_close"

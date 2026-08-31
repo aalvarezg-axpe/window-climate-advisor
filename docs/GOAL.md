@@ -296,6 +296,11 @@ Missing or stale safety inputs do not become zero wind, no rain, or favourable
 temperature. Degradation is explicit in recommendation, availability, reason
 code, and diagnostics.
 
+Room-temperature degradation identifies that source specifically: missing
+means the configured room temperature is unavailable or malformed; stale means
+its last report exceeded the independently configured room age. It never
+silently borrows another room or treats an old value as current.
+
 Rain restricts an opening only when it is wind-driven onto that façade. The
 policy projects the configured gust through the existing conservative façade
 exposure function; below 0.5 km/h of raw projected gust, including zero gust
@@ -382,9 +387,14 @@ room with one opening is identified only by its room title; a room with several
 openings appends the shortest configured opening suffix needed to distinguish
 them without repeating the room title. Weather-forced rows include a concise
 reason propagated from the evaluated policy result rather than inferred during
-delivery. Generic optimizer choices carry no parenthetical because that wording
-does not explain a concrete constraint; ordering is deterministic and degraded
-rows remain non-actionable.
+delivery. In Summer, every resolved target below full opening likewise states
+one bounded cause: the lower comfort limit, outdoor air that is not cooler,
+estimated façade radiation exceeding ventilation cooling, benefit below the
+stability margin, or an opening still inside its confirmation period. A
+coupled optimizer window/blind change is published as one stable
+recommendation; the blind deadband suppresses a small target change instead of
+changing the published percentage silently. Ordering is deterministic and
+degraded rows remain non-actionable.
 
 ## 7. Safety and privacy gates
 

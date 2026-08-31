@@ -21,6 +21,13 @@ _IMMEDIATE_REASONS = {
     ReasonCode.MISSING_SAFETY_DATA,
     ReasonCode.STALE_SAFETY_DATA,
 }
+_OPTIMIZER_REASONS = {
+    ReasonCode.OPTIMIZER,
+    ReasonCode.SUMMER_COMFORT_FLOOR,
+    ReasonCode.OUTDOOR_NOT_COOLER,
+    ReasonCode.SOLAR_GAIN,
+    ReasonCode.STABILITY_MARGIN,
+}
 
 
 class BlindDirection(StrEnum):
@@ -146,20 +153,32 @@ def _window_delay(
 ) -> timedelta:
     reason = sample.policy.reason
     if reason in _IMMEDIATE_REASONS:
-        return timedelta(0)
-    if reason is ReasonCode.WIND_TILT_ONLY:
-        return (
+        delay = timedelta(0)
+    elif reason is ReasonCode.WIND_TILT_ONLY:
+        delay = (
             timedelta(0)
             if sample.gust_kmh is not None
             and sample.gust_kmh >= settings.immediate_wind_gust_kmh
             else settings.marginal_wind_delay
         )
-    if (
+    elif (
         _WINDOW_RANK[sample.policy.recommended_window_state]
         > _WINDOW_RANK[state.window]
     ):
-        return settings.opening_improvement_delay
-    return timedelta(0)
+        delay = settings.opening_improvement_delay
+    else:
+        delay = timedelta(0)
+
+    blind_target = sample.policy.recommended_blind
+    if (
+        reason in _OPTIMIZER_REASONS
+        and sample.policy.recommended_window_state is not state.window
+        and abs(blind_target.percent - state.blind.percent)
+        > settings.blind_deadband_percent
+        and _blind_direction(state.blind, blind_target) is not state.blind_direction
+    ):
+        delay = max(delay, settings.blind_delay)
+    return delay
 
 
 def _advance_window(
@@ -170,7 +189,7 @@ def _advance_window(
 ) -> tuple[OpeningStabilityState, bool]:
     target = sample.policy.recommended_window_state
     if (
-        sample.policy.reason is ReasonCode.OPTIMIZER
+        sample.policy.reason in _OPTIMIZER_REASONS
         and sample.optimized.avoided_cost_w < settings.minimum_benefit_w
         and not (
             state.window is not WindowState.CLOSED
@@ -220,9 +239,6 @@ def _advance_blind(
         state.window is not WindowState.CLOSED and state.blind.percent == 0
     ):
         target = state.blind
-    if abs(target.percent - state.blind.percent) <= settings.blind_deadband_percent:
-        return replace(state, blind=target, pending_blind=None), False
-
     direction = _blind_direction(state.blind, target)
     if state.window is not WindowState.CLOSED and state.blind.percent == 0:
         return replace(
@@ -231,8 +247,10 @@ def _advance_blind(
             blind_direction=direction,
             pending_blind=None,
         ), True
+    if abs(target.percent - state.blind.percent) <= settings.blind_deadband_percent:
+        return replace(state, pending_blind=None), False
     if direction is state.blind_direction:
-        return replace(state, blind=target, pending_blind=None), False
+        return replace(state, blind=target, pending_blind=None), True
 
     pending = state.pending_blind
     if pending is None or pending.direction is not direction:

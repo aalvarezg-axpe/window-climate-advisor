@@ -1,6 +1,6 @@
 """Pure orchestration of one coherent advisor snapshot."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from enum import StrEnum
 
@@ -28,6 +28,7 @@ from ..domain.policy import (
 )
 from ..domain.profiles import ComfortProfile, Season
 from ..domain.state_machine import StabilityInput, StabilitySettings
+from ..domain.thermal import candidate_thermal_load
 from .state import AdvisorState, NotificationCandidate, advance_evaluation
 
 
@@ -37,6 +38,8 @@ class InputIssue(StrEnum):
     CONFIGURATION_REQUIRED = "configuration_required"
     MISSING_INPUT = "missing_input"
     STALE_INPUT = "stale_input"
+    MISSING_ROOM_TEMPERATURE = "missing_room_temperature"
+    STALE_ROOM_TEMPERATURE = "stale_room_temperature"
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +118,40 @@ def _degraded(issue: InputIssue) -> OpeningEvaluation:
     )
 
 
+def _optimizer_reason(
+    opening: OpeningSnapshot,
+    optimized: OptimizationResult,
+    profile: ComfortProfile,
+    season: Season,
+    settings: OptimizerSettings,
+) -> ReasonCode:
+    """Return one concrete cause for a Summer target below full opening."""
+    conditions = opening.current_conditions
+    if (
+        season is not Season.SUMMER
+        or optimized.best.action.window_state is WindowState.OPEN
+        or conditions is None
+    ):
+        return ReasonCode.OPTIMIZER
+    if conditions.indoor_temperature_c <= profile.lower_c + profile.hysteresis_c:
+        return ReasonCode.SUMMER_COMFORT_FLOOR
+    if conditions.outdoor_temperature_c >= conditions.indoor_temperature_c:
+        return ReasonCode.OUTDOOR_NOT_COOLER
+
+    open_blind = BlindOpening(
+        max(optimized.best.action.blind.percent, settings.blind_step_percent)
+    )
+    open_load = candidate_thermal_load(
+        opening.dimensions,
+        WindowState.OPEN,
+        open_blind,
+        conditions,
+    )
+    if open_load.solar_w >= abs(open_load.conduction_w + open_load.ventilation_w):
+        return ReasonCode.SOLAR_GAIN
+    return ReasonCode.STABILITY_MARGIN
+
+
 def evaluate_snapshot(
     snapshot: EvaluationSnapshot,
     previous_state: AdvisorState,
@@ -158,6 +195,17 @@ def evaluate_snapshot(
             opening.safety_geometry,
             supports_tilt=opening.supports_tilt,
         )
+        if policy.reason is ReasonCode.OPTIMIZER:
+            policy = replace(
+                policy,
+                reason=_optimizer_reason(
+                    opening,
+                    optimized,
+                    profile,
+                    season,
+                    settings.optimizer,
+                ),
+            )
         samples[opening.opening_id] = StabilityInput(
             opening.current_action,
             optimized,
@@ -190,12 +238,19 @@ def evaluate_snapshot(
             if policy.recommendation is Recommendation.DEGRADED
             else recommendation_for_state(stable.window)
         )
+        reason = policy.reason
+        if (
+            season is Season.SUMMER
+            and stable.window is not WindowState.OPEN
+            and policy.recommended_window_state is WindowState.OPEN
+        ):
+            reason = ReasonCode.STABILITY_CONFIRMATION
         results[opening_id] = OpeningEvaluation(
             recommendation,
             stable.window,
             stable.blind if opening.has_blind else None,
             policy.safe_to_open,
-            policy.reason,
+            reason,
             optimized,
         )
 

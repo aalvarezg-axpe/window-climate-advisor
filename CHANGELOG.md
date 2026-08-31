@@ -5,6 +5,26 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0b8 - 2026-08-31
+
+### Changed
+
+- Summer `Oscilobatiente` and `Cerrar` recommendations now carry one concrete
+  evaluated cause: lower comfort limit, outdoor air that is not cooler,
+  estimated façade radiation that outweighs ventilation cooling, insufficient
+  benefit to clear the stability margin, or a still-active confirmation period.
+- Optimizer-driven window and blind changes are published as one coherent
+  recommendation. A same-direction blind target change is no longer silent,
+  while changes inside the configured blind deadband remain suppressed.
+- A degraded room now distinguishes missing room temperature from a room
+  temperature older than its configured maximum age.
+
+### Safety and privacy
+
+- Weather reasons and immediate safety overrides retain priority. The change
+  adds no entity, option, helper, queue, dependency, schema, service or
+  actuator action, and records no raw household state.
+
 ## 0.2.0b7 - 2026-08-30
 
 ### Changed

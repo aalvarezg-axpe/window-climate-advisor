@@ -96,6 +96,11 @@
             "name": "Motivo",
             "state": {
               "optimizer": "Optimización térmica",
+              "summer_comfort_floor": "El límite inferior de confort impide seguir refrigerando",
+              "outdoor_not_cooler": "El aire exterior no está más fresco que la estancia",
+              "solar_gain": "La radiación estimada en fachada supera la refrigeración al ventilar",
+              "stability_margin": "La mejora de abrir no supera el margen de estabilidad",
+              "stability_confirmation": "Esperando confirmación estable para abrir más",
               "wind_close": "El viento requiere cerrar",
               "wind_tilt_only": "El viento solo permite oscilobatiente",
               "rain_close": "La lluvia requiere cerrar",
@@ -104,7 +109,9 @@
               "stale_safety_data": "Los datos de seguridad están desactualizados",
               "configuration_required": "Se requiere configuración",
               "missing_input": "Falta una entrada necesaria",
-              "stale_input": "Una entrada necesaria está desactualizada"
+              "stale_input": "Una entrada necesaria está desactualizada",
+              "missing_room_temperature": "Falta la temperatura interior",
+              "stale_room_temperature": "La temperatura interior está desactualizada"
             }
           }
         }

@@ -251,6 +251,30 @@ def test_thermal_closing_uses_benefit_without_a_second_time_delay() -> None:
     assert result.state.pending_window is None
 
 
+def test_joint_thermal_close_and_blind_change_are_published_once() -> None:
+    """Keep one optimizer window/blind target coherent through confirmation."""
+    current = CandidateAction(WindowState.OPEN, BlindOpening(100))
+    proposal = sample(
+        current,
+        WindowState.CLOSED,
+        0,
+        reason=ReasonCode.SOLAR_GAIN,
+    )
+
+    started = advance_opening(initial_stability_state(current), proposal, NOW, SETTINGS)
+    waiting = advance_opening(
+        started.state, proposal, NOW + timedelta(minutes=10), SETTINGS
+    )
+    accepted = advance_opening(
+        waiting.state, proposal, NOW + timedelta(minutes=15), SETTINGS
+    )
+
+    assert not started.changed and not waiting.changed
+    assert accepted.window_changed and accepted.blind_changed
+    assert accepted.state.window is WindowState.CLOSED
+    assert accepted.state.blind == BlindOpening(0)
+
+
 def test_marginal_wind_tilt_waits_five_minutes_but_20_kmh_is_immediate() -> None:
     """Retain the selective v4.17 open-to-tilt degradation timing."""
     current = CandidateAction(WindowState.OPEN, BlindOpening(100))
@@ -289,7 +313,7 @@ def test_marginal_wind_tilt_waits_five_minutes_but_20_kmh_is_immediate() -> None
 
 
 def test_blind_direction_requires_fifteen_minutes_without_drift_rearming() -> None:
-    """Confirm physical direction while treating exact percentage as diagnostic."""
+    """Confirm direction once and report later target changes in that direction."""
     current = CandidateAction(WindowState.CLOSED, BlindOpening(100))
     state = initial_stability_state(current)
 
@@ -324,7 +348,7 @@ def test_blind_direction_requires_fifteen_minutes_without_drift_rearming() -> No
     assert accepted.blind_changed
     assert accepted.state.blind == BlindOpening(60)
     assert accepted.state.blind_direction is BlindDirection.LOWER
-    assert not same_direction.changed
+    assert same_direction.blind_changed
     assert same_direction.state.blind == BlindOpening(40)
 
 
@@ -359,7 +383,7 @@ def test_opposite_blind_direction_rearms_and_deadband_cancels_candidates() -> No
     )
 
     assert cancelled.state.pending_blind is None
-    assert cancelled.state.blind == BlindOpening(65)
+    assert cancelled.state.blind == BlindOpening(60)
     assert restarted.state.pending_blind is not None
     assert accepted.blind_changed
     assert accepted.state.blind_direction is BlindDirection.RAISE

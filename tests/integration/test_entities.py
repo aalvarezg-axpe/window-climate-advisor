@@ -68,7 +68,7 @@ async def test_entities_publish_stable_advisor_results_and_devices(
     recommendation_values = {item.value for item in Recommendation}
     assert recommendation_values == {"open", "tilt", "close", "degraded"}
     assert recommendation.state in recommendation_values
-    assert recommendation.attributes["reason"] == "optimizer"
+    assert recommendation.attributes["reason"] == "stability_confirmation"
     assert 0 <= float(hass.states.get(blind_id).state) <= 100
     assert hass.states.get(safety_id).state == "on"
     assert hass.states.get(profile_id).state == "summer"
@@ -124,7 +124,7 @@ async def test_reason_change_is_reconstructable_when_target_is_unchanged(
     )
     before = hass.states.get(recommendation_id)
     assert before.state == "close"
-    assert before.attributes["reason"] == "optimizer"
+    assert before.attributes["reason"] == "stability_confirmation"
 
     changes: list[Event] = []
 

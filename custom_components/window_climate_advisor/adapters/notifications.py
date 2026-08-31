@@ -43,6 +43,17 @@ _NOTIFICATION_TEXT = {
         "tilt": "Tilt",
         "open": "Open",
         "manual": "manual position not observable",
+        ReasonCode.SUMMER_COMFORT_FLOOR.value: "Lower comfort limit",
+        ReasonCode.OUTDOOR_NOT_COOLER.value: "Outdoor air is not cooler",
+        ReasonCode.SOLAR_GAIN.value: (
+            "Estimated facade radiation exceeds ventilation cooling"
+        ),
+        ReasonCode.STABILITY_MARGIN.value: (
+            "Opening benefit is below the stability margin"
+        ),
+        ReasonCode.STABILITY_CONFIRMATION.value: (
+            "Waiting for stable confirmation before opening further"
+        ),
         ReasonCode.WIND_CLOSE.value: "Wind",
         ReasonCode.WIND_TILT_ONLY.value: "Wind",
         ReasonCode.RAIN_CLOSE.value: "Rain and wind",
@@ -55,6 +66,17 @@ _NOTIFICATION_TEXT = {
         "tilt": "Oscilobatiente",
         "open": "Abierta",
         "manual": "posición manual no observable",
+        ReasonCode.SUMMER_COMFORT_FLOOR.value: "Límite inferior de confort",
+        ReasonCode.OUTDOOR_NOT_COOLER.value: "El aire exterior no está más fresco",
+        ReasonCode.SOLAR_GAIN.value: (
+            "La radiación estimada en fachada supera la refrigeración al ventilar"
+        ),
+        ReasonCode.STABILITY_MARGIN.value: (
+            "La mejora de abrir no supera el margen de estabilidad"
+        ),
+        ReasonCode.STABILITY_CONFIRMATION.value: (
+            "Esperando confirmación estable para abrir más"
+        ),
         ReasonCode.WIND_CLOSE.value: "Viento",
         ReasonCode.WIND_TILT_ONLY.value: "Viento",
         ReasonCode.RAIN_CLOSE.value: "Lluvia y viento",
