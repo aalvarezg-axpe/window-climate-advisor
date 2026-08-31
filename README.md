@@ -6,7 +6,7 @@ outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
 The project is in **Phase 02 contextual-notification validation**. Candidate
-`v0.2.0b8` stores only recipient persons, discovers their associated Home
+`v0.2.0b9` stores only recipient persons, discovers their associated Home
 Assistant Mobile App devices through native registries, sends stable-change
 summaries only to those devices currently home, and gives fresh advice when a
 configured occupant arrives. Live-verified `v0.1.0b5` remains the integration
@@ -16,7 +16,8 @@ fixture.
 
 Notification summaries use separate window and blind bullet sections. Rooms
 with one opening appear once by room name; rooms with several openings retain
-only the configured suffix needed to distinguish them. Weather-forced changes
+only the shortest configured suffix needed to distinguish them, such as
+`Cocina SO` and `Cocina NO` without overhang qualifiers. Weather-forced changes
 include their evaluated safety reason. In Summer, every thermal target below
 full opening identifies the actual limiting cause: comfort floor, outdoor air,
 façade radiation, stability margin, or an active confirmation period. Coupled
@@ -66,6 +67,10 @@ building simulation. It combines projected solar gain, glazing conduction, and
 single-sided ventilation in watts for every feasible window/blind candidate.
 Blind opening scales effective free area linearly as the accepted bounded
 estimate; the integration does not claim measured room response or airflow.
+Diffuse façade radiation remains in that thermal balance, but during Summer a
+lowered blind is considered only while direct projected sun reaches the opening
+after orientation and overhang shade. Winter retains its night-insulation
+candidate space.
 
 The initial entity surface is informational:
 
@@ -89,7 +94,7 @@ Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
 1. In HACS, open the menu and select **Custom repositories**.
 2. Add `https://github.com/aalvarezg-axpe/window-climate-advisor` as type
    **Integration**.
-3. Download the explicit prerelease `v0.2.0b8`; enable prerelease tracking for
+3. Download the explicit prerelease `v0.2.0b9`; enable prerelease tracking for
    this repository if HACS does not initially show it.
 4. Restart Home Assistant.
 5. Go to **Settings → Devices & services → Add integration**, search for

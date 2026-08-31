@@ -2,9 +2,9 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.23
+> Document version: 0.24
 > Initial date: 2026-08-24
-> Last reviewed: 2026-08-30
+> Last reviewed: 2026-08-31
 > Current state: **active / Phase 02**
 > Home Assistant display timezone: `Europe/Madrid`
 > Internal operational timezone: UTC
@@ -45,6 +45,9 @@ recommends per opening whether to:
 - close to preserve coolness or warmth;
 - raise a blind to capture useful solar gain;
 - lower a blind to reduce solar load or night heat loss;
+- keep a blind fully raised during Summer when geometry shows no direct sun
+  reaches that opening; diffuse radiation may still affect the window thermal
+  balance but does not by itself justify obstructing a manual blind;
 - keep the stable physical target when no meaningful advantage exists, without
   exposing a separate public `hold` state;
 - never pair a non-closed recommended window target with 0% blind opening;
@@ -292,6 +295,15 @@ new option and does not keep missing physical calibration as blocked work. The
 relation may be revisited only if manufacturer data or passive operational
 evidence later supplies a defensible correction.
 
+Summer blind solar protection uses the same direct projection and overhang
+geometry as the façade model. The fixed diffuse vertical component remains in
+the thermal load used to compare window positions, but when the direct
+projected component is zero the Summer optimizer admits only a fully raised
+blind. This prevents a small diffuse estimate and persisted movement penalties
+from retaining a 10% manual blind target after the sun has left that opening.
+It adds no threshold or user setting: the existing geometric front/overhang
+boundary is the decision. Winter retains its night-insulation candidate space.
+
 Missing or stale safety inputs do not become zero wind, no rain, or favourable
 temperature. Degradation is explicit in recommendation, availability, reason
 code, and diagnostics.
@@ -385,7 +397,8 @@ Notification bodies separate `Windows` and `Blinds` into multiline bullet
 sections and include only the component that changed or remains actionable. A
 room with one opening is identified only by its room title; a room with several
 openings appends the shortest configured opening suffix needed to distinguish
-them without repeating the room title. Weather-forced rows include a concise
+them without repeating the room title or retaining later physical qualifiers
+once an orientation token is already unique. Weather-forced rows include a concise
 reason propagated from the evaluated policy result rather than inferred during
 delivery. In Summer, every resolved target below full opening likewise states
 one bounded cause: the lower comfort limit, outdoor air that is not cooler,

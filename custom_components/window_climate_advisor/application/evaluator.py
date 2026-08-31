@@ -56,6 +56,7 @@ class OpeningSnapshot:
     forecast_conditions: ThermalConditions | None
     safety: SafetySnapshot
     input_issue: InputIssue | None = None
+    direct_sun_on_opening: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,6 +187,7 @@ def evaluate_snapshot(
                 opening.current_action,
                 opening.supports_tilt,
                 opening.has_blind,
+                opening.direct_sun_on_opening,
             ),
             settings.optimizer,
         )

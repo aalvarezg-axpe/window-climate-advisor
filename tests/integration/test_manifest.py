@@ -28,7 +28,7 @@ def test_manifest_declares_a_calculated_helper() -> None:
     assert manifest == {
         "domain": "window_climate_advisor",
         "name": "Window Climate Advisor",
-        "version": "0.2.0b8",
+        "version": "0.2.0b9",
         "config_flow": True,
         "dependencies": ["sun"],
         "documentation": (

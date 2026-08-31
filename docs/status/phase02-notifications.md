@@ -464,3 +464,29 @@ log matches, services and owned persistent notifications are zero. No synthetic
 notification, configuration/source/recipient change or physical action was
 called. P02-T15 terminates; P02-T04 retains natural-device rendering and the
 present/away/mixed/arrival delivery matrix.
+
+## Local b9 direct-sun blind correction
+
+A read-only live reconstruction found both Cocina façades outside direct solar
+incidence while each retained the fixed 15% diffuse vertical estimate. Both
+stable recommendations were tilt with the minimum positive 10% blind opening.
+The positive-blind invariant explains the exact percentage, but diffuse load
+and persisted movement cost made that target inappropriate after direct sun had
+left the openings.
+
+P02-T16 keeps the combined diffuse façade load in the window thermal balance
+and independently derives direct incidence through the same façade/overhang
+projection with a zero diffuse fraction. With no positive direct component,
+the Summer optimizer now admits only a fully raised blind; direct sun restores
+the existing complete candidate range, while Winter retains its historical
+night-insulation candidate space. The notification formatter also chooses the
+shortest unique configured suffix, so the live Cocina titles render as
+`Cocina SO` and `Cocina NO` without physical overhang qualifiers.
+
+The focused geometry/optimizer/evaluator/adapter/notification/replay gate
+passes 69/69. The canonical WSL verifier passes 192/192 at 95.74% branch
+coverage with Ruff, formatting, strict mypy, artifact/secret, replay, privacy
+and zero-actuator checks green. The Windows launcher stopped before checks on
+an inaccessible ignored `.venv/lib64` link; no repository artifact was changed
+to work around it. Consolidated Ponytail review reports `Lean already. Ship.`
+Publication and protected b9 deployment remain.

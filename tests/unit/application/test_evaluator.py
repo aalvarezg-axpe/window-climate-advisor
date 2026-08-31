@@ -202,6 +202,25 @@ def test_summer_non_open_targets_publish_concrete_thermal_causes() -> None:
         assert result.openings["opening"].reason is expected
 
 
+def test_evaluator_forwards_absent_direct_sun_to_blind_optimization() -> None:
+    """Raise a blind when only diffuse façade radiation remains."""
+    item = replace(
+        opening(
+            current=WindowState.TILT,
+            has_blind=True,
+            conditions=ThermalConditions(27, 30, 120),
+        ),
+        current_action=CandidateAction(WindowState.TILT, BlindOpening(10)),
+        direct_sun_on_opening=False,
+    )
+
+    result = evaluate_snapshot(snapshot(item), AdvisorState(), NOW, SETTINGS)
+    optimization = result.openings["opening"].optimization
+
+    assert optimization is not None
+    assert optimization.best.action.blind == BlindOpening(100)
+
+
 def test_pending_summer_opening_has_an_explicit_confirmation_reason() -> None:
     """Explain a retained non-open state while a better opening awaits stability."""
     result = evaluate_snapshot(snapshot(opening()), AdvisorState(), NOW, SETTINGS)

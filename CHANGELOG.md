@@ -5,6 +5,26 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0b9 - 2026-08-31
+
+### Changed
+
+- A blind is now kept fully raised during Summer when façade and overhang
+  geometry show that no direct sun reaches its opening. Diffuse radiation
+  remains in the window thermal balance but no longer lowers or retains a
+  Summer manual-blind target by itself; Winter night-insulation candidates
+  remain available.
+- Multi-opening notification rows now use the shortest unique configured
+  suffix, rendering the current Cocina openings as `Cocina SO` and `Cocina NO`
+  without `con/sin alero` qualifiers.
+
+### Safety and privacy
+
+- Direct-sun protection, diffuse window load, weather overrides, seasonal
+  policy, stability, presence routing and the zero-actuator boundary remain.
+  No selector, option, entity, schema, helper, dependency, queue or service was
+  added.
+
 ## 0.2.0b8 - 2026-08-31
 
 ### Changed

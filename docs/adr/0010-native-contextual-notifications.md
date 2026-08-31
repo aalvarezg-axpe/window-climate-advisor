@@ -37,7 +37,9 @@ content.
   for presentation; delivery does not reconstruct weather decisions.
 - Ordinary and arrival bodies use the same deterministic two-section format:
   window rows, then blind rows. Single-opening rooms use the room title alone;
-  multi-opening rooms add a non-duplicated opening suffix. Only changed or
+  multi-opening rooms add the shortest unique word prefix of their configured
+  opening suffix, omitting later physical qualifiers such as overhang wording
+  when orientation already distinguishes the row. Only changed or
   still-actionable components appear and weather-forced rows show a concise
   reason. Summer optimizer targets below full opening carry the bounded cause
   already selected by evaluation; delivery never infers it from text or state.

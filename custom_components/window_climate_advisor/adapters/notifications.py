@@ -115,13 +115,36 @@ def _opening_label(
     if room_title and opening_count == 1:
         label = room_title
     elif room_title:
-        suffix = opening.title
-        remainder = suffix[len(room_title) :]
-        if suffix[: len(room_title)].casefold() == room_title.casefold() and (
-            not remainder or remainder[0] in " /·:-"
-        ):
-            suffix = remainder.lstrip(" /·:-")
-        label = " ".join(part for part in (room_title, suffix) if part)
+
+        def suffix(title: str) -> str:
+            remainder = title[len(room_title) :]
+            return (
+                remainder.lstrip(" /·:-")
+                if title[: len(room_title)].casefold() == room_title.casefold()
+                and (not remainder or remainder[0] in " /·:-")
+                else title
+            )
+
+        opening_suffix = suffix(opening.title)
+        sibling_suffixes = tuple(
+            suffix(subentry.title)
+            for subentry in entry.subentries.values()
+            if subentry.subentry_type == SUBENTRY_TYPE_OPENING
+            and subentry.data.get(CONF_ROOM_SUBENTRY_ID) == room_id
+        )
+        parts = opening_suffix.split()
+        for end in range(1, len(parts) + 1):
+            candidate = " ".join(parts[:end])
+            if (
+                sum(
+                    item.casefold().startswith(candidate.casefold())
+                    for item in sibling_suffixes
+                )
+                == 1
+            ):
+                opening_suffix = candidate
+                break
+        label = " ".join(part for part in (room_title, opening_suffix) if part)
     else:
         label = opening.title
     return (

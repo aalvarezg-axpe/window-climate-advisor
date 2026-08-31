@@ -39,6 +39,14 @@ historical/provisional assumptions, not measured calibration. Property tests
 cover frontal, lateral, rear, north-wrap, low-sun, zero-radiation, bounds, and
 monotonic shade from deeper overhangs.
 
+P02-T16 also evaluates the same projection with the diffuse fraction set to
+zero at the adapter boundary. A positive result means direct sun reaches the
+opening after façade incidence and overhang shade; only then may the optimizer
+enumerate lowered-blind candidates during Summer. The original combined
+projection remains the thermal-condition irradiance, so diffuse load still
+influences window opening without independently lowering a Summer blind.
+Winter night-insulation candidates remain outside this solar gate.
+
 Missing, unavailable, malformed, future-dated, or stale `sun.sun` data degrades
 the opening exactly like another required thermal input. The adapter records
 only source quality. It does not expose raw position through entities or

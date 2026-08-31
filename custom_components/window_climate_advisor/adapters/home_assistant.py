@@ -443,22 +443,31 @@ def build_snapshot(
         if contact_issue is not None or cover_issue is not None:
             input_issue = InputIssue.MISSING_INPUT
         current_conditions = None
+        direct_sun_on_opening = False
         if input_issue is None:
             assert indoor is not None
+            solar_geometry = (
+                cast(float, irradiance.value),
+                cast(float, sun_azimuth.value),
+                cast(float, sun_elevation.value),
+                float(data[CONF_FACADE_AZIMUTH_DEG]),
+                float(data[CONF_HEIGHT_M]),
+                float(data[CONF_OVERHANG_DEPTH_M]),
+                float(data[CONF_OVERHANG_GAP_M]),
+            )
             current_conditions = ThermalConditions(
                 cast(float, indoor.value),
                 cast(float, outdoor.value),
-                facade_irradiance_w_m2(
-                    cast(float, irradiance.value),
-                    cast(float, sun_azimuth.value),
-                    cast(float, sun_elevation.value),
-                    float(data[CONF_FACADE_AZIMUTH_DEG]),
-                    float(data[CONF_HEIGHT_M]),
-                    float(data[CONF_OVERHANG_DEPTH_M]),
-                    float(data[CONF_OVERHANG_GAP_M]),
-                ),
+                facade_irradiance_w_m2(*solar_geometry),
                 cast(float, wind.value),
                 cast(float, gust.value),
+            )
+            direct_sun_on_opening = (
+                facade_irradiance_w_m2(
+                    *solar_geometry,
+                    diffuse_vertical_fraction=0,
+                )
+                > 0
             )
         openings.append(
             OpeningSnapshot(
@@ -480,6 +489,7 @@ def build_snapshot(
                 None,
                 safety,
                 input_issue,
+                direct_sun_on_opening,
             )
         )
 

@@ -16,6 +16,16 @@ to win a tie. When an opening has no configured blind, only 100% is feasible;
 the optimizer must not invent unavailable solar protection. Do not add a
 numerical solver or optimization dependency.
 
+P02-T16 applies the same minimum candidate restriction during Summer when the
+production solar geometry reports zero direct irradiance on the opening: only
+a 100% raised blind is feasible. The diffuse façade component remains in every
+window-state thermal load, so this does not erase ambient solar heat from the
+room balance. It only prevents diffuse light, movement cost, or persisted
+recommendation state from being treated as a Summer reason to obstruct a
+manual blind. Direct sun restores the existing complete 0–100% blind candidate
+set. Winter retains that candidate set without direct sun so the historical
+night-insulation state remains feasible.
+
 For each current or forecast horizon, derive intent from the selected profile
 and explicit season. Shoulder season remains symmetric: heat below the lower
 bound or preconditioning target minus hysteresis, cool above the upper bound or

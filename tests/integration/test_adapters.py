@@ -225,6 +225,7 @@ def test_ready_snapshot_normalizes_sources_and_current_action(
     assert opening.current_conditions is not None
     assert opening.current_conditions.indoor_temperature_c == 27
     assert opening.current_conditions.facade_irradiance_w_m2 > 300
+    assert opening.direct_sun_on_opening
     assert opening.current_action.window_state is WindowState.CLOSED
     assert opening.current_action.blind == BlindOpening(80)
     assert opening.safety.gust_kmh == 8
@@ -233,6 +234,32 @@ def test_ready_snapshot_normalizes_sources_and_current_action(
     assert built.indoor_temperatures_c == (27,)
     assert "sensor.outdoor" in configured_entity_ids(config_entry)
     assert "sun.sun" in configured_entity_ids(config_entry)
+
+
+def test_snapshot_distinguishes_diffuse_load_from_direct_sun(
+    hass: HomeAssistant,
+) -> None:
+    """Keep diffuse thermal load but do not authorize blind shading behind the sun."""
+    config_entry = entry()
+    set_ready_states(hass)
+    hass.states.async_set(
+        "sun.sun",
+        "above_horizon",
+        {"azimuth": 0, "elevation": 30},
+    )
+
+    opening = build_snapshot(
+        hass,
+        config_entry,
+        AdvisorState(),
+        dt_util.utcnow(),
+        timedelta(minutes=15),
+        timedelta(minutes=60),
+    ).openings[0]
+
+    assert opening.current_conditions is not None
+    assert opening.current_conditions.facade_irradiance_w_m2 == pytest.approx(45)
+    assert not opening.direct_sun_on_opening
 
 
 def test_no_cover_uses_persisted_window_and_weather_gust(

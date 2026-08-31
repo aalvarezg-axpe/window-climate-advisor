@@ -68,6 +68,7 @@ class OptimizationRequest:
     current_action: CandidateAction
     supports_tilt: bool
     has_blind: bool = True
+    direct_sun_on_opening: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -226,6 +227,9 @@ def optimize_opening(
         _evaluate(request, action, settings, calibration)
         for action in enumerate_actions(settings, supports_tilt=request.supports_tilt)
         if request.has_blind or action.blind.percent == 100
+        if request.season is not Season.SUMMER
+        or request.direct_sun_on_opening
+        or action.blind.percent == 100
     )
     best = min(
         evaluations,

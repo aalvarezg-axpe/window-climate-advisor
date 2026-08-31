@@ -20,6 +20,7 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.window_climate_advisor.adapters.notifications import (
+    _opening_label,
     async_deliver_arrival_candidate,
     async_deliver_notification_candidate,
     home_notification_recipient_persons,
@@ -200,6 +201,27 @@ def _candidate(entry: MockConfigEntry) -> NotificationCandidate:
             ),
         )
     )
+
+
+def test_multiple_openings_use_the_shortest_unique_configured_suffix() -> None:
+    """Drop physical qualifiers once orientation already distinguishes a row."""
+    entry = _entry()
+    expected = {
+        "Cocina · NO": ("Cocina · NO sin alero", "Cocina NO"),
+        "Cocina · SO": ("Cocina · SO con alero", "Cocina SO"),
+    }
+    labels: set[str] = set()
+    for opening_id, subentry in entry.subentries.items():
+        if subentry.title not in expected:
+            continue
+        verbose_title, expected_label = expected[subentry.title]
+        object.__setattr__(subentry, "title", verbose_title)
+        labelled = _opening_label(entry, opening_id)
+        assert labelled is not None
+        labels.add(labelled[1])
+        assert labelled[1] == expected_label
+
+    assert labels == {"Cocina NO", "Cocina SO"}
 
 
 def _add_mobile_device(

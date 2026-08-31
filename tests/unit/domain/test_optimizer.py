@@ -36,6 +36,7 @@ def request(
     current_action: CandidateAction = DEFAULT_CURRENT_ACTION,
     supports_tilt: bool = True,
     has_blind: bool = True,
+    direct_sun_on_opening: bool = True,
 ) -> OptimizationRequest:
     """Build one concise typed request for tests."""
     return OptimizationRequest(
@@ -47,6 +48,7 @@ def request(
         current_action=current_action,
         supports_tilt=supports_tilt,
         has_blind=has_blind,
+        direct_sun_on_opening=direct_sun_on_opening,
     )
 
 
@@ -319,6 +321,40 @@ def test_opening_without_blind_only_evaluates_fully_open_blind_state() -> None:
 
     assert result.evaluated_candidates == 3
     assert result.best.action.blind == BlindOpening(100)
+
+
+def test_diffuse_only_radiation_keeps_the_blind_fully_raised() -> None:
+    """Retain diffuse window load without treating it as blind-shading sun."""
+    result = optimize_opening(
+        request(
+            ThermalConditions(27, 30, 120),
+            season=Season.SUMMER,
+            current_action=CandidateAction(WindowState.TILT, BlindOpening(10)),
+            direct_sun_on_opening=False,
+        ),
+        ZERO_PENALTIES,
+    )
+
+    assert result.current.current_load.solar_w > 0
+    assert result.best.action.blind == BlindOpening(100)
+    assert result.evaluated_candidates == 3
+
+
+def test_no_direct_sun_does_not_remove_winter_night_insulation() -> None:
+    """Keep the historical Winter candidate space outside Summer shading."""
+    current_action = CandidateAction(WindowState.CLOSED, BlindOpening(0))
+    result = optimize_opening(
+        request(
+            ThermalConditions(20, 8, 0),
+            season=Season.WINTER,
+            current_action=current_action,
+            direct_sun_on_opening=False,
+        ),
+        ZERO_PENALTIES,
+    )
+
+    assert result.best.action == current_action
+    assert result.evaluated_candidates == 31
 
 
 def test_optimizer_settings_and_current_state_are_validated() -> None:
