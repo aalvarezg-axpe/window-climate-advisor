@@ -616,3 +616,22 @@ instead carried by the accepted 58-test focused gate and the 207-test canonical
 gate. No synthetic notification or physical action was called. P02-T17 and
 P02-T18 terminate; P02-T04 retains only natural-device batching and the
 presence/arrival observation matrix.
+
+## Local rc4 single-round notification pairing
+
+P02-T19 corrects the deterministic mismatch between the normal 10-minute
+ordinary notification batch and the existing 15-minute blind confirmation. At
+the normal deadline, only a retained window change whose own opening still has
+a blind pending confirmation is rescheduled. It retries at the existing
+5-minute coordinator cadence and stops at 20 minutes from the first change.
+A confirmed blind enters the existing latest-state/component-union merge, so
+the final multiline body contains both the window and blind work; cancellation
+or the hard bound releases the window-only message. Blind-only batches,
+unrelated openings, arrival delivery, presence gates and unload discard are
+unchanged.
+
+The focused state/notification/coordinator gate passes 38/38. The canonical
+WSL verifier passes 209/209 at 95.64% branch coverage with Ruff, formatting,
+strict mypy, artifact/secret, replay, privacy and zero-actuator checks green.
+Consolidated Ponytail review reports `Lean already. Ship.` Publication and
+protected live verification remain.

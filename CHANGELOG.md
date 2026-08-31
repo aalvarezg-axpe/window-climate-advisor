@@ -5,6 +5,24 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0rc4 - 2026-08-31
+
+### Changed
+
+- An ordinary window-change batch now waits for a blind on the same opening
+  when that blind is already inside its existing confirmation period. A
+  confirmed blind joins the same multiline notification, reducing separate
+  window and blind work rounds.
+- The normal batch remains 10 minutes. Pairing retries use the existing
+  5-minute coordinator cadence and stop at 20 minutes from the first change;
+  cancellation or the hard bound flushes the window-only advice.
+
+### Safety and privacy
+
+- Blind-only batches, immediate arrivals, presence checks and unload discard
+  are unchanged. The change adds no option, helper, entity, dependency, queue,
+  persistence, service or actuator action.
+
 ## 0.2.0rc3 - 2026-08-31
 
 ### Fixed

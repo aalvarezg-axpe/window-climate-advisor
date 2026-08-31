@@ -58,6 +58,7 @@ from .domain.profiles import SelectionMode, select_season
 _LOGGER = logging.getLogger(__name__)
 _UPDATE_INTERVAL = timedelta(minutes=5)
 _NOTIFICATION_BATCH_WINDOW = timedelta(minutes=10)
+_NOTIFICATION_PAIRING_RETRIES = 2
 _STORE_VERSION = 1
 
 
@@ -138,6 +139,7 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self._pending_notification: NotificationCandidate | None = None
         self._pending_notification_people: set[str] = set()
         self._cancel_notification_timer: Callable[[], None] | None = None
+        self._notification_pairing_retries = 0
 
         @callback
         def request_refresh(event: Event[Any]) -> None:
@@ -162,6 +164,7 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self._cancel_notification_timer = None
         self._pending_notification = None
         self._pending_notification_people.clear()
+        self._notification_pairing_retries = 0
 
     @callback
     def _queue_notification_candidate(
@@ -185,6 +188,7 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
         )
         self._pending_notification_people.update(eligible_people)
         if self._cancel_notification_timer is None:
+            self._notification_pairing_retries = _NOTIFICATION_PAIRING_RETRIES
             self._cancel_notification_timer = async_call_later(
                 self.hass,
                 _NOTIFICATION_BATCH_WINDOW,
@@ -192,12 +196,31 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
             )
 
     async def _async_flush_notification_batch(self, _: datetime) -> None:
-        """Deliver and clear one fixed ordinary notification batch."""
+        """Deliver one batch, briefly waiting for its paired blind change."""
         candidate = self._pending_notification
+        if (
+            candidate is not None
+            and self._notification_pairing_retries > 0
+            and any(
+                change.window_changed
+                and not change.blind_changed
+                and (opening := self._state.openings.get(change.opening_id)) is not None
+                and opening.pending_blind is not None
+                for change in candidate.changes
+            )
+        ):
+            self._notification_pairing_retries -= 1
+            self._cancel_notification_timer = async_call_later(
+                self.hass,
+                _UPDATE_INTERVAL,
+                self._async_flush_notification_batch,
+            )
+            return
         included_people = set(self._pending_notification_people)
         self._cancel_notification_timer = None
         self._pending_notification = None
         self._pending_notification_people.clear()
+        self._notification_pairing_retries = 0
         await async_deliver_notification_candidate(
             self.hass,
             self.config_entry,

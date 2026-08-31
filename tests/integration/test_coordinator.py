@@ -21,6 +21,7 @@ from custom_components.window_climate_advisor.application.evaluator import (
     evaluate_snapshot,
 )
 from custom_components.window_climate_advisor.application.state import (
+    AdvisorState,
     NotificationCandidate,
     OpeningChange,
 )
@@ -46,7 +47,9 @@ from custom_components.window_climate_advisor.domain.policy import (
 )
 from custom_components.window_climate_advisor.domain.profiles import Season
 from custom_components.window_climate_advisor.domain.state_machine import (
+    BlindDirection,
     OpeningStabilityState,
+    PendingBlind,
 )
 from tests.integration.test_adapters import entry, set_ready_states
 from tests.integration.test_config_flow import VALID_OPTIONS
@@ -410,3 +413,157 @@ async def test_ordinary_changes_use_one_fixed_batch_and_discard_on_unload(
         coordinator._cancel_notification_batch()
         cancel.assert_called()
         assert coordinator._pending_notification is None
+
+
+async def test_window_batch_waits_for_and_merges_same_opening_blind(
+    hass: HomeAssistant,
+) -> None:
+    """Deliver one work round when blind confirmation follows the window."""
+    config_entry = entry(recipient=True)
+    config_entry.add_to_hass(hass)
+    coordinator = WindowClimateAdvisorCoordinator(hass, config_entry)
+    now = dt_util.utcnow()
+    window = NotificationCandidate(
+        (
+            OpeningChange(
+                "opening-a",
+                OpeningStabilityState(WindowState.CLOSED, BlindOpening(100)),
+                ReasonCode.SOLAR_GAIN,
+                True,
+                False,
+            ),
+        )
+    )
+    coordinator._state = AdvisorState(
+        {
+            "opening-a": OpeningStabilityState(
+                WindowState.CLOSED,
+                BlindOpening(100),
+                pending_blind=PendingBlind(
+                    BlindDirection.LOWER,
+                    BlindOpening(20),
+                    now,
+                ),
+            )
+        }
+    )
+    scheduled: list[tuple[timedelta, object]] = []
+
+    def schedule(_: object, delay: timedelta, action: object) -> Mock:
+        scheduled.append((delay, action))
+        return Mock()
+
+    with (
+        patch(
+            "custom_components.window_climate_advisor.coordinator.home_notification_recipient_persons",
+            return_value=("person.resident",),
+        ),
+        patch(
+            "custom_components.window_climate_advisor.coordinator.async_call_later",
+            side_effect=schedule,
+        ),
+        patch(
+            "custom_components.window_climate_advisor.coordinator.async_deliver_notification_candidate",
+            new_callable=AsyncMock,
+            return_value=1,
+        ) as deliver,
+    ):
+        coordinator._queue_notification_candidate(window, ())
+        assert scheduled[0][0] == timedelta(minutes=10)
+        await scheduled[0][1](now)
+        deliver.assert_not_awaited()
+        assert scheduled[1][0] == timedelta(minutes=5)
+
+        confirmed = NotificationCandidate(
+            (
+                OpeningChange(
+                    "opening-a",
+                    OpeningStabilityState(WindowState.CLOSED, BlindOpening(20)),
+                    ReasonCode.SOLAR_GAIN,
+                    False,
+                    True,
+                ),
+            )
+        )
+        coordinator._state = AdvisorState(
+            {
+                "opening-a": OpeningStabilityState(
+                    WindowState.CLOSED,
+                    BlindOpening(20),
+                )
+            }
+        )
+        coordinator._queue_notification_candidate(confirmed, ())
+        await scheduled[1][1](now + timedelta(minutes=5))
+
+        deliver.assert_awaited_once()
+        delivered = deliver.await_args.args[2]
+        assert isinstance(delivered, NotificationCandidate)
+        assert len(delivered.changes) == 1
+        assert delivered.changes[0].window_changed
+        assert delivered.changes[0].blind_changed
+        assert delivered.changes[0].state.blind == BlindOpening(20)
+
+
+async def test_window_batch_has_bounded_wait_for_unconfirmed_blind(
+    hass: HomeAssistant,
+) -> None:
+    """Never starve a window message when its blind remains pending."""
+    config_entry = entry(recipient=True)
+    config_entry.add_to_hass(hass)
+    coordinator = WindowClimateAdvisorCoordinator(hass, config_entry)
+    now = dt_util.utcnow()
+    candidate = NotificationCandidate(
+        (
+            OpeningChange(
+                "opening-a",
+                OpeningStabilityState(WindowState.CLOSED, BlindOpening(100)),
+                ReasonCode.SOLAR_GAIN,
+                True,
+                False,
+            ),
+        )
+    )
+    coordinator._state = AdvisorState(
+        {
+            "opening-a": OpeningStabilityState(
+                WindowState.CLOSED,
+                BlindOpening(100),
+                pending_blind=PendingBlind(
+                    BlindDirection.LOWER,
+                    BlindOpening(20),
+                    now,
+                ),
+            )
+        }
+    )
+    scheduled: list[object] = []
+
+    def schedule(_: object, __: timedelta, action: object) -> Mock:
+        scheduled.append(action)
+        return Mock()
+
+    with (
+        patch(
+            "custom_components.window_climate_advisor.coordinator.home_notification_recipient_persons",
+            return_value=("person.resident",),
+        ),
+        patch(
+            "custom_components.window_climate_advisor.coordinator.async_call_later",
+            side_effect=schedule,
+        ),
+        patch(
+            "custom_components.window_climate_advisor.coordinator.async_deliver_notification_candidate",
+            new_callable=AsyncMock,
+            return_value=1,
+        ) as deliver,
+    ):
+        coordinator._queue_notification_candidate(candidate, ())
+        await scheduled[0](now + timedelta(minutes=10))
+        await scheduled[1](now + timedelta(minutes=15))
+        deliver.assert_not_awaited()
+        await scheduled[2](now + timedelta(minutes=20))
+
+        deliver.assert_awaited_once()
+        assert coordinator._pending_notification is None
+        assert coordinator._notification_pairing_retries == 0

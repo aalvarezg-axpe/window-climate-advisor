@@ -43,11 +43,14 @@ content.
   still-actionable components appear and weather-forced rows show a concise
   reason. Summer optimizer targets below full opening carry the bounded cause
   already selected by evaluation; delivery never infers it from text or state.
-- Ordinary candidates are merged for one fixed 10-minute window beginning at
-  the first change. The latest target/reason per opening and combined changed
-  components produce at most one deterministic message. The batch is memory
-  only, is discarded on unload, and does not introduce a configurable timer or
-  persisted queue.
+- Ordinary candidates normally merge for 10 minutes beginning at the first
+  change. If a retained window change has a blind on the same opening still
+  inside its existing confirmation period, delivery retries on the existing
+  5-minute coordinator cadence up to 20 minutes from that first change. A
+  confirmed blind joins the same deterministic message; cancellation or the
+  hard bound flushes the window-only advice. Blind-only and unrelated batches
+  retain the normal deadline. The batch is memory only, is discarded on
+  unload, and introduces neither a configurable timer nor a persisted queue.
 - A coupled optimizer window/blind target is published coherently: a new blind
   direction reuses the existing 15-minute confirmation before the window state
   changes, while a confirmed same-direction percentage change is explicitly

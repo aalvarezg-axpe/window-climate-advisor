@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.27
+> Document version: 0.28
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-31
 > Current state: **active / Phase 02**
@@ -401,9 +401,14 @@ still targets entity IDs through Home Assistant's fixed
 stored or inferred.
 
 Accepted ordinary stable window or blind target changes are retained only in
-one non-persistent batch beginning with the first change and delivered at most
-once after its fixed 10-minute window. The latest state and reason per opening
-win while its changed window/blind components are combined. A recipient is
+one non-persistent batch beginning with the first change. Its normal delivery
+deadline is 10 minutes. When that batch contains a window change and the same
+opening still has a blind change inside its existing confirmation period,
+delivery may be retried at 5-minute coordinator intervals, but never later than
+20 minutes from the first change. A confirmed blind change joins the retained
+window change; a cancelled or still-unconfirmed blind does not delay delivery
+beyond that bound. The latest state and reason per opening win while its changed
+window/blind components are combined. A recipient is
 eligible only if a usable linked device is `home` when a retained change occurs
 and remains `home` at delivery; a person with several home devices may receive
 the same consolidated advice on each of them. Unload cancels and discards the
