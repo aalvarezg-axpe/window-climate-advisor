@@ -46,6 +46,7 @@ from custom_components.window_climate_advisor.const import (
     CONF_HUMIDITY_ENTITY_ID,
     CONF_MINIMUM_BENEFIT_W,
     CONF_MISSING_FORECAST_CHANGE_PENALTY_W,
+    CONF_OCCUPANCY_PERSON_ENTITY_IDS,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
     CONF_OVERHANG_DEPTH_M,
     CONF_OVERHANG_GAP_M,
@@ -205,6 +206,7 @@ async def test_user_flow_shows_typed_form_and_creates_entry(
         CONF_WIND_DIRECTION_ENTITY_ID,
         CONF_WIND_GUST_ENTITY_ID,
         CONF_RAIN_ENTITY_ID,
+        CONF_OCCUPANCY_PERSON_ENTITY_IDS,
     }
 
     result = await hass.config_entries.flow.async_configure(
@@ -294,10 +296,13 @@ async def test_reconfigure_flow_updates_existing_entry(hass: HomeAssistant) -> N
     """Reconfigure a dwelling without replacing its config-entry identity."""
     entry = MockConfigEntry(domain=DOMAIN, data=VALID_INPUT, title="Casa")
     entry.add_to_hass(hass)
+    hass.states.async_set("person.antonio", STATE_HOME)
+    hass.states.async_set("person.elisa", STATE_HOME)
     updated_input = {
         **VALID_INPUT,
         CONF_NAME: "Casa actualizada",
         CONF_OUTDOOR_TEMPERATURE_ENTITY_ID: "sensor.outdoor_temperature_2",
+        CONF_OCCUPANCY_PERSON_ENTITY_IDS: ["person.antonio", "person.elisa"],
     }
 
     result = await hass.config_entries.flow.async_init(
@@ -321,6 +326,29 @@ async def test_reconfigure_flow_updates_existing_entry(hass: HomeAssistant) -> N
     assert entry.data == updated_input
 
 
+async def test_flow_rejects_invalid_or_duplicate_occupancy_people(
+    hass: HomeAssistant,
+) -> None:
+    """Store only existing unique person entities for thermal occupancy."""
+    hass.states.async_set("person.antonio", STATE_HOME)
+    for people in (
+        ["person.missing"],
+        ["person.antonio", "person.antonio"],
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                **VALID_INPUT,
+                CONF_OCCUPANCY_PERSON_ENTITY_IDS: people,
+            },
+        )
+        assert result["type"] == "form"
+        assert result["errors"] == {"base": "invalid_occupancy_people"}
+
+
 def test_invalid_entity_domain_is_rejected() -> None:
     """Reject an entity that does not belong to its typed selector domain."""
     invalid_input = {
@@ -337,6 +365,13 @@ def test_invalid_entity_domain_is_rejected() -> None:
         ]
         == "sensor.rain_rate"
     )
+    with pytest.raises(vol.Invalid):
+        CONFIG_SCHEMA(
+            {
+                **VALID_INPUT,
+                CONF_OCCUPANCY_PERSON_ENTITY_IDS: ["device_tracker.antonio"],
+            }
+        )
 
 
 def test_blank_dwelling_name_is_rejected() -> None:

@@ -19,6 +19,7 @@ CONF_WIND_DIRECTION_ENTITY_ID: Final = "wind_direction_entity_id"
 CONF_WIND_GUST_ENTITY_ID: Final = "wind_gust_entity_id"
 CONF_RAIN_ENTITY_ID: Final = "rain_entity_id"
 CONF_PERSON_ENTITY_ID: Final = "person_entity_id"
+CONF_OCCUPANCY_PERSON_ENTITY_IDS: Final = "occupancy_person_entity_ids"
 # Retained only to migrate the published schema-v4 beta recipient contract.
 CONF_NOTIFY_ENTITY_ID: Final = "notify_entity_id"
 

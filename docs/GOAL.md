@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.25
+> Document version: 0.26
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-31
 > Current state: **active / Phase 02**
@@ -136,11 +136,13 @@ implemented in the custom integration and traced as follows:
 - Global outdoor-temperature, weather/forecast, radiation, wind, and rain
   source selection through typed Home Assistant selectors; solar position comes
   from Home Assistant's built-in `sun` integration when the evaluator consumes
-  it. Daily forecast maxima currently select only the seasonal profile and are
-  labelled accordingly. The live optimizer has no thermal forecast horizon
-  because the standard weather contract and configured sources do not provide
-  future irradiance; the product states that absence explicitly and applies
-  its missing-horizon penalty instead of inventing solar or indoor conditions.
+  it. Daily forecast maxima select the seasonal profile; in Summer, today's
+  first maximum is also a bounded heat-risk switch for diffuse blind
+  protection, not a predicted thermal state. The live optimizer has no thermal
+  forecast horizon because the standard weather contract and configured
+  sources do not provide future irradiance; the product states that absence
+  explicitly and applies its missing-horizon penalty instead of inventing solar
+  or indoor conditions.
 - Pure Python domain models for geometry, solar exposure, ventilation, thermal
   balance, safety, strategy, hysteresis, and recommendation aggregation.
 - Deterministic joint evaluation of window state and recommended blind opening,
@@ -257,10 +259,12 @@ supplied `None` as every opening's thermal forecast horizon; domain-only replay
 coverage did not detect that disconnect. Phase 01 cannot close until the
 forecast contract is either implemented end to end or deliberately narrowed in
 the public product contract. P01-T16 deliberately narrows it: the diagnostic
-flag describes profile selection only, and a production-boundary regression
-proves the daily maxima do not enter `OptimizationRequest` as thermal
-conditions. A later real horizon requires a demonstrated, time-aligned future
-irradiance source and an explicit indoor reference contract.
+flag and production-boundary regression distinguish daily forecast availability
+from a thermal forecast horizon. P02-T17 may pass today's first maximum only as
+a heat-risk context value; it still does not enter `OptimizationRequest` as
+invented thermal conditions. A later real horizon requires a demonstrated,
+time-aligned future irradiance source and an explicit indoor reference
+contract.
 
 The owner froze one-sided seasonal intent on 2026-08-30 and corrected its
 Summer stop boundary after a live false-tilt reproduction. Summer may actively
@@ -297,15 +301,25 @@ evidence later supplies a defensible correction.
 
 Summer blind solar protection uses the same direct projection and overhang
 geometry as the façade model. The fixed diffuse vertical component remains in
-the thermal load used to compare window positions, but when the direct
-projected component is zero the Summer optimizer admits only a fully raised
-blind. This prevents a small diffuse estimate and persisted movement penalties
-from retaining a 10% manual blind target after the sun has left that opening.
-It adds no threshold or user setting: the existing geometric front/overhang
-boundary is the decision. Because 100% is then a functional constraint rather
-than an optional thermal improvement, the minimum-benefit veto cannot discard
-it; the normal 15-minute blind confirmation still applies. Winter retains its
-night-insulation candidate space.
+the joint window/blind thermal load. With no direct projection, a fully raised
+blind remains the required default and cannot be discarded by the optional
+minimum-benefit veto. P02-T17 unlocks the existing candidate space only when
+current outdoor temperature or today's first daily maximum reaches the active
+Summer upper bound. While the dwelling is occupied, the room must also have
+reached that upper bound; when every selected occupant is known away, the lower
+bound permits earlier protection. Below the lower bound diffuse radiation alone
+never justifies shading. This reuses the configured comfort bounds and adds no
+separate heat or radiation threshold. The normal 15-minute blind confirmation,
+direct-sun behaviour and Winter night-insulation candidates remain unchanged.
+
+Dwelling occupancy for thermal policy is an optional structural selection of
+native `person` entities and is deliberately independent of notification
+recipients. The dwelling is unoccupied only when every selected person has a
+known non-`home` state; an empty selection, missing person or
+`unknown`/`unavailable` state remains conservatively occupied. Relevant person
+state changes trigger a fresh evaluation. This policy does not infer presence
+from VPN, Wi-Fi, names or device connectivity and does not authorize an
+actuator.
 
 Missing or stale safety inputs do not become zero wind, no rain, or favourable
 temperature. Degradation is explicit in recommendation, availability, reason
@@ -395,6 +409,13 @@ removed from any pending ordinary batch and receives only this immediate fresh
 summary. Contact and cover feedback suppress targets already satisfied; when a
 manual blind position cannot be observed, the arrival message states that
 explicitly.
+
+Thermal occupants and notification recipients are separate configured sets.
+Away-time blind recommendations may change under the more protective empty-home
+policy, but the existing event-time and delivery-time recipient gates still
+create neither a pending batch nor a message while no recipient device is home.
+An arrival triggers a fresh occupied evaluation before actionable advice is
+formatted, so an empty-home target is not replayed as stale work.
 
 Notification bodies separate `Windows` and `Blinds` into multiline bullet
 sections and include only the component that changed or remains actionable. A

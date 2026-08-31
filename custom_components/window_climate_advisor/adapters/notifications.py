@@ -48,6 +48,9 @@ _NOTIFICATION_TEXT = {
         ReasonCode.SOLAR_GAIN.value: (
             "Estimated facade radiation exceeds ventilation cooling"
         ),
+        ReasonCode.DIFFUSE_HEAT_PROTECTION.value: (
+            "Outdoor heat and diffuse radiation protection"
+        ),
         ReasonCode.STABILITY_MARGIN.value: (
             "Opening benefit is below the stability margin"
         ),
@@ -70,6 +73,9 @@ _NOTIFICATION_TEXT = {
         ReasonCode.OUTDOOR_NOT_COOLER.value: "El aire exterior no está más fresco",
         ReasonCode.SOLAR_GAIN.value: (
             "La radiación estimada en fachada supera la refrigeración al ventilar"
+        ),
+        ReasonCode.DIFFUSE_HEAT_PROTECTION.value: (
+            "Protección ante calor exterior y radiación difusa"
         ),
         ReasonCode.STABILITY_MARGIN.value: (
             "La mejora de abrir no supera el margen de estabilidad"

@@ -39,6 +39,7 @@ from .application.state import (
 )
 from .config_flow import (
     has_duplicate_entity_links,
+    occupancy_person_entity_ids,
     profiles_from_options,
     settings_from_options,
 )
@@ -80,13 +81,32 @@ def _arrival_person_entity_id(entry: ConfigEntry, event: Event[Any]) -> str | No
     return None
 
 
+def _dwelling_occupied(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Treat only an entirely known-away selected group as unoccupied."""
+    try:
+        entity_ids = occupancy_person_entity_ids(entry.data)
+    except ValueError:
+        return True
+    if not entity_ids:
+        return True
+    for entity_id in entity_ids:
+        state = hass.states.get(entity_id)
+        if state is None or state.state in {
+            STATE_HOME,
+            STATE_UNAVAILABLE,
+            STATE_UNKNOWN,
+        }:
+            return True
+    return False
+
+
 @dataclass(frozen=True, slots=True)
 class CoordinatorData:
     """Published evaluation plus redacted source quality."""
 
     evaluation: AdvisorEvaluation
     source_quality: dict[str, str]
-    profile_forecast_available: bool
+    daily_forecast_available: bool
 
 
 class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
@@ -238,13 +258,19 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
         season = None
         profile = None
-        profile_forecast_available = False
+        daily_forecast_available = False
+        today_forecast_max_c = None
         if profiles is not None and settings is not None:
             forecast = await async_daily_forecast(
                 self.hass,
                 self.config_entry.data[CONF_WEATHER_ENTITY_ID],
             )
-            profile_forecast_available = forecast.available
+            daily_forecast_available = forecast.available
+            today_forecast_max_c = (
+                forecast.maximum_temperatures_c[0]
+                if forecast.maximum_temperatures_c
+                else None
+            )
             temperatures = built.indoor_temperatures_c
             season = select_season(
                 SelectionMode(self.config_entry.options[CONF_SELECTION_MODE]),
@@ -257,7 +283,13 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
             profile = profiles.for_season(season)
 
         evaluation = evaluate_snapshot(
-            EvaluationSnapshot(season, profile, built.openings),
+            EvaluationSnapshot(
+                season,
+                profile,
+                built.openings,
+                today_forecast_max_c,
+                _dwelling_occupied(self.hass, self.config_entry),
+            ),
             self._state,
             now,
             settings,
@@ -299,7 +331,7 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
         quality["options"] = (
             "ready" if settings is not None else "configuration_required"
         )
-        return CoordinatorData(evaluation, quality, profile_forecast_available)
+        return CoordinatorData(evaluation, quality, daily_forecast_available)
 
 
 type WindowClimateAdvisorConfigEntry = ConfigEntry[WindowClimateAdvisorCoordinator]

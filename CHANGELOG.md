@@ -5,6 +5,30 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0rc2 - 2026-08-31
+
+### Added
+
+- Dwelling reconfiguration can select the native `person` entities that define
+  thermal occupancy independently from notification recipients.
+- Summer diffuse-radiation protection now reuses current outdoor temperature,
+  today's first daily maximum and the active comfort bounds. While occupied it
+  starts at the upper bound; when every selected person is known away it may
+  start at the lower bound.
+- Accepted no-direct-sun blind targets below 100% expose the concrete reason
+  `Outdoor heat and diffuse radiation protection`, translated in entities and
+  notifications.
+
+### Safety and privacy
+
+- Empty, missing, unknown or unavailable occupancy remains conservatively
+  occupied. Away-time changes still create neither a notification batch nor a
+  message, and arrival advice is recalculated under the occupied policy.
+- The daily maximum is only a heat-risk switch, not an invented thermal
+  forecast. Direct sun, weather safety, stability and the zero-actuator boundary
+  are unchanged. No helper, entity, dependency, service or additional heat
+  threshold was added.
+
 ## 0.2.0rc1 - 2026-08-31
 
 ### Distribution

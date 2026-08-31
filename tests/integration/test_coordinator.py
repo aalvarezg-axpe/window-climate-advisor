@@ -6,17 +6,26 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from homeassistant.components.weather import SERVICE_GET_FORECASTS
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import STATE_HOME, STATE_NOT_HOME, STATE_UNAVAILABLE
+from homeassistant.const import (
+    STATE_HOME,
+    STATE_NOT_HOME,
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
+)
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.util import dt as dt_util
 
-from custom_components.window_climate_advisor.application.evaluator import InputIssue
+from custom_components.window_climate_advisor.application.evaluator import (
+    InputIssue,
+    evaluate_snapshot,
+)
 from custom_components.window_climate_advisor.application.state import (
     NotificationCandidate,
     OpeningChange,
 )
 from custom_components.window_climate_advisor.const import (
+    CONF_OCCUPANCY_PERSON_ENTITY_IDS,
     CONF_PERSON_ENTITY_ID,
     CONF_WIND_GUST_ENTITY_ID,
     CONF_WIND_SPEED_ENTITY_ID,
@@ -24,6 +33,7 @@ from custom_components.window_climate_advisor.const import (
 )
 from custom_components.window_climate_advisor.coordinator import (
     WindowClimateAdvisorCoordinator,
+    _dwelling_occupied,
 )
 from custom_components.window_climate_advisor.domain.models import (
     BlindOpening,
@@ -58,7 +68,7 @@ async def test_incomplete_options_load_as_explicit_degradation(
     assert opening.recommendation is Recommendation.DEGRADED
     assert opening.reason is InputIssue.CONFIGURATION_REQUIRED
     assert coordinator.data.source_quality["options"] == "configuration_required"
-    assert not coordinator.data.profile_forecast_available
+    assert not coordinator.data.daily_forecast_available
 
 
 async def test_configured_coordinator_uses_forecast_persists_and_refreshes(
@@ -67,11 +77,27 @@ async def test_configured_coordinator_uses_forecast_persists_and_refreshes(
     """Evaluate configured sources, persist state, and debounce state events."""
     config_entry = entry()
     object.__setattr__(
+        config_entry,
+        "data",
+        type(config_entry.data)(
+            {
+                **config_entry.data,
+                CONF_OCCUPANCY_PERSON_ENTITY_IDS: [
+                    "person.antonio",
+                    "person.elisa",
+                ],
+            }
+        ),
+    )
+    object.__setattr__(
         config_entry, "options", type(config_entry.options)(VALID_OPTIONS)
     )
     config_entry.add_to_hass(hass)
     config_entry.mock_state(hass, ConfigEntryState.SETUP_IN_PROGRESS)
     set_ready_states(hass)
+    hass.states.async_set("person.antonio", STATE_NOT_HOME)
+    hass.states.async_set("person.elisa", STATE_NOT_HOME)
+    hass.states.async_set("sun.sun", "above_horizon", {"azimuth": 0, "elevation": 30})
 
     async def forecast(_: ServiceCall) -> dict[str, object]:
         return {"weather.home": {"forecast": [{"temperature": 30}]}}
@@ -89,18 +115,26 @@ async def test_configured_coordinator_uses_forecast_persists_and_refreshes(
             "custom_components.window_climate_advisor.application.evaluator.optimize_opening",
             wraps=optimize_opening,
         ) as optimizer,
+        patch(
+            "custom_components.window_climate_advisor.coordinator.evaluate_snapshot",
+            wraps=evaluate_snapshot,
+        ) as evaluator,
         patch.object(coordinator, "_queue_notification_candidate") as queue,
     ):
         await coordinator.async_config_entry_first_refresh()
 
     assert coordinator.data.evaluation.season is Season.SUMMER
-    assert coordinator.data.profile_forecast_available
+    assert coordinator.data.daily_forecast_available
     optimizer.assert_called_once()
+    snapshot = evaluator.call_args.args[0]
+    assert snapshot.today_forecast_max_c == 30
+    assert not snapshot.dwelling_occupied
     queue.assert_called_once_with(
         coordinator.data.evaluation.notification_candidate,
         (),
     )
     assert optimizer.call_args.args[0].forecast_conditions is None
+    assert optimizer.call_args.args[0].allow_diffuse_blind_protection
     assert coordinator.data.source_quality["options"] == "ready"
     with patch.object(
         coordinator, "async_request_refresh", new_callable=AsyncMock
@@ -112,6 +146,34 @@ async def test_configured_coordinator_uses_forecast_persists_and_refreshes(
     restored = WindowClimateAdvisorCoordinator(hass, config_entry)
     await restored.async_config_entry_first_refresh()
     assert restored.data.evaluation.state == coordinator.data.evaluation.state
+
+
+def test_dwelling_occupancy_requires_every_selected_person_known_away(
+    hass: HomeAssistant,
+) -> None:
+    """Fail conservatively for empty configuration and unusable person states."""
+    config_entry = entry()
+    assert _dwelling_occupied(hass, config_entry)
+    object.__setattr__(
+        config_entry,
+        "data",
+        type(config_entry.data)(
+            {
+                **config_entry.data,
+                CONF_OCCUPANCY_PERSON_ENTITY_IDS: [
+                    "person.antonio",
+                    "person.elisa",
+                ],
+            }
+        ),
+    )
+
+    hass.states.async_set("person.antonio", STATE_NOT_HOME)
+    hass.states.async_set("person.elisa", "work")
+    assert not _dwelling_occupied(hass, config_entry)
+    for state in (STATE_HOME, STATE_UNKNOWN, STATE_UNAVAILABLE):
+        hass.states.async_set("person.elisa", state)
+        assert _dwelling_occupied(hass, config_entry)
 
 
 async def test_invalid_structural_storage_fails_setup_explicitly(

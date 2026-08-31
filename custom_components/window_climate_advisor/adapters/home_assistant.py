@@ -299,6 +299,13 @@ def configured_entity_ids(entry: ConfigEntry) -> set[str]:
             for key, value in subentry.data.items()
             if key.endswith("_entity_id") and isinstance(value, str)
         )
+    entity_ids.update(
+        entity_id
+        for key, values in entry.data.items()
+        if key.endswith("_entity_ids") and isinstance(values, list | tuple)
+        for entity_id in values
+        if isinstance(entity_id, str)
+    )
     entity_ids.add(_SUN_ENTITY_ID)
     return entity_ids
 

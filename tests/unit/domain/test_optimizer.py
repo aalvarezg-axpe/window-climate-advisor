@@ -37,6 +37,7 @@ def request(
     supports_tilt: bool = True,
     has_blind: bool = True,
     direct_sun_on_opening: bool = True,
+    allow_diffuse_blind_protection: bool = False,
 ) -> OptimizationRequest:
     """Build one concise typed request for tests."""
     return OptimizationRequest(
@@ -49,6 +50,7 @@ def request(
         supports_tilt=supports_tilt,
         has_blind=has_blind,
         direct_sun_on_opening=direct_sun_on_opening,
+        allow_diffuse_blind_protection=allow_diffuse_blind_protection,
     )
 
 
@@ -338,6 +340,24 @@ def test_diffuse_only_radiation_keeps_the_blind_fully_raised() -> None:
     assert result.current.current_load.solar_w > 0
     assert result.best.action.blind == BlindOpening(100)
     assert result.evaluated_candidates == 3
+
+
+def test_bounded_heat_context_unlocks_diffuse_blind_candidates() -> None:
+    """Reuse the joint optimizer once application policy authorizes shading."""
+    result = optimize_opening(
+        request(
+            ThermalConditions(27, 30, 120),
+            season=Season.SUMMER,
+            current_action=CandidateAction(WindowState.TILT, BlindOpening(100)),
+            direct_sun_on_opening=False,
+            allow_diffuse_blind_protection=True,
+        ),
+        ZERO_PENALTIES,
+    )
+
+    assert result.current.current_load.solar_w > 0
+    assert result.best.action.blind.percent < 100
+    assert result.evaluated_candidates == 31
 
 
 def test_no_direct_sun_does_not_remove_winter_night_insulation() -> None:

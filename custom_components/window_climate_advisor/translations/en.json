@@ -12,7 +12,8 @@
           "wind_speed_entity_id": "Wind speed",
           "wind_direction_entity_id": "Wind direction",
           "wind_gust_entity_id": "Wind gust",
-          "rain_entity_id": "Rain rate or wet/dry sensor"
+          "rain_entity_id": "Rain rate or wet/dry sensor",
+          "occupancy_person_entity_ids": "People who define dwelling occupancy"
         }
       },
       "reconfigure": {
@@ -26,7 +27,8 @@
           "wind_speed_entity_id": "Wind speed",
           "wind_direction_entity_id": "Wind direction",
           "wind_gust_entity_id": "Wind gust",
-          "rain_entity_id": "Rain rate or wet/dry sensor"
+          "rain_entity_id": "Rain rate or wet/dry sensor",
+          "occupancy_person_entity_ids": "People who define dwelling occupancy"
         }
       }
     },
@@ -34,7 +36,8 @@
       "reconfigure_successful": "The dwelling was reconfigured."
     },
     "error": {
-      "duplicate_entity_link": "Each Home Assistant entity can be assigned to only one dwelling input."
+      "duplicate_entity_link": "Each Home Assistant entity can be assigned to only one dwelling input.",
+      "invalid_occupancy_people": "Select only existing Home Assistant person entities, without duplicates. An empty selection keeps the conservative occupied policy."
     }
   },
   "options": {
@@ -99,6 +102,7 @@
               "summer_comfort_floor": "The lower comfort limit prevents further cooling",
               "outdoor_not_cooler": "Outdoor air is not cooler than the room",
               "solar_gain": "Estimated facade radiation exceeds ventilation cooling",
+              "diffuse_heat_protection": "Outdoor heat and diffuse radiation protection",
               "stability_margin": "Opening benefit is below the stability margin",
               "stability_confirmation": "Waiting for stable confirmation before opening further",
               "wind_close": "Wind requires closing",

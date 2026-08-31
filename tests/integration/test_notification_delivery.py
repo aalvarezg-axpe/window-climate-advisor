@@ -407,6 +407,43 @@ async def test_delivery_lists_only_changed_components_and_skips_degraded_rows(
     }
 
 
+async def test_delivery_explains_diffuse_heat_blind_protection(
+    hass: HomeAssistant,
+) -> None:
+    """Render the bounded heat cause instead of an opaque optimizer label."""
+    entry = _entry()
+    hass.config.language = "es"
+    targets = _set_recipient_states(hass)
+    calls: list[ServiceCall] = []
+
+    async def send_message(call: ServiceCall) -> None:
+        calls.append(call)
+
+    hass.services.async_register(NOTIFY_DOMAIN, SERVICE_SEND_MESSAGE, send_message)
+    candidate = NotificationCandidate(
+        (
+            _change(
+                entry,
+                "Salón · SE",
+                WindowState.OPEN,
+                70,
+                ReasonCode.DIFFUSE_HEAT_PROTECTION,
+                window_changed=False,
+            ),
+        )
+    )
+
+    assert await async_deliver_notification_candidate(hass, entry, candidate) == 1
+    assert calls[0].data == {
+        ATTR_ENTITY_ID: targets["first"],
+        ATTR_MESSAGE: (
+            "Persianas:\n"
+            "- Salón: 70% (Protección ante calor exterior y radiación difusa)"
+        ),
+        ATTR_TITLE: "Casa",
+    }
+
+
 async def test_delivery_calls_a_shared_mobile_target_only_once(
     hass: HomeAssistant,
 ) -> None:

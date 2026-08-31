@@ -24,6 +24,7 @@ class ReasonCode(StrEnum):
     SUMMER_COMFORT_FLOOR = "summer_comfort_floor"
     OUTDOOR_NOT_COOLER = "outdoor_not_cooler"
     SOLAR_GAIN = "solar_gain"
+    DIFFUSE_HEAT_PROTECTION = "diffuse_heat_protection"
     STABILITY_MARGIN = "stability_margin"
     STABILITY_CONFIRMATION = "stability_confirmation"
     WIND_CLOSE = "wind_close"

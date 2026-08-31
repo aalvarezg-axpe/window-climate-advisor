@@ -6,7 +6,7 @@ outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
 The project is in **Phase 02 contextual-notification validation**. Candidate
-`v0.2.0rc1` stores only recipient persons, discovers their associated Home
+`v0.2.0rc2` stores only recipient persons, discovers their associated Home
 Assistant Mobile App devices through native registries, sends stable-change
 summaries only to those devices currently home, and gives fresh advice when a
 configured occupant arrives. Live-verified `v0.1.0b5` remains the integration
@@ -43,11 +43,13 @@ Current solar load is projected per opening from global radiation,
 position data degrades the recommendation instead of inventing a favourable
 value.
 
-Daily weather maxima select the automatic comfort profile. The live adapter
-does not claim a thermal forecast horizon: Home Assistant's standard weather
-forecast has no future irradiance field, and no configured source provides one.
-The optimizer therefore applies its explicit missing-horizon penalty instead
-of inventing future solar load or indoor temperature.
+Daily weather maxima select the automatic comfort profile. In Summer, today's
+first maximum also acts as a bounded heat-risk switch for diffuse-radiation
+blind protection; it is not treated as a predicted room state. The live adapter
+still does not claim a thermal forecast horizon: Home Assistant's standard
+weather forecast has no future irradiance field, and no configured source
+provides one. The optimizer therefore applies its explicit missing-horizon
+penalty instead of inventing future solar load or indoor temperature.
 
 Seasonal intent is explicit at the optimizer boundary. Summer uses available
 free cooling until the room reaches its lower comfort boundary plus hysteresis,
@@ -67,10 +69,12 @@ building simulation. It combines projected solar gain, glazing conduction, and
 single-sided ventilation in watts for every feasible window/blind candidate.
 Blind opening scales effective free area linearly as the accepted bounded
 estimate; the integration does not claim measured room response or airflow.
-Diffuse façade radiation remains in that thermal balance, but during Summer a
-lowered blind is considered only while direct projected sun reaches the opening
-after orientation and overhang shade. Winter retains its night-insulation
-candidate space.
+Diffuse façade radiation remains in that thermal balance. During Summer, direct
+projected sun admits the full blind candidate space. Without direct sun, the
+default remains 100%; candidates below 100% are considered only when current or
+forecast outdoor heat reaches the Summer upper bound and the room has reached
+the upper bound while occupied, or the lower bound while every selected thermal
+occupant is known away. Winter retains its night-insulation candidate space.
 
 The initial entity surface is informational:
 
@@ -94,13 +98,16 @@ Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
 1. In HACS, open the menu and select **Custom repositories**.
 2. Add `https://github.com/aalvarezg-axpe/window-climate-advisor` as type
    **Integration**.
-3. Download the explicit prerelease `v0.2.0rc1`; enable prerelease tracking for
+3. Download the explicit prerelease `v0.2.0rc2`; enable prerelease tracking for
    this repository if HACS does not initially show it.
 4. Restart Home Assistant.
 5. Go to **Settings → Devices & services → Add integration**, search for
    **Window Climate Advisor**, complete its UI flows, and add recipient
    subentries by selecting each `person`. Associated Mobile App devices are
    discovered automatically and only devices currently home are notified.
+6. Reconfigure the dwelling and select the people whose presence defines the
+   thermal occupancy policy. This selection is independent of notification
+   recipients.
 
 This installs a recommendation and contextual-notification advisor without
 restoring the retired `v4.17_pre` automation or performing physical actions.

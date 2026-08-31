@@ -36,6 +36,7 @@ from custom_components.window_climate_advisor.const import (
     CONF_HAS_BLIND,
     CONF_HEIGHT_M,
     CONF_NAME,
+    CONF_OCCUPANCY_PERSON_ENTITY_IDS,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
     CONF_OVERHANG_DEPTH_M,
     CONF_OVERHANG_GAP_M,
@@ -234,6 +235,21 @@ def test_ready_snapshot_normalizes_sources_and_current_action(
     assert built.indoor_temperatures_c == (27,)
     assert "sensor.outdoor" in configured_entity_ids(config_entry)
     assert "sun.sun" in configured_entity_ids(config_entry)
+
+    object.__setattr__(
+        config_entry,
+        "data",
+        type(config_entry.data)(
+            {
+                **config_entry.data,
+                CONF_OCCUPANCY_PERSON_ENTITY_IDS: [
+                    "person.antonio",
+                    "person.elisa",
+                ],
+            }
+        ),
+    )
+    assert {"person.antonio", "person.elisa"} <= configured_entity_ids(config_entry)
 
 
 def test_snapshot_distinguishes_diffuse_load_from_direct_sun(

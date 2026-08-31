@@ -534,3 +534,30 @@ changed naturally to 100%, proving that rc1 preserves the delay and removes the
 b9 minimum-benefit veto. Exact formatter tests cover the concise `Cocina SO`
 and `Cocina NO` rows. No synthetic notification, option/source/recipient
 mutation or physical action occurred. P02-T16 terminates.
+
+## Local rc2 forecast- and occupancy-aware diffuse protection
+
+P02-T17 retains the Summer 100% blind default when geometry reports no direct
+sun, but conditionally unlocks the existing joint candidate space when current
+outdoor temperature or today's first daily maximum reaches the active Summer
+upper bound. While occupied, the room must also reach the upper bound; when
+every selected thermal occupant is known away, the lower bound permits earlier
+protection. The active profile therefore remains the only heat threshold and
+the daily maximum remains context rather than an invented thermal horizon.
+
+One optional multi-person dwelling selector separates thermal occupancy from
+notification recipients. Empty selection, missing person, and
+`unknown`/`unavailable` state remain conservatively occupied. The selected
+people are normal coordinator inputs. Accepted no-direct-sun blind targets
+below 100% carry the bounded diffuse-heat reason through the entity,
+diagnostics, ordinary notification and arrival formatter. Away-time delivery
+still creates no batch or message, and arrival performs a fresh occupied
+evaluation. No helper, entity, dependency, queue, service, physical action or
+separate heat/radiation setting was added.
+
+The exact focused optimizer/evaluator/config/adapter/coordinator/notification/
+manifest/replay gate passes 93/93. The canonical WSL verifier passes 204/204 at
+95.62% branch coverage with Ruff, formatting, strict mypy, artifact/secret,
+replay, privacy and zero-actuator checks green. Consolidated Ponytail review:
+`Lean already. Ship.` Publication, supported occupancy reconfiguration and
+protected live verification remain.

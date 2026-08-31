@@ -12,7 +12,8 @@
           "wind_speed_entity_id": "Velocidad del viento",
           "wind_direction_entity_id": "Dirección del viento",
           "wind_gust_entity_id": "Ráfaga de viento",
-          "rain_entity_id": "Intensidad de lluvia o sensor seco/mojado"
+          "rain_entity_id": "Intensidad de lluvia o sensor seco/mojado",
+          "occupancy_person_entity_ids": "Personas que determinan si la vivienda está ocupada"
         }
       },
       "reconfigure": {
@@ -26,7 +27,8 @@
           "wind_speed_entity_id": "Velocidad del viento",
           "wind_direction_entity_id": "Dirección del viento",
           "wind_gust_entity_id": "Ráfaga de viento",
-          "rain_entity_id": "Intensidad de lluvia o sensor seco/mojado"
+          "rain_entity_id": "Intensidad de lluvia o sensor seco/mojado",
+          "occupancy_person_entity_ids": "Personas que determinan si la vivienda está ocupada"
         }
       }
     },
@@ -34,7 +36,8 @@
       "reconfigure_successful": "La vivienda se ha reconfigurado."
     },
     "error": {
-      "duplicate_entity_link": "Cada entidad de Home Assistant solo puede asignarse a una entrada de la vivienda."
+      "duplicate_entity_link": "Cada entidad de Home Assistant solo puede asignarse a una entrada de la vivienda.",
+      "invalid_occupancy_people": "Selecciona únicamente entidades person existentes y sin duplicados. Una selección vacía mantiene la política conservadora de vivienda ocupada."
     }
   },
   "options": {
@@ -99,6 +102,7 @@
               "summer_comfort_floor": "El límite inferior de confort impide seguir refrigerando",
               "outdoor_not_cooler": "El aire exterior no está más fresco que la estancia",
               "solar_gain": "La radiación estimada en fachada supera la refrigeración al ventilar",
+              "diffuse_heat_protection": "Protección ante calor exterior y radiación difusa",
               "stability_margin": "La mejora de abrir no supera el margen de estabilidad",
               "stability_confirmation": "Esperando confirmación estable para abrir más",
               "wind_close": "El viento requiere cerrar",

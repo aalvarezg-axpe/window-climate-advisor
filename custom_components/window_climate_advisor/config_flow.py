@@ -39,6 +39,7 @@ from .const import (
     CONF_MINIMUM_BENEFIT_W,
     CONF_MISSING_FORECAST_CHANGE_PENALTY_W,
     CONF_NAME,
+    CONF_OCCUPANCY_PERSON_ENTITY_IDS,
     CONF_OUTDOOR_TEMPERATURE_ENTITY_ID,
     CONF_OVERHANG_DEPTH_M,
     CONF_OVERHANG_GAP_M,
@@ -102,6 +103,20 @@ def has_duplicate_entity_links(*mappings: Mapping[str, Any]) -> bool:
     return len(entity_ids) != len(set(entity_ids))
 
 
+def occupancy_person_entity_ids(mapping: Mapping[str, Any]) -> tuple[str, ...]:
+    """Decode the optional people whose presence defines dwelling occupancy."""
+    raw = mapping.get(CONF_OCCUPANCY_PERSON_ENTITY_IDS, ())
+    if not isinstance(raw, list | tuple) or any(
+        not isinstance(entity_id, str) or not entity_id.startswith("person.")
+        for entity_id in raw
+    ):
+        raise ValueError("occupancy people must be person entity IDs")
+    entity_ids = tuple(raw)
+    if len(entity_ids) != len(set(entity_ids)):
+        raise ValueError("occupancy people must be unique")
+    return entity_ids
+
+
 def _entry_mappings(
     entry: ConfigEntry,
     *,
@@ -139,6 +154,11 @@ CONFIG_SCHEMA = vol.Schema(
         vol.Required(CONF_RAIN_ENTITY_ID): selector.EntitySelector(
             selector.EntitySelectorConfig(domain=["binary_sensor", "sensor"])
         ),
+        vol.Optional(CONF_OCCUPANCY_PERSON_ENTITY_IDS): (
+            selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="person", multiple=True)
+            )
+        ),
     }
 )
 
@@ -164,6 +184,17 @@ def _entity_exists(hass: HomeAssistant, entity_id: str) -> bool:
         hass.states.get(entity_id) is not None
         or er.async_get(hass).async_get(entity_id) is not None
     )
+
+
+def _occupancy_people_available(
+    hass: HomeAssistant, user_input: Mapping[str, object]
+) -> bool:
+    """Validate only explicitly selected native person entities."""
+    try:
+        entity_ids = occupancy_person_entity_ids(user_input)
+    except ValueError:
+        return False
+    return all(_entity_exists(hass, entity_id) for entity_id in entity_ids)
 
 
 def _recipient_target_available(
@@ -368,11 +399,14 @@ class WindowClimateAdvisorConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Handle a user-started configuration flow."""
         if user_input is not None:
-            if not has_duplicate_entity_links(user_input):
+            if not _occupancy_people_available(self.hass, user_input):
+                errors = {"base": "invalid_occupancy_people"}
+            elif not has_duplicate_entity_links(user_input):
                 return self.async_create_entry(
                     title=user_input[CONF_NAME], data=user_input
                 )
-            errors = {"base": "duplicate_entity_link"}
+            else:
+                errors = {"base": "duplicate_entity_link"}
         else:
             errors = None
 
@@ -388,14 +422,17 @@ class WindowClimateAdvisorConfigFlow(ConfigFlow, domain=DOMAIN):
         """Update the shared climate sources for an existing dwelling."""
         entry = self._get_reconfigure_entry()
         if user_input is not None:
-            if not has_duplicate_entity_links(
+            if not _occupancy_people_available(self.hass, user_input):
+                errors = {"base": "invalid_occupancy_people"}
+            elif not has_duplicate_entity_links(
                 user_input,
                 *(subentry.data for subentry in entry.subentries.values()),
             ):
                 return self.async_update_reload_and_abort(
                     entry, title=user_input[CONF_NAME], data=user_input
                 )
-            errors = {"base": "duplicate_entity_link"}
+            else:
+                errors = {"base": "duplicate_entity_link"}
         else:
             errors = None
 

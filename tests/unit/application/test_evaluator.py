@@ -1,5 +1,6 @@
 """Tests for pure dwelling snapshot orchestration."""
 
+import math
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
@@ -76,12 +77,16 @@ def snapshot(
     *,
     configured: bool = True,
     season: Season = Season.SUMMER,
+    today_forecast_max_c: float | None = None,
+    occupied: bool = True,
 ) -> EvaluationSnapshot:
     """Build one seasonal snapshot or an explicitly incomplete configuration."""
     return EvaluationSnapshot(
         season if configured else None,
         PROFILE if configured else None,
         (item,),
+        today_forecast_max_c,
+        occupied,
     )
 
 
@@ -208,7 +213,7 @@ def test_evaluator_forwards_absent_direct_sun_to_blind_optimization() -> None:
         opening(
             current=WindowState.TILT,
             has_blind=True,
-            conditions=ThermalConditions(27, 30, 120),
+            conditions=ThermalConditions(27, 24, 120),
         ),
         current_action=CandidateAction(WindowState.TILT, BlindOpening(10)),
         direct_sun_on_opening=False,
@@ -231,6 +236,65 @@ def test_evaluator_forwards_absent_direct_sun_to_blind_optimization() -> None:
     assert optimization.best.action.blind == BlindOpening(100)
     assert started.openings["opening"].recommended_blind == BlindOpening(10)
     assert result.openings["opening"].recommended_blind == BlindOpening(100)
+
+
+@pytest.mark.parametrize(
+    (
+        "indoor_c",
+        "outdoor_c",
+        "forecast_max_c",
+        "occupied",
+        "expected_candidates",
+    ),
+    [
+        (24.9, 20, 30, True, 3),
+        (25, 20, 30, True, 31),
+        (22, 20, 30, False, 31),
+        (21.9, 20, 30, False, 3),
+        (25, 20, 24.9, True, 3),
+        (25, 25, None, True, 31),
+    ],
+)
+def test_diffuse_protection_reuses_heat_comfort_and_presence_boundaries(
+    indoor_c: float,
+    outdoor_c: float,
+    forecast_max_c: float | None,
+    occupied: bool,
+    expected_candidates: int,
+) -> None:
+    """Use profile bounds without inventing another heat or radiation threshold."""
+    item = replace(
+        opening(
+            has_blind=True,
+            conditions=ThermalConditions(indoor_c, outdoor_c, 120),
+        ),
+        direct_sun_on_opening=False,
+    )
+
+    result = evaluate_snapshot(
+        snapshot(
+            item,
+            today_forecast_max_c=forecast_max_c,
+            occupied=occupied,
+        ),
+        AdvisorState(),
+        NOW,
+        SETTINGS,
+    )
+    optimization = result.openings["opening"].optimization
+
+    assert optimization is not None
+    assert optimization.evaluated_candidates == expected_candidates
+    if expected_candidates == 31 and optimization.best.action.blind.percent < 100:
+        assert result.openings["opening"].reason is ReasonCode.DIFFUSE_HEAT_PROTECTION
+
+
+def test_diffuse_protection_context_rejects_invalid_public_values() -> None:
+    """Keep malformed forecast and occupancy context outside domain evaluation."""
+    with pytest.raises(ValueError):
+        EvaluationSnapshot(Season.SUMMER, PROFILE, (), math.nan)
+    with pytest.raises(ValueError):
+        EvaluationSnapshot(Season.SUMMER, PROFILE, (), None, 1)  # type: ignore[arg-type]
 
 
 def test_pending_summer_opening_has_an_explicit_confirmation_reason() -> None:
