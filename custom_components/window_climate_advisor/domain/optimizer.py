@@ -229,6 +229,10 @@ def optimize_opening(
         for action in enumerate_actions(settings, supports_tilt=request.supports_tilt)
         if request.has_blind or action.blind.percent == 100
         if request.season is not Season.SUMMER
+        or request.current_conditions.outdoor_temperature_c
+        < request.current_conditions.indoor_temperature_c
+        or action.window_state is WindowState.CLOSED
+        if request.season is not Season.SUMMER
         or request.direct_sun_on_opening
         or request.allow_diffuse_blind_protection
         or action.blind.percent == 100

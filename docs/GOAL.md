@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.26
+> Document version: 0.27
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-31
 > Current state: **active / Phase 02**
@@ -289,6 +289,15 @@ configuration applied through the supported options flow, not a hidden product
 default or migration. Under the accepted Summer policy, free cooling remains
 active above 21.5 °C when the thermal and safety model favours it; at or below
 that stop boundary the optimizer seeks neutrality.
+
+Summer ventilation is also one-sided at the current indoor/outdoor boundary:
+when the current outdoor temperature is equal to or above the room temperature,
+the optimizer must resolve the window target to closed. Movement cost, missing-
+forecast uncertainty and the optional minimum-benefit veto cannot retain `tilt`
+or `open` against that boundary. The blind remains independently optimized and
+confirmed. When outdoor air becomes cooler again, the existing benefit and
+opening-improvement confirmation gates govern reopening; no separate temperature
+threshold or option is introduced.
 
 Published experiments require device/geometry/flow-specific correction, while
 current Recorder history lacks actual manual blind/window positions, airflow

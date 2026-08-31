@@ -561,3 +561,29 @@ manifest/replay gate passes 93/93. The canonical WSL verifier passes 204/204 at
 replay, privacy and zero-actuator checks green. Consolidated Ponytail review:
 `Lean already. Ship.` Publication, supported occupancy reconfiguration and
 protected live verification remain.
+
+## Local rc3 Summer hot-air closure
+
+A read-only live reconstruction reproduced the owner's Cocina report on rc1
+with every source ready and no weather restriction. Outdoor air was about
+0.8 °C hotter than the room. The no-direct-sun opening retained `tilt/100%`
+with `outdoor_not_cooler`: closing avoided about 17.5 W of modeled heat, but
+the existing 20 W recommendation-movement cost made retained tilt score lower.
+The component has no contact sensor on that opening, so its current action is
+stable recommendation memory rather than observed physical position.
+
+P02-T18 makes current Summer outdoor temperature at/above room temperature a
+window feasibility boundary. Only closed-window candidates remain, and the
+existing `outdoor_not_cooler` reason bypasses optional movement, uncertainty,
+minimum-benefit and coupled-blind delay for the window close. Blind scoring and
+confirmation remain independent; cooler-air reopening retains the existing
+benefit and opening-improvement gates. No new threshold, option, selector,
+entity, helper, dependency, queue, service or actuator path was added.
+
+The exact focused optimizer/state/evaluator/replay gate passes 58/58. The
+canonical WSL verifier passes 207/207 at 95.62% branch coverage with Ruff,
+formatting, strict mypy, artifact/secret, replay, privacy and zero-actuator
+checks green. Consolidated Ponytail review reports `Lean already. Ship.` Rc3
+combines this correction with the accepted but not yet installed rc2 occupancy
+and diffuse-protection work; publication and protected live verification
+remain.

@@ -250,6 +250,27 @@ def test_summer_free_cools_until_lower_boundary_plus_hysteresis() -> None:
     assert stopped.best.thermal_cost_w == abs(stopped.best.current_load.total_w)
 
 
+@pytest.mark.parametrize("outdoor_c", [23.7, 24.5])
+def test_summer_hot_air_forces_closed_despite_change_penalties(
+    outdoor_c: float,
+) -> None:
+    """Do not retain Cocina-style tilt when outside is not cooler."""
+    current_action = CandidateAction(WindowState.TILT, BlindOpening(100))
+    result = optimize_opening(
+        request(
+            ThermalConditions(23.7, outdoor_c, 109, 0.4, 1.8),
+            season=Season.SUMMER,
+            current_action=current_action,
+            direct_sun_on_opening=False,
+        ),
+        OptimizerSettings(10, 20, 10, 30),
+    )
+
+    assert result.best.action == CandidateAction(WindowState.CLOSED, BlindOpening(100))
+    assert result.best.total_cost_w > result.current.total_cost_w
+    assert result.evaluated_candidates == 1
+
+
 @pytest.mark.parametrize(
     ("season", "current", "forecast"),
     [
@@ -338,8 +359,8 @@ def test_diffuse_only_radiation_keeps_the_blind_fully_raised() -> None:
     )
 
     assert result.current.current_load.solar_w > 0
-    assert result.best.action.blind == BlindOpening(100)
-    assert result.evaluated_candidates == 3
+    assert result.best.action == CandidateAction(WindowState.CLOSED, BlindOpening(100))
+    assert result.evaluated_candidates == 1
 
 
 def test_bounded_heat_context_unlocks_diffuse_blind_candidates() -> None:
@@ -357,7 +378,8 @@ def test_bounded_heat_context_unlocks_diffuse_blind_candidates() -> None:
 
     assert result.current.current_load.solar_w > 0
     assert result.best.action.blind.percent < 100
-    assert result.evaluated_candidates == 31
+    assert result.best.action.window_state is WindowState.CLOSED
+    assert result.evaluated_candidates == 11
 
 
 def test_no_direct_sun_does_not_remove_winter_night_insulation() -> None:

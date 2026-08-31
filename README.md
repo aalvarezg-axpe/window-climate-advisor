@@ -6,7 +6,7 @@ outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
 The project is in **Phase 02 contextual-notification validation**. Candidate
-`v0.2.0rc2` stores only recipient persons, discovers their associated Home
+`v0.2.0rc3` stores only recipient persons, discovers their associated Home
 Assistant Mobile App devices through native registries, sends stable-change
 summaries only to those devices currently home, and gives fresh advice when a
 configured occupant arrives. Live-verified `v0.1.0b5` remains the integration
@@ -58,6 +58,12 @@ heat but is neutral when cooling would otherwise be requested. Shoulder season
 retains the symmetric heat/cool/neutral objective. Weather safety remains
 absolute.
 
+Summer ventilation is closed whenever current outdoor air is equal to or
+hotter than the room. Recommendation movement and uncertainty costs cannot
+retain an open or tilt target across that boundary; the blind is optimized
+independently, and the existing benefit plus confirmation gates govern later
+reopening when outdoor air becomes cooler.
+
 Rain is evaluated per façade rather than as a dwelling-wide close. With no
 meaningful projected gust, or on a leeward façade, rain does not override the
 thermal target; exposed façades retain the intensity, gust, overhang and
@@ -98,7 +104,7 @@ Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
 1. In HACS, open the menu and select **Custom repositories**.
 2. Add `https://github.com/aalvarezg-axpe/window-climate-advisor` as type
    **Integration**.
-3. Download the explicit prerelease `v0.2.0rc2`; enable prerelease tracking for
+3. Download the explicit prerelease `v0.2.0rc3`; enable prerelease tracking for
    this repository if HACS does not initially show it.
 4. Restart Home Assistant.
 5. Go to **Settings → Devices & services → Add integration**, search for

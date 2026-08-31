@@ -20,11 +20,11 @@ _IMMEDIATE_REASONS = {
     ReasonCode.RAIN_TILT_ONLY,
     ReasonCode.MISSING_SAFETY_DATA,
     ReasonCode.STALE_SAFETY_DATA,
+    ReasonCode.OUTDOOR_NOT_COOLER,
 }
 _OPTIMIZER_REASONS = {
     ReasonCode.OPTIMIZER,
     ReasonCode.SUMMER_COMFORT_FLOOR,
-    ReasonCode.OUTDOOR_NOT_COOLER,
     ReasonCode.SOLAR_GAIN,
     ReasonCode.STABILITY_MARGIN,
 }

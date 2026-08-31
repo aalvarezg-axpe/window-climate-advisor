@@ -253,6 +253,30 @@ def test_thermal_closing_uses_benefit_without_a_second_time_delay() -> None:
     assert result.state.pending_window is None
 
 
+def test_outdoor_not_cooler_close_bypasses_optional_stability_costs() -> None:
+    """Close immediately while leaving a low-benefit blind change independent."""
+    current = CandidateAction(WindowState.TILT, BlindOpening(100))
+    result = advance_opening(
+        initial_stability_state(current),
+        sample(
+            current,
+            WindowState.CLOSED,
+            0,
+            benefit_w=-30,
+            reason=ReasonCode.OUTDOOR_NOT_COOLER,
+        ),
+        NOW,
+        SETTINGS,
+    )
+
+    assert result.window_changed
+    assert not result.blind_changed
+    assert result.state == OpeningStabilityState(
+        WindowState.CLOSED,
+        BlindOpening(100),
+    )
+
+
 def test_joint_thermal_close_and_blind_change_are_published_once() -> None:
     """Keep one optimizer window/blind target coherent through confirmation."""
     current = CandidateAction(WindowState.OPEN, BlindOpening(100))

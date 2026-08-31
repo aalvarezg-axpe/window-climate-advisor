@@ -252,7 +252,7 @@ def test_evaluator_forwards_absent_direct_sun_to_blind_optimization() -> None:
         (22, 20, 30, False, 31),
         (21.9, 20, 30, False, 3),
         (25, 20, 24.9, True, 3),
-        (25, 25, None, True, 31),
+        (25, 25, None, True, 11),
     ],
 )
 def test_diffuse_protection_reuses_heat_comfort_and_presence_boundaries(

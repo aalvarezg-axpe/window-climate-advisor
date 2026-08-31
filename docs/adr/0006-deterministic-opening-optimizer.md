@@ -64,6 +64,16 @@ costs. A retained non-open target waiting for its opening delay reports that
 confirmation explicitly. These codes explain the result; they do not add a
 new score, threshold, input, or control path.
 
+P02-T18 makes the current indoor/outdoor Summer boundary a feasibility rule:
+when outdoor temperature is equal to or above the room temperature, only
+closed-window candidates remain feasible. The existing
+`outdoor_not_cooler` reason is immediate, so recommendation movement,
+missing-forecast uncertainty and the optional minimum-benefit veto cannot
+retain ventilation that adds heat. Blind candidates keep their independent
+thermal score and confirmation. Cooler-air reopening still uses the existing
+benefit and opening-improvement gates; no new temperature margin or option is
+introduced.
+
 The total score in watt-equivalent comparison units is:
 
 ```text

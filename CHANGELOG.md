@@ -5,6 +5,24 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0rc3 - 2026-08-31
+
+### Fixed
+
+- Summer now constrains the recommended window to closed whenever current
+  outdoor air is equal to or hotter than the room. Movement, missing-forecast
+  uncertainty and the optional minimum-benefit veto can no longer retain
+  `tilt` or `open` across that boundary.
+- Blind optimization and confirmation remain independent from the mandatory
+  window close. Reopening when outdoor air becomes cooler still uses the
+  existing benefit and opening-improvement confirmation gates.
+
+### Safety and privacy
+
+- Weather overrides, Winter and Shoulder-season policy, presence-aware
+  delivery, privacy and the zero-actuator boundary are unchanged. The fix adds
+  no threshold, option, selector, entity, helper, dependency, queue or service.
+
 ## 0.2.0rc2 - 2026-08-31
 
 ### Added
