@@ -43,20 +43,12 @@ _NOTIFICATION_TEXT = {
         "tilt": "Tilt",
         "open": "Open",
         "manual": "manual position not observable",
-        ReasonCode.SUMMER_COMFORT_FLOOR.value: "Lower comfort limit",
-        ReasonCode.OUTDOOR_NOT_COOLER.value: "Outdoor air is not cooler",
-        ReasonCode.SOLAR_GAIN.value: (
-            "Estimated facade radiation exceeds ventilation cooling"
-        ),
-        ReasonCode.DIFFUSE_HEAT_PROTECTION.value: (
-            "Outdoor heat and diffuse radiation protection"
-        ),
-        ReasonCode.STABILITY_MARGIN.value: (
-            "Opening benefit is below the stability margin"
-        ),
-        ReasonCode.STABILITY_CONFIRMATION.value: (
-            "Waiting for stable confirmation before opening further"
-        ),
+        ReasonCode.SUMMER_COMFORT_FLOOR.value: "Comfort",
+        ReasonCode.OUTDOOR_NOT_COOLER.value: "Outdoor heat",
+        ReasonCode.SOLAR_GAIN.value: "Radiation",
+        ReasonCode.DIFFUSE_HEAT_PROTECTION.value: "Heat + radiation",
+        ReasonCode.STABILITY_MARGIN.value: "Insufficient benefit",
+        ReasonCode.STABILITY_CONFIRMATION.value: "Confirmation",
         ReasonCode.WIND_CLOSE.value: "Wind",
         ReasonCode.WIND_TILT_ONLY.value: "Wind",
         ReasonCode.RAIN_CLOSE.value: "Rain and wind",
@@ -69,20 +61,12 @@ _NOTIFICATION_TEXT = {
         "tilt": "Oscilobatiente",
         "open": "Abierta",
         "manual": "posición manual no observable",
-        ReasonCode.SUMMER_COMFORT_FLOOR.value: "Límite inferior de confort",
-        ReasonCode.OUTDOOR_NOT_COOLER.value: "El aire exterior no está más fresco",
-        ReasonCode.SOLAR_GAIN.value: (
-            "La radiación estimada en fachada supera la refrigeración al ventilar"
-        ),
-        ReasonCode.DIFFUSE_HEAT_PROTECTION.value: (
-            "Protección ante calor exterior y radiación difusa"
-        ),
-        ReasonCode.STABILITY_MARGIN.value: (
-            "La mejora de abrir no supera el margen de estabilidad"
-        ),
-        ReasonCode.STABILITY_CONFIRMATION.value: (
-            "Esperando confirmación estable para abrir más"
-        ),
+        ReasonCode.SUMMER_COMFORT_FLOOR.value: "Confort",
+        ReasonCode.OUTDOOR_NOT_COOLER.value: "Calor exterior",
+        ReasonCode.SOLAR_GAIN.value: "Radiación",
+        ReasonCode.DIFFUSE_HEAT_PROTECTION.value: "Calor + radiación",
+        ReasonCode.STABILITY_MARGIN.value: "Mejora insuficiente",
+        ReasonCode.STABILITY_CONFIRMATION.value: "Confirmación",
         ReasonCode.WIND_CLOSE.value: "Viento",
         ReasonCode.WIND_TILT_ONLY.value: "Viento",
         ReasonCode.RAIN_CLOSE.value: "Lluvia y viento",
@@ -201,12 +185,12 @@ def _message_rows(
                     f"{_note(change.reason, text)}",
                 )
             )
-        if change.blind_changed and has_blind:
+        if has_blind and (change.window_changed or change.blind_changed):
             blinds.append(
                 (
                     sort_key,
                     f"{label}: {change.state.blind.percent:g}%"
-                    f"{_note(change.reason, text)}",
+                    f"{_note(change.reason, text) if change.blind_changed else ''}",
                 )
             )
     windows.sort(key=lambda item: item[0])

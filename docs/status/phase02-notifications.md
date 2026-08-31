@@ -654,3 +654,26 @@ services or owned persistent notifications. The retained legacy automation
 remains off. No synthetic message, configuration change or physical action was
 called. P02-T19 terminates; P02-T04 retains natural-device confirmation of the
 new single-round behavior and the remaining presence/arrival matrix.
+
+## Local rc5 compact and complete work-round summary
+
+Natural rc4 evidence confirms one grouped seven-window message, but the mobile
+parentheticals repeat full diagnostic sentences and the blind section omits a
+stable position whenever only the window target changed. P02-T20 keeps the
+same candidate, batching and delivery path while replacing mobile-only thermal
+phrases with compact bilingual action categories. Every blind-capable opening
+shown for a window change now includes its stable recommended blind percentage;
+only an actual blind change receives a compact parenthetical.
+
+The related thermal audit changes no decision. At equal blind position the
+existing model transmits façade radiation at 1.0 through a fully open aperture
+and at the provisional 0.55 coefficient through closed glazing, so closing
+reduces modeled solar load by 45% while ventilation competes through its own
+load term. The new characterization makes that assumption explicit without
+inventing an aperture view factor or calibration option.
+
+The focused thermal/notification gate passes 30/30 and the focused gate plus
+manifest passes 33/33. The canonical WSL verifier passes 222/222 at 95.64%
+branch coverage with Ruff, formatting, strict mypy, artifact/secret, replay,
+privacy and zero-actuator checks green. Consolidated Ponytail review reports
+`Lean already. Ship.` Publication and protected live verification remain.

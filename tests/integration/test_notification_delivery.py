@@ -20,7 +20,9 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.window_climate_advisor.adapters.notifications import (
+    _note,
     _opening_label,
+    _text,
     async_deliver_arrival_candidate,
     async_deliver_notification_candidate,
     home_notification_recipient_persons,
@@ -336,22 +338,20 @@ async def test_delivery_filters_presence_and_consolidates_in_stable_order(
             "- Cocina NO: Cerrada (Lluvia y viento)\n"
             "- Cocina SO: Cerrada (Lluvia y viento)\n"
             "- Dormitorio: Abierta\n"
-            "- Salón: Oscilobatiente "
-            "(La radiación estimada en fachada supera la refrigeración al ventilar)\n\n"
+            "- Salón: Oscilobatiente (Radiación)\n\n"
             "Persianas:\n"
             "- Cocina NO: 0% (Lluvia y viento)\n"
             "- Cocina SO: 0% (Lluvia y viento)\n"
-            "- Salón: 70% "
-            "(La radiación estimada en fachada supera la refrigeración al ventilar)"
+            "- Salón: 70% (Radiación)"
         ),
         ATTR_TITLE: "Casa",
     }
 
 
-async def test_delivery_lists_only_changed_components_and_skips_degraded_rows(
+async def test_delivery_adds_blind_context_for_changed_windows_and_skips_degraded(
     hass: HomeAssistant,
 ) -> None:
-    """Keep window/blind sections truthful to the accepted grouped change."""
+    """Show stable blind context without presenting it as another change."""
     entry = _entry()
     targets = _set_recipient_states(hass)
     calls: list[ServiceCall] = []
@@ -401,7 +401,9 @@ async def test_delivery_lists_only_changed_components_and_skips_degraded_rows(
             "Windows:\n"
             "- Cocina NO: Closed (Wind)\n"
             "- Dormitorio: Closed\n\n"
-            "Blinds:\n- Salón: 70%"
+            "Blinds:\n"
+            "- Cocina NO: 0%\n"
+            "- Salón: 70%"
         ),
         ATTR_TITLE: "Casa",
     }
@@ -436,10 +438,7 @@ async def test_delivery_explains_diffuse_heat_blind_protection(
     assert await async_deliver_notification_candidate(hass, entry, candidate) == 1
     assert calls[0].data == {
         ATTR_ENTITY_ID: targets["first"],
-        ATTR_MESSAGE: (
-            "Persianas:\n"
-            "- Salón: 70% (Protección ante calor exterior y radiación difusa)"
-        ),
+        ATTR_MESSAGE: ("Persianas:\n- Salón: 70% (Calor + radiación)"),
         ATTR_TITLE: "Casa",
     }
 
@@ -570,10 +569,9 @@ async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_bl
     assert len(calls) == 2
     expected = {
         ATTR_MESSAGE: (
-            "Windows:\n- Salón: Tilt "
-            "(Estimated facade radiation exceeds ventilation cooling)\n\n"
+            "Windows:\n- Salón: Tilt (Radiation)\n\n"
             "Blinds:\n- Salón: 70% "
-            "(Estimated facade radiation exceeds ventilation cooling; "
+            "(Radiation; "
             "manual position not observable)"
         ),
         ATTR_TITLE: "Casa",
@@ -587,6 +585,32 @@ async def test_arrival_delivery_targets_only_arriving_person_and_marks_manual_bl
         == expected
         for call in calls
     )
+
+
+@pytest.mark.parametrize(
+    ("language", "reason", "expected"),
+    (
+        ("es", ReasonCode.SUMMER_COMFORT_FLOOR, "Confort"),
+        ("es", ReasonCode.OUTDOOR_NOT_COOLER, "Calor exterior"),
+        ("es", ReasonCode.SOLAR_GAIN, "Radiación"),
+        ("es", ReasonCode.DIFFUSE_HEAT_PROTECTION, "Calor + radiación"),
+        ("es", ReasonCode.STABILITY_MARGIN, "Mejora insuficiente"),
+        ("es", ReasonCode.STABILITY_CONFIRMATION, "Confirmación"),
+        ("en", ReasonCode.SUMMER_COMFORT_FLOOR, "Comfort"),
+        ("en", ReasonCode.OUTDOOR_NOT_COOLER, "Outdoor heat"),
+        ("en", ReasonCode.SOLAR_GAIN, "Radiation"),
+        ("en", ReasonCode.DIFFUSE_HEAT_PROTECTION, "Heat + radiation"),
+        ("en", ReasonCode.STABILITY_MARGIN, "Insufficient benefit"),
+        ("en", ReasonCode.STABILITY_CONFIRMATION, "Confirmation"),
+    ),
+)
+def test_thermal_notification_notes_are_compact(
+    language: str,
+    reason: ReasonCode,
+    expected: str,
+) -> None:
+    """Keep action notes short while entity explanations stay detailed."""
+    assert _note(reason, _text(language)) == f" ({expected})"
 
 
 async def test_ordinary_delivery_uses_only_people_retained_by_the_batch(

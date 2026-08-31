@@ -37,6 +37,19 @@ def test_closed_load_uses_glazing_and_has_no_ventilation() -> None:
     )
 
 
+def test_closed_glazing_reduces_solar_load_against_an_open_aperture() -> None:
+    """Make the provisional 0.55 glazing versus 1.0 aperture model explicit."""
+    conditions = ThermalConditions(25, 25, 500)
+    closed = candidate_thermal_load(
+        DIMENSIONS, WindowState.CLOSED, BlindOpening(100), conditions
+    )
+    opened = candidate_thermal_load(
+        DIMENSIONS, WindowState.OPEN, BlindOpening(100), conditions
+    )
+
+    assert closed.solar_w == pytest.approx(opened.solar_w * 0.55)
+
+
 def test_solar_gain_can_reverse_an_opening_that_otherwise_cools() -> None:
     """Characterize the accepted sign reversal from catalog case C014."""
     without_sun = candidate_thermal_load(

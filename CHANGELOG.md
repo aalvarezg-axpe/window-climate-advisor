@@ -5,6 +5,29 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0rc5 - 2026-08-31
+
+### Changed
+
+- Mobile notification causes are compact action labels: comfort, outdoor heat,
+  radiation, heat plus radiation, insufficient benefit, or confirmation.
+  Detailed Recorder-visible entity reasons remain unchanged.
+- Every blind-capable opening shown in the ordinary window section now also
+  shows its stable recommended blind percentage. An unchanged contextual blind
+  has no parenthetical; a real blind change retains its compact cause.
+
+### Documentation
+
+- The thermal contract now states explicitly that, at an equal blind position,
+  closed glazing transmits the provisional 0.55 solar fraction while a fully
+  open aperture transmits 1.0. No optimizer coefficient or decision changed.
+
+### Safety and privacy
+
+- Presence, batching, arrival, weather policy, detailed diagnostics and the
+  zero-actuator boundary are unchanged. No option, helper, entity, dependency,
+  queue, persistence or service was added.
+
 ## 0.2.0rc4 - 2026-08-31
 
 ### Changed

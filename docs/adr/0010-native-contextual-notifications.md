@@ -43,6 +43,11 @@ content.
   still-actionable components appear and weather-forced rows show a concise
   reason. Summer optimizer targets below full opening carry the bounded cause
   already selected by evaluation; delivery never infers it from text or state.
+  Mobile parentheticals use only compact action categories while detailed
+  explanations remain on the Recorder-visible entity. In an ordinary message,
+  a blind-capable opening shown for a window change also shows its stable blind
+  percentage; a contextual unchanged-blind row carries no cause, while an
+  actual blind change retains the compact cause.
 - Ordinary candidates normally merge for 10 minutes beginning at the first
   change. If a retained window change has a blind on the same opening still
   inside its existing confirmation period, delivery retries on the existing

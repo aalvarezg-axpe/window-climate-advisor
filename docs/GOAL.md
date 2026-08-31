@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.28
+> Document version: 0.29
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-31
 > Current state: **active / Phase 02**
@@ -321,6 +321,16 @@ never justifies shading. This reuses the configured comfort bounds and adds no
 separate heat or radiation threshold. The normal 15-minute blind confirmation,
 direct-sun behaviour and Winter night-insulation candidates remain unchanged.
 
+At the same blind position, the initial thermal model treats a fully open
+aperture as transmitting all façade radiation that reaches it and closed
+glazing as transmitting its provisional 0.55 solar-heat-gain coefficient.
+Closing therefore reduces the modeled radiative load by 45%, but is not treated
+as equivalent to lowering a blind. When outdoor air is cooler, the optimizer
+compares that reduction with the ventilation cooling; a small temperature
+difference can still favour closed glazing under sufficient diffuse load. This
+first-order assumption remains explicit rather than adding an unmeasured
+open-aperture view factor.
+
 Dwelling occupancy for thermal policy is an optional structural selection of
 native `person` entities and is deliberately independent of notification
 recipients. The dwelling is unoccupied only when every selected person has a
@@ -446,6 +456,15 @@ coupled optimizer window/blind change is published as one stable
 recommendation; the blind deadband suppresses a small target change instead of
 changing the published percentage silently. Ordering is deterministic and
 degraded rows remain non-actionable.
+
+Mobile-notification parentheticals use compact action categories rather than
+the detailed Recorder-visible explanation: comfort, outdoor heat, radiation,
+heat plus radiation, insufficient benefit, confirmation, wind, or rain plus
+wind. Detailed entity translations and diagnostics remain unchanged. In an
+ordinary change notification, every blind-capable opening whose window appears
+also shows its stable recommended blind percentage, even when that blind target
+did not itself change. A contextual unchanged-blind row has no parenthetical;
+an actual blind change retains the compact cause.
 
 ## 7. Safety and privacy gates
 
