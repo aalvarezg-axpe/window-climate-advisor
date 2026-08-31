@@ -17,7 +17,7 @@ integration lifecycle, replay, privacy and safety checks.
 | Boundary | Redacted evidence |
 |---|---|
 | Lifecycle | Schema-v4 revision-1 recipients migrate in place to person-only revision 2 without changing subentry identity or the loadable major-version downgrade path; setup, unload, reload, restart-state restoration, and migration tests pass. |
-| Ordinary delivery | Native person→Mobile App tracker→device→notify joins, per-device home filtering at change and delivery time, several devices per person, malformed shared-target deduplication, away/unavailable/disabled/missing paths, deterministic 10-minute latest-target batching, one grouped message per target, unchanged/degraded suppression, unload discard, and exact-call-count tests pass. |
+| Ordinary delivery | Native person→Mobile App tracker→device→notify joins, per-device home filtering at change and delivery time, several devices per person, malformed shared-target deduplication, away/unavailable/disabled/missing paths, deterministic latest-target batching with a normal 10-minute deadline and bounded same-opening blind pairing to 20 minutes, one grouped message per target, unchanged/degraded suppression, unload discard, and exact-call-count tests pass. |
 | Failure isolation | A native notification failure is redacted, does not block another recipient, and cannot change evaluation or actuator state. |
 | Arrival | Only a real configured non-home-to-`home` edge requests fresh advice for that person. Startup, repeated `home`, and unavailable recovery do not count; the arriving person is excluded from any simultaneous ordinary message. |
 | Actionability | Contact/cover feedback removes targets already satisfied. Missing physical feedback does not claim success, and an unobservable manual blind position is identified explicitly. |
@@ -635,3 +635,22 @@ WSL verifier passes 209/209 at 95.64% branch coverage with Ruff, formatting,
 strict mypy, artifact/secret, replay, privacy and zero-actuator checks green.
 Consolidated Ponytail review reports `Lean already. Ship.` Publication and
 protected live verification remain.
+
+## Live rc4 single-round deployment
+
+Commit `de5a8e1`, remote `release/0.2.0`, annotated tag and the public
+prerelease identify the same `v0.2.0rc4` candidate. A repository-scoped HACS
+refresh exposed exactly rc4 above installed rc3. Before installation, a
+supported full backup including the database completed and returned a backup
+identifier. The native update entity installed exactly rc4, the supported
+configuration check passed, and one down/up restart recovered Home Assistant
+2026.8.3.
+
+The final redacted gate reports rc4/schema v4, one loaded entry, 6 rooms, 7
+openings, 3 recipients, 8 devices, 23/23 available unique entities, 14/14 ready
+source classes and seven valid recommendation, blind and safety triples. There
+are zero disabled or duplicate entities, integration Repairs, log matches,
+services or owned persistent notifications. The retained legacy automation
+remains off. No synthetic message, configuration change or physical action was
+called. P02-T19 terminates; P02-T04 retains natural-device confirmation of the
+new single-round behavior and the remaining presence/arrival matrix.

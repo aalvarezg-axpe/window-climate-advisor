@@ -94,3 +94,13 @@ and selected the two approved thermal occupants. The complete redacted
 structure, availability, recommendation, safety, Repairs, log, service,
 notification-backlog and legacy-automation gates passed. No synthetic message
 or physical action was used.
+
+## Recorded rc4 result
+
+`v0.2.0rc4` was installed through the existing HACS update entity after a
+completed supported full backup including the database. The supported
+configuration check passed and one observed down/up restart returned Home
+Assistant 2026.8.3 with the schema-v4 entry loaded. The complete redacted
+structure, availability, source-quality, recommendation, Repairs, log, service,
+notification-backlog and legacy-automation gates passed. No synthetic message,
+configuration change or physical action was used.
