@@ -214,11 +214,23 @@ def test_evaluator_forwards_absent_direct_sun_to_blind_optimization() -> None:
         direct_sun_on_opening=False,
     )
 
-    result = evaluate_snapshot(snapshot(item), AdvisorState(), NOW, SETTINGS)
+    settings = EvaluationSettings(
+        SETTINGS.optimizer,
+        StabilitySettings(50, 0),
+    )
+    started = evaluate_snapshot(snapshot(item), AdvisorState(), NOW, settings)
+    result = evaluate_snapshot(
+        snapshot(item),
+        started.state,
+        NOW + timedelta(minutes=15),
+        settings,
+    )
     optimization = result.openings["opening"].optimization
 
     assert optimization is not None
     assert optimization.best.action.blind == BlindOpening(100)
+    assert started.openings["opening"].recommended_blind == BlindOpening(10)
+    assert result.openings["opening"].recommended_blind == BlindOpening(100)
 
 
 def test_pending_summer_opening_has_an_explicit_confirmation_reason() -> None:

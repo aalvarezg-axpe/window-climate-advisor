@@ -213,6 +213,11 @@ def evaluate_snapshot(
             optimized,
             policy,
             opening.safety.gust_kmh,
+            blind_target_required=(
+                season is Season.SUMMER
+                and opening.has_blind
+                and not opening.direct_sun_on_opening
+            ),
         )
         evaluated[opening.opening_id] = opening, optimized, policy
 

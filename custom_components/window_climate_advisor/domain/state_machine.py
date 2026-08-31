@@ -119,6 +119,7 @@ class StabilityInput:
     optimized: OptimizationResult
     policy: PolicyResult
     gust_kmh: float | None
+    blind_target_required: bool = False
 
     def __post_init__(self) -> None:
         if self.gust_kmh is not None and (
@@ -235,8 +236,10 @@ def _advance_blind(
     settings: StabilitySettings,
 ) -> tuple[OpeningStabilityState, bool]:
     target = sample.policy.recommended_blind
-    if sample.optimized.avoided_cost_w < settings.minimum_benefit_w and not (
-        state.window is not WindowState.CLOSED and state.blind.percent == 0
+    if (
+        sample.optimized.avoided_cost_w < settings.minimum_benefit_w
+        and not sample.blind_target_required
+        and not (state.window is not WindowState.CLOSED and state.blind.percent == 0)
     ):
         target = state.blind
     direction = _blind_direction(state.blind, target)

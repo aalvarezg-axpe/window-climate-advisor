@@ -5,6 +5,22 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0b10 - 2026-08-31
+
+### Fixed
+
+- A required 100% Summer blind target with no direct sun now bypasses the
+  optional minimum-benefit veto while retaining the existing 15-minute blind
+  confirmation. This fixes the b9 interaction that could leave a prior 10%
+  target published indefinitely.
+
+### Safety and privacy
+
+- Direct-sun protection, Winter night insulation, blind confirmation, weather
+  overrides, presence routing and the zero-actuator boundary remain. No
+  selector, option, entity, schema, helper, dependency, queue or service was
+  added.
+
 ## 0.2.0b9 - 2026-08-31
 
 ### Changed

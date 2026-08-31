@@ -49,6 +49,7 @@ def sample(
     reason: ReasonCode = ReasonCode.OPTIMIZER,
     recommendation: Recommendation | None = None,
     gust_kmh: float | None = 0,
+    blind_target_required: bool = False,
 ) -> StabilityInput:
     """Build an internally consistent stability sample."""
     target = CandidateAction(target_state, BlindOpening(target_blind))
@@ -84,6 +85,7 @@ def sample(
             reason,
         ),
         gust_kmh,
+        blind_target_required,
     )
 
 
@@ -350,6 +352,36 @@ def test_blind_direction_requires_fifteen_minutes_without_drift_rearming() -> No
     assert accepted.state.blind_direction is BlindDirection.LOWER
     assert same_direction.blind_changed
     assert same_direction.state.blind == BlindOpening(40)
+
+
+def test_required_blind_target_bypasses_benefit_veto_after_confirmation() -> None:
+    """Keep the delay but do not discard a functional blind constraint."""
+    current = CandidateAction(WindowState.TILT, BlindOpening(10))
+    state = initial_stability_state(current)
+    required = sample(
+        current,
+        WindowState.TILT,
+        100,
+        benefit_w=-20,
+        blind_target_required=True,
+    )
+
+    started = advance_opening(state, required, NOW, SETTINGS)
+    accepted = advance_opening(
+        started.state,
+        required,
+        NOW + timedelta(minutes=15),
+        SETTINGS,
+    )
+
+    assert not started.changed
+    assert started.state.pending_blind == PendingBlind(
+        BlindDirection.RAISE,
+        BlindOpening(100),
+        NOW,
+    )
+    assert accepted.blind_changed
+    assert accepted.state.blind == BlindOpening(100)
 
 
 def test_opposite_blind_direction_rearms_and_deadband_cancels_candidates() -> None:

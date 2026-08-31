@@ -26,6 +26,13 @@ manual blind. Direct sun restores the existing complete 0–100% blind candidate
 set. Winter retains that candidate set without direct sun so the historical
 night-insulation state remains feasible.
 
+The fully raised Summer target is a feasibility constraint, not an optional
+cost improvement. The stability layer therefore does not apply its ordinary
+minimum-benefit veto to that blind transition, but still requires the existing
+15-minute continuous direction confirmation. This prevents movement-cost and
+diffuse-load scoring from retaining an infeasible 10% state indefinitely
+without weakening anti-churn timing.
+
 For each current or forecast horizon, derive intent from the selected profile
 and explicit season. Shoulder season remains symmetric: heat below the lower
 bound or preconditioning target minus hysteresis, cool above the upper bound or

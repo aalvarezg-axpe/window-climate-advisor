@@ -489,4 +489,17 @@ coverage with Ruff, formatting, strict mypy, artifact/secret, replay, privacy
 and zero-actuator checks green. The Windows launcher stopped before checks on
 an inaccessible ignored `.venv/lib64` link; no repository artifact was changed
 to work around it. Consolidated Ponytail review reports `Lean already. Ship.`
-Publication and protected b9 deployment remain.
+The verified b9 candidate was published and installed, but protected live
+observation then showed that both no-direct-sun Cocina targets remained at 10%
+beyond the confirmation period. The optimizer correctly admitted only 100%,
+while the stability layer treated the required move as an optional improvement
+and vetoed it because the previous 10% state scored thermally cheaper.
+
+The b10 correction marks only this Summer no-direct-sun blind target as
+required. It bypasses the optional minimum-benefit veto while preserving the
+15-minute confirmation, deadband, weather policy, Winter candidates and
+zero-actuator boundary. Focused state/evaluator/optimizer/adapter/notification/
+replay coverage passes 71/71. The canonical WSL verifier passes 193/193 at
+95.74% branch coverage with Ruff, formatting, strict mypy, artifact/secret,
+replay, privacy and zero-actuator checks green. Protected publication and live
+verification remain.

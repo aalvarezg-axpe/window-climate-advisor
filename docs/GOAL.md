@@ -2,7 +2,7 @@
 
 > Product source of truth and development roadmap.
 >
-> Document version: 0.24
+> Document version: 0.25
 > Initial date: 2026-08-24
 > Last reviewed: 2026-08-31
 > Current state: **active / Phase 02**
@@ -302,7 +302,10 @@ projected component is zero the Summer optimizer admits only a fully raised
 blind. This prevents a small diffuse estimate and persisted movement penalties
 from retaining a 10% manual blind target after the sun has left that opening.
 It adds no threshold or user setting: the existing geometric front/overhang
-boundary is the decision. Winter retains its night-insulation candidate space.
+boundary is the decision. Because 100% is then a functional constraint rather
+than an optional thermal improvement, the minimum-benefit veto cannot discard
+it; the normal 15-minute blind confirmation still applies. Winter retains its
+night-insulation candidate space.
 
 Missing or stale safety inputs do not become zero wind, no rain, or favourable
 temperature. Degradation is explicit in recommendation, availability, reason
