@@ -511,3 +511,26 @@ published b10 artifact remains immutable and uninstalled; rc1 reissues the
 same production correction with only manifest and release-document changes.
 A fresh full backup completed before any candidate installation with database
 and Home Assistant included and zero failed agents, add-ons or folders.
+
+## Live rc1 constrained-blind installation
+
+Commit `c2a6c77`, remote `release/0.2.0`, annotated tag and public prerelease
+identify the same `v0.2.0rc1` distribution candidate; its production correction
+is commit `f09a710`. HACS exposed rc1 above installed b9, the native update
+entity downloaded exactly rc1, configuration validation passed, and one
+observed down/up restart recovered Home Assistant 2026.8.3.
+
+The final redacted gate confirms rc1/schema v4, one loaded entry, 6 rooms,
+7 openings, 3 recipients, 8 integration devices, 23/23 available unique
+entities, 14/14 ready source classes and seven valid recommendations. There
+are zero disabled or duplicate entities, integration Repairs, log matches,
+services and owned persistent notifications; the legacy automation remains
+off.
+
+Immediately after restart, both Cocina openings were still outside direct
+solar incidence, admitted only the three 100%-blind window candidates, and
+retained the restored 10% stable target. After continuous confirmation both
+changed naturally to 100%, proving that rc1 preserves the delay and removes the
+b9 minimum-benefit veto. Exact formatter tests cover the concise `Cocina SO`
+and `Cocina NO` rows. No synthetic notification, option/source/recipient
+mutation or physical action occurred. P02-T16 terminates.
