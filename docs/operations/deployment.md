@@ -104,3 +104,15 @@ Assistant 2026.8.3 with the schema-v4 entry loaded. The complete redacted
 structure, availability, source-quality, recommendation, Repairs, log, service,
 notification-backlog and legacy-automation gates passed. No synthetic message,
 configuration change or physical action was used.
+
+## Recorded rc5 result
+
+`v0.2.0rc5` was installed through the existing HACS update entity after a
+completed supported full backup including the database. The supported
+configuration check passed and one observed down/up restart returned Home
+Assistant 2026.8.3 with the schema-v4 entry loaded. The first post-restart read
+captured normal source settling; the next read recovered all 14 source classes,
+23 entities and seven recommendation triples without intervention. The final
+redacted structure, availability, recommendation, Repairs, log, service,
+notification-backlog and legacy-automation gates passed. No synthetic message,
+configuration change or physical action was used.

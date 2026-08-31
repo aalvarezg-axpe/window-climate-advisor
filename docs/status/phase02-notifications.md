@@ -677,3 +677,23 @@ manifest passes 33/33. The canonical WSL verifier passes 222/222 at 95.64%
 branch coverage with Ruff, formatting, strict mypy, artifact/secret, replay,
 privacy and zero-actuator checks green. Consolidated Ponytail review reports
 `Lean already. Ship.` Publication and protected live verification remain.
+
+## Live rc5 compact-summary deployment
+
+Commit `d41b873`, remote `release/0.2.0`, annotated tag and the public
+prerelease identify the same `v0.2.0rc5` candidate. A repository-scoped HACS
+refresh exposed exactly rc5 above installed rc4. A supported full backup with
+database completed first, the native update entity installed exactly rc5, the
+supported configuration check passed, and one down/up restart recovered Home
+Assistant 2026.8.3.
+
+The first read immediately after restart captured 8/14 source classes and 9/23
+entities ready. Without a forced refresh, reload or second restart, the next
+read recovered 14/14 sources, 23/23 entities and seven valid recommendation,
+blind and safety triples. The final redacted gate retains one loaded schema-v4
+entry, 6 rooms, 7 openings, 3 recipients and 8 devices, with zero disabled or
+duplicate entities, integration Repairs, log matches, services or owned
+persistent notifications. The legacy automation remains off. No synthetic
+message, configuration change or physical action was called. P02-T20
+terminates; P02-T04 retains natural-device rendering of rc5 and the remaining
+presence/arrival matrix.
