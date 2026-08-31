@@ -587,3 +587,32 @@ checks green. Consolidated Ponytail review reports `Lean already. Ship.` Rc3
 combines this correction with the accepted but not yet installed rc2 occupancy
 and diffuse-protection work; publication and protected live verification
 remain.
+
+## Live rc3 occupancy and hot-air deployment
+
+Commit `a0bf991`, remote `release/0.2.0`, annotated tag and the public
+prerelease identify the same `v0.2.0rc3` candidate. HACS exposed rc3 above the
+installed rc1. Before installation, a supported complete backup finished with
+Home Assistant, the database, all available add-ons and data folders, one
+positive-size stored copy, and zero failed agents, add-ons or folders. The
+native update entity downloaded exactly rc3, configuration validation passed,
+and one down/up restart was observed.
+
+The supported dwelling reconfigure flow preserved all eight existing climate
+source fields and stored Elisa and Antonio as exactly two thermal occupants;
+the three notification recipients remain a separate unchanged contract. The
+final redacted gate reports rc3/schema v4, one loaded entry, 6 rooms, 7
+openings, 3 recipients, 8 devices, 23/23 available unique entities, 14/14
+ready source classes and seven valid recommendation, blind and safety triples.
+There are zero disabled or duplicate entities, integration Repairs, log
+matches, services or owned persistent notifications. The retained legacy
+automation remains off.
+
+By final inspection, outdoor air was again cooler than the Cocina room, so the
+reported hot-air boundary could not be truthfully reobserved. Both Cocina
+targets were closed at that instant, but that is not recorded as causal proof
+of P02-T18. The exact production-shaped positive delta and equality cases are
+instead carried by the accepted 58-test focused gate and the 207-test canonical
+gate. No synthetic notification or physical action was called. P02-T17 and
+P02-T18 terminate; P02-T04 retains only natural-device batching and the
+presence/arrival observation matrix.

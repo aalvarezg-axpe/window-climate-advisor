@@ -84,3 +84,13 @@ service, retain a notification backlog, or control a physical device.
 `v0.1.0b5` remains the live-verified operational fallback for this release
 candidate.
 `v4.17_pre` remains only as an immutable characterization fixture.
+
+## Recorded rc3 result
+
+`v0.2.0rc3` was installed after a verified complete backup and supported
+configuration check. One observed restart returned the schema-v4 entry loaded;
+the supported dwelling reconfigure flow then preserved every climate source
+and selected the two approved thermal occupants. The complete redacted
+structure, availability, recommendation, safety, Repairs, log, service,
+notification-backlog and legacy-automation gates passed. No synthetic message
+or physical action was used.
