@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
 from typing import Any
 
 from ..domain.models import BlindOpening, WindowState
@@ -18,7 +18,7 @@ from ..domain.state_machine import (
     initial_stability_state,
 )
 
-STATE_VERSION = 1
+STATE_VERSION = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +26,7 @@ class AdvisorState:
     """Restart-safe state for all known openings."""
 
     openings: dict[str, OpeningStabilityState] = field(default_factory=dict)
+    day_started_on: date | None = None
 
     def __post_init__(self) -> None:
         if any(
@@ -33,6 +34,11 @@ class AdvisorState:
             for opening_id in self.openings
         ):
             raise ValueError("opening IDs must be non-empty strings")
+        if self.day_started_on is not None and (
+            isinstance(self.day_started_on, datetime)
+            or not isinstance(self.day_started_on, date)
+        ):
+            raise ValueError("day_started_on must be a date")
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,11 +96,11 @@ def advance_evaluation(
     settings: StabilitySettings,
 ) -> EvaluationTransition:
     """Advance all available openings and group their stable changes once."""
+    if any(not isinstance(opening_id, str) or not opening_id for opening_id in samples):
+        raise ValueError("opening IDs must be non-empty strings")
     openings = dict(previous.openings)
     changes: list[OpeningChange] = []
     for opening_id in sorted(samples):
-        if not opening_id:
-            raise ValueError("opening IDs must not be empty")
         sample = samples[opening_id]
         before = openings.get(
             opening_id,
@@ -113,7 +119,65 @@ def advance_evaluation(
                 )
             )
     candidate = NotificationCandidate(tuple(changes)) if changes else None
-    return EvaluationTransition(AdvisorState(openings), candidate)
+    return EvaluationTransition(
+        AdvisorState(openings, previous.day_started_on), candidate
+    )
+
+
+def logical_day_started_on(local_now: datetime, day_start: time) -> date:
+    """Return the logical local date for an aware local timestamp."""
+    if (
+        not isinstance(local_now, datetime)
+        or local_now.tzinfo is None
+        or local_now.utcoffset() is None
+    ):
+        raise ValueError("local_now must be timezone-aware")
+    if not isinstance(day_start, time) or day_start.tzinfo is not None:
+        raise ValueError("day_start must be a naive time")
+    if local_now.timetz().replace(tzinfo=None) < day_start:
+        return local_now.date() - timedelta(days=1)
+    return local_now.date()
+
+
+def _day(value: object) -> date:
+    if not isinstance(value, str):
+        raise ValueError("day_started_on must be an ISO date")
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as error:
+        raise ValueError("day_started_on must be an ISO date") from error
+    if parsed.isoformat() != value:
+        raise ValueError("day_started_on must be an ISO date")
+    return parsed
+
+
+def start_day(
+    state: AdvisorState,
+    started_on: date,
+    opening_has_blind: Mapping[str, bool],
+) -> tuple[AdvisorState, bool]:
+    """Reset assumed opening state once for each logical local day."""
+    if isinstance(started_on, datetime) or not isinstance(started_on, date):
+        raise ValueError("started_on must be a date")
+    if not isinstance(opening_has_blind, Mapping):
+        raise ValueError("opening_has_blind must be a mapping")
+    if any(
+        not isinstance(opening_id, str)
+        or not opening_id
+        or not isinstance(has_blind, bool)
+        for opening_id, has_blind in opening_has_blind.items()
+    ):
+        raise ValueError("opening capabilities must use valid IDs and booleans")
+    if state.day_started_on == started_on:
+        return state, False
+    openings = {
+        opening_id: OpeningStabilityState(
+            WindowState.CLOSED,
+            BlindOpening(0 if has_blind else 100),
+        )
+        for opening_id, has_blind in opening_has_blind.items()
+    }
+    return AdvisorState(openings, started_on), True
 
 
 def _pending_window_to_dict(pending: PendingWindow | None) -> object:
@@ -136,6 +200,11 @@ def state_to_dict(state: AdvisorState) -> dict[str, object]:
     """Encode state using JSON-safe versioned primitives."""
     return {
         "version": STATE_VERSION,
+        "day_started_on": (
+            state.day_started_on.isoformat()
+            if state.day_started_on is not None
+            else None
+        ),
         "openings": {
             opening_id: {
                 "window": opening.window.value,
@@ -204,8 +273,20 @@ def _pending_blind(value: object) -> PendingBlind | None:
 def state_from_dict(value: object) -> AdvisorState:
     """Decode and validate versioned persisted state without silent fallback."""
     payload = _mapping(value, "state")
-    if payload.get("version") != STATE_VERSION:
+    version = payload.get("version")
+    if (
+        isinstance(version, bool)
+        or not isinstance(version, int)
+        or version not in (1, STATE_VERSION)
+    ):
         raise ValueError("unsupported state version")
+    if version == 1:
+        day_started_on = None
+    elif "day_started_on" not in payload:
+        raise ValueError("day_started_on is required for state version 2")
+    else:
+        raw_day = payload["day_started_on"]
+        day_started_on = None if raw_day is None else _day(raw_day)
     opening_payloads = _mapping(payload.get("openings"), "openings")
     openings: dict[str, OpeningStabilityState] = {}
     for opening_id, value in opening_payloads.items():
@@ -225,4 +306,4 @@ def state_from_dict(value: object) -> AdvisorState:
             )
         except (KeyError, TypeError, ValueError) as error:
             raise ValueError(f"invalid state for opening {opening_id}") from error
-    return AdvisorState(openings)
+    return AdvisorState(openings, day_started_on)

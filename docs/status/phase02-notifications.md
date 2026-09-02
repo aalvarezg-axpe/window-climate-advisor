@@ -697,3 +697,31 @@ persistent notifications. The legacy automation remains off. No synthetic
 message, configuration change or physical action was called. P02-T20
 terminates; P02-T04 retains natural-device rendering of rc5 and the remaining
 presence/arrival matrix.
+
+## Local rc6 advisor-day preparation
+
+The owner confirmed that the custom component, not the retired automation,
+must start each household day from the manual assumption that windows are
+closed and blinds are down. P02-T21 adds one native options-flow time with an
+08:00 local default, one versioned local-date marker and a native boundary
+refresh. The existing periodic evaluation catches a boundary missed during a
+restart. Resetting clears prior pending stability and the non-persistent
+ordinary notification batch before the normal optimizer runs; configured
+contact and cover observations remain current physical inputs.
+
+A read-only Home Assistant audit from 2026-09-02 00:00 through 10:26 CEST found
+one loaded rc5 entry, three configured recipients and four valid native Mobile
+App routes. Recorder contains zero stable window-target changes, zero stable
+numeric blind-target changes and zero real recipient arrivals. Those are the
+only component delivery triggers, so it sent no notification today by that
+checkpoint. The 37 recorded recommendation/blind availability transitions are
+explicitly non-actionable, and the current system log contains zero delivery
+failures. No Home Assistant state changed during the audit.
+
+The P02-T21 focused state/evaluator/config/adapter/coordinator/lifecycle gate
+passes 98/98; adding the manifest contract passes 101/101. The canonical WSL
+gate passes 242/242 at 95.05% branch coverage with Ruff, formatting, strict
+mypy, artifact/secret, replay, privacy and zero-actuator checks green.
+Consolidated Ponytail review inlined one single-use validator for a net eight
+lines removed, then found the result lean. Publication and protected deployment
+remain.

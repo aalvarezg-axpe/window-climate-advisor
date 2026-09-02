@@ -4,7 +4,7 @@
 
 - Repository: `https://github.com/aalvarezg-axpe/window-climate-advisor`
 - HACS category: Integration / custom repository
-- Candidate: GitHub prerelease `v0.2.0rc5` from `release/0.2.0`
+- Candidate: GitHub prerelease `v0.2.0rc6` from `release/0.2.0`
 - Minimum Home Assistant: 2026.8.0
 - Integration/operational rollback: live-verified `v0.1.0b5`
 - Behavioural baseline only: immutable `v4.17_pre` fixture; no longer deployed
@@ -28,9 +28,9 @@ service, retain a notification backlog, or control a physical device.
 
 ## Install
 
-1. In the existing HACS custom repository, select and download `v0.2.0rc5`.
+1. In the existing HACS custom repository, select and download `v0.2.0rc6`.
    Enable prerelease tracking if HACS hides beta versions.
-2. Confirm HACS reports exactly `v0.2.0rc5` before continuing.
+2. Confirm HACS reports exactly `v0.2.0rc6` before continuing.
 3. Restart Home Assistant once; do not reload only the integration after a new
    custom-component install.
 4. Keep the existing dwelling entry. In its configure flow, add each recipient
@@ -40,7 +40,8 @@ service, retain a notification backlog, or control a physical device.
    `.storage`.
 5. In the existing entry options, preserve every unrelated value and set the
    Summer band to 21–24 °C, preconditioning target to 22 °C and hysteresis to
-   0.5 °C. Submit the complete supported form once; do not edit storage.
+   0.5 °C. Set the local advisor-day start to 08:00. Submit the complete
+   supported form once; do not edit storage.
 6. Reconfigure the dwelling through its supported flow, preserve every climate
    source, and select Elisa and Antonio as the two people who define thermal
    occupancy. Keep the three notification-recipient subentries unchanged.
@@ -68,11 +69,15 @@ service, retain a notification backlog, or control a physical device.
    no owned persistent notification/backlog exists, the integration registers
    no service, and no window, blind, HVAC, or other actuator call occurs.
 8. Confirm `v0.1.0b5` remains downloadable.
+9. Confirm the options form reads back 08:00 and one evaluation after that
+   local boundary starts manual-opening assumptions from closed/0% without a
+   direct notification or physical action. A restart after the boundary must
+   not repeat the reset for the same local date.
 
 ## Roll back
 
 1. Capture redacted diagnostics and errors.
-2. While `v0.2.0rc5` is loaded, remove recipient subentries through the config
+2. While `v0.2.0rc6` is loaded, remove recipient subentries through the config
    flow if rolling back only the notification feature.
 3. In HACS, redownload `v0.1.0b5` and restart Home Assistant once. For complete
    removal, remove the config entry and HACS download instead.

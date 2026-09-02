@@ -44,9 +44,10 @@
     "step": {
       "init": {
         "title": "Perfiles de confort",
-        "description": "Introduce los límites medidos o elegidos para cada estación. No se presuponen valores de confort.",
+        "description": "Introduce los límites medidos o elegidos para cada estación y la hora local de comienzo del día. No se presuponen valores de confort.",
         "data": {
           "selection_mode": "Selección de perfil",
+          "day_start_time": "Comienzo del día",
           "summer_lower_c": "Límite inferior de verano",
           "summer_upper_c": "Límite superior de verano",
           "summer_preconditioning_target_c": "Objetivo de preacondicionamiento de verano",
@@ -71,7 +72,7 @@
       }
     },
     "error": {
-      "invalid_options": "Revisa las relaciones de los perfiles y los ajustes de ejecución. El paso de persiana debe dividir 100 y las antigüedades máximas deben ser positivas."
+      "invalid_options": "Revisa las relaciones de los perfiles y los ajustes de ejecución. La hora de comienzo debe ser válida, el paso de persiana debe dividir 100 y las antigüedades máximas deben ser positivas."
     }
   },
   "selector": {

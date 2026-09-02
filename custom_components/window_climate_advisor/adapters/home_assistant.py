@@ -408,7 +408,9 @@ def build_snapshot(
         )
         has_blind = bool(data[CONF_HAS_BLIND])
         previous_blind = (
-            previous.blind if previous is not None and has_blind else BlindOpening(100)
+            previous.blind
+            if previous is not None and has_blind
+            else BlindOpening(0 if has_blind else 100)
         )
         contact_id = data.get(CONF_CONTACT_ENTITY_ID)
         cover_id = data.get(CONF_COVER_ENTITY_ID)

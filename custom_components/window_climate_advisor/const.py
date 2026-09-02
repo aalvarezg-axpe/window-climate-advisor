@@ -40,6 +40,8 @@ CONF_CONTACT_ENTITY_ID: Final = "contact_entity_id"
 CONF_COVER_ENTITY_ID: Final = "cover_entity_id"
 
 CONF_SELECTION_MODE: Final = "selection_mode"
+CONF_DAY_START_TIME: Final = "day_start_time"
+DEFAULT_DAY_START_TIME: Final = "08:00:00"
 CONF_SUMMER_LOWER_C: Final = "summer_lower_c"
 CONF_SUMMER_UPPER_C: Final = "summer_upper_c"
 CONF_SUMMER_PRECONDITIONING_TARGET_C: Final = "summer_preconditioning_target_c"

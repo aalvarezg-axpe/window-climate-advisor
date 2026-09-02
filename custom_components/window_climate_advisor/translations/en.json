@@ -44,9 +44,10 @@
     "step": {
       "init": {
         "title": "Comfort profiles",
-        "description": "Enter measured or chosen bounds for every season. No comfort defaults are assumed.",
+        "description": "Enter measured or chosen bounds for every season and the local day-start time. No comfort defaults are assumed.",
         "data": {
           "selection_mode": "Profile selection",
+          "day_start_time": "Start of day",
           "summer_lower_c": "Summer lower bound",
           "summer_upper_c": "Summer upper bound",
           "summer_preconditioning_target_c": "Summer preconditioning target",
@@ -71,7 +72,7 @@
       }
     },
     "error": {
-      "invalid_options": "Check all profile relationships and runtime settings. Blind step must divide 100 and maximum source ages must be positive."
+      "invalid_options": "Check all profile relationships and runtime settings. Day-start time must be valid, blind step must divide 100, and maximum source ages must be positive."
     }
   },
   "selector": {

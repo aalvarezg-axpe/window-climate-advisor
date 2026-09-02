@@ -342,6 +342,26 @@ def test_manual_blind_uses_persisted_position_without_cover(
     assert "cover.blind" not in configured_entity_ids(config_entry)
 
 
+def test_new_manual_opening_starts_closed_with_blind_down(
+    hass: HomeAssistant,
+) -> None:
+    """Use the daily closed/down assumption only when feedback is absent."""
+    config_entry = entry(cover=False, contact=False)
+    set_ready_states(hass)
+
+    opening = build_snapshot(
+        hass,
+        config_entry,
+        AdvisorState(),
+        dt_util.utcnow(),
+        None,
+        None,
+    ).openings[0]
+
+    assert opening.current_action.window_state is WindowState.CLOSED
+    assert opening.current_action.blind == BlindOpening(0)
+
+
 def test_binary_rain_is_conservative_and_stale_thermal_data_is_explicit(
     hass: HomeAssistant,
 ) -> None:

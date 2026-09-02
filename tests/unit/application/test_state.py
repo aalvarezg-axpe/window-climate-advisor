@@ -1,6 +1,7 @@
 """Tests for grouped and restart-safe application state."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -9,7 +10,9 @@ from custom_components.window_climate_advisor.application.state import (
     NotificationCandidate,
     OpeningChange,
     advance_evaluation,
+    logical_day_started_on,
     merge_notification_candidates,
+    start_day,
     state_from_dict,
     state_to_dict,
 )
@@ -80,7 +83,8 @@ def test_evaluation_returns_at_most_one_sorted_grouped_candidate() -> None:
         {
             "room-b": OpeningStabilityState(WindowState.TILT, BlindOpening(100)),
             "room-a": OpeningStabilityState(WindowState.OPEN, BlindOpening(100)),
-        }
+        },
+        date(2026, 8, 24),
     )
     samples = {
         "room-b": sample(
@@ -98,6 +102,8 @@ def test_evaluation_returns_at_most_one_sorted_grouped_candidate() -> None:
     }
 
     result = advance_evaluation(previous, samples, NOW, SETTINGS)
+
+    assert result.state.day_started_on == date(2026, 8, 24)
 
     assert isinstance(result.notification_candidate, NotificationCandidate)
     assert [change.opening_id for change in result.notification_candidate.changes] == [
@@ -203,12 +209,14 @@ def test_state_round_trip_preserves_utc_pending_memory() -> None:
                     NOW + timedelta(minutes=1),
                 ),
             )
-        }
+        },
+        date(2026, 8, 24),
     )
 
     encoded = state_to_dict(state)
 
-    assert encoded["version"] == 1
+    assert encoded["version"] == 2
+    assert encoded["day_started_on"] == "2026-08-24"
     assert state_from_dict(encoded) == state
     assert state_from_dict(state_to_dict(AdvisorState())) == AdvisorState()
     without_pending = AdvisorState(
@@ -245,12 +253,161 @@ def test_thirty_day_percentage_drift_does_not_create_candidates() -> None:
         state = result.state
 
 
+def test_v1_state_migrates_without_a_logical_day_marker() -> None:
+    """Load the previous schema and initialize its marker as unknown."""
+    state = AdvisorState(
+        {"opening": OpeningStabilityState(WindowState.CLOSED, BlindOpening(100))}
+    )
+    payload = state_to_dict(state)
+    payload["version"] = 1
+    payload.pop("day_started_on")
+
+    assert state_from_dict(payload) == state
+    assert state_from_dict(payload).day_started_on is None
+
+
+@pytest.mark.parametrize(
+    ("local_now", "expected"),
+    [
+        (
+            datetime(2026, 9, 2, 7, 59, tzinfo=ZoneInfo("Europe/Madrid")),
+            date(2026, 9, 1),
+        ),
+        (
+            datetime(2026, 9, 2, 8, tzinfo=ZoneInfo("Europe/Madrid")),
+            date(2026, 9, 2),
+        ),
+        (
+            datetime(2026, 9, 3, 10, tzinfo=ZoneInfo("Europe/Madrid")),
+            date(2026, 9, 3),
+        ),
+    ],
+)
+def test_logical_day_uses_the_local_start_boundary(
+    local_now: datetime, expected: date
+) -> None:
+    """Map before, at, and after the configured local start."""
+    assert logical_day_started_on(local_now, time(8)) == expected
+
+
+@pytest.mark.parametrize(
+    "local_now, day_start",
+    [
+        (datetime(2026, 9, 2, 8), time(8)),
+        (
+            datetime(2026, 9, 2, 8, tzinfo=ZoneInfo("Europe/Madrid")),
+            time(8, tzinfo=UTC),
+        ),
+    ],
+)
+def test_logical_day_rejects_naive_datetime_or_aware_start(
+    local_now: datetime, day_start: time
+) -> None:
+    """Require a local aware instant and a naive configured wall time."""
+    with pytest.raises(ValueError):
+        logical_day_started_on(local_now, day_start)
+
+
+@pytest.mark.parametrize(
+    ("local_now", "expected"),
+    [
+        (
+            datetime(2026, 3, 29, 7, 59, tzinfo=ZoneInfo("Europe/Madrid")),
+            date(2026, 3, 28),
+        ),
+        (
+            datetime(2026, 3, 29, 8, tzinfo=ZoneInfo("Europe/Madrid")),
+            date(2026, 3, 29),
+        ),
+        (
+            datetime(2026, 10, 25, 7, 59, tzinfo=ZoneInfo("Europe/Madrid")),
+            date(2026, 10, 24),
+        ),
+        (
+            datetime(2026, 10, 25, 8, tzinfo=ZoneInfo("Europe/Madrid")),
+            date(2026, 10, 25),
+        ),
+    ],
+)
+def test_logical_day_handles_europe_madrid_dst_dates(
+    local_now: datetime, expected: date
+) -> None:
+    """Use local wall time across both Europe/Madrid DST transitions."""
+    assert logical_day_started_on(local_now, time(8)) == expected
+
+
+def test_start_day_resets_configured_openings_and_is_idempotent() -> None:
+    """Reset assumptions and clear all pending movement memory once daily."""
+    state = AdvisorState(
+        {
+            "with-blind": OpeningStabilityState(
+                WindowState.OPEN,
+                BlindOpening(40),
+                blind_direction=BlindDirection.LOWER,
+                pending_window=PendingWindow(WindowState.CLOSED, NOW),
+                pending_blind=PendingBlind(
+                    BlindDirection.RAISE,
+                    BlindOpening(80),
+                    NOW,
+                ),
+            ),
+            "without-blind": OpeningStabilityState(
+                WindowState.TILT,
+                BlindOpening(20),
+            ),
+        },
+        date(2026, 9, 1),
+    )
+
+    reset, changed = start_day(
+        state,
+        date(2026, 9, 2),
+        {"with-blind": True, "without-blind": False},
+    )
+
+    assert changed
+    assert reset.day_started_on == date(2026, 9, 2)
+    assert reset.openings == {
+        "with-blind": OpeningStabilityState(WindowState.CLOSED, BlindOpening(0)),
+        "without-blind": OpeningStabilityState(
+            WindowState.CLOSED,
+            BlindOpening(100),
+        ),
+    }
+    same, changed_again = start_day(
+        reset,
+        date(2026, 9, 2),
+        {"with-blind": True, "without-blind": False},
+    )
+    assert same is reset
+    assert not changed_again
+
+
+@pytest.mark.parametrize(
+    "capabilities",
+    [
+        {"": True},
+        {1: True},
+        {"opening": 1},
+    ],
+)
+def test_start_day_rejects_invalid_opening_ids_and_blind_flags(
+    capabilities: object,
+) -> None:
+    """Do not coerce untrusted opening identities or capability flags."""
+    with pytest.raises(ValueError):
+        start_day(AdvisorState(), date(2026, 9, 2), capabilities)  # type: ignore[arg-type]
+
+
 @pytest.mark.parametrize(
     "payload",
     [
         None,
         {},
         {"version": 2, "openings": {}},
+        {"version": 2, "day_started_on": "not-a-date", "openings": {}},
+        {"version": 2, "day_started_on": "2026-02-30", "openings": {}},
+        {"version": 2, "day_started_on": date(2026, 9, 2), "openings": {}},
         {"version": 1, "openings": []},
         {"version": 1, "openings": {"": {}}},
         {"version": 1, "openings": {1: {}}},

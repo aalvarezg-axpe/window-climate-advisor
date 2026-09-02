@@ -11,7 +11,11 @@ from typing import Any, override
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_HOME, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Event, HomeAssistant, callback
-from homeassistant.helpers.event import async_call_later, async_track_state_change_event
+from homeassistant.helpers.event import (
+    async_call_later,
+    async_track_state_change_event,
+    async_track_time_change,
+)
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -33,11 +37,14 @@ from .application.notifications import OpeningFeedback, arrival_notification_can
 from .application.state import (
     AdvisorState,
     NotificationCandidate,
+    logical_day_started_on,
     merge_notification_candidates,
+    start_day,
     state_from_dict,
     state_to_dict,
 )
 from .config_flow import (
+    day_start_time_from_options,
     has_duplicate_entity_links,
     occupancy_person_entity_ids,
     profiles_from_options,
@@ -46,6 +53,7 @@ from .config_flow import (
 from .const import (
     CONF_CONTACT_ENTITY_ID,
     CONF_COVER_ENTITY_ID,
+    CONF_HAS_BLIND,
     CONF_PERSON_ENTITY_ID,
     CONF_SELECTION_MODE,
     CONF_WEATHER_ENTITY_ID,
@@ -147,6 +155,10 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 self._pending_arrivals.add(person_entity_id)
             hass.async_create_task(self.async_request_refresh())
 
+        @callback
+        def request_day_start(_: datetime) -> None:
+            hass.async_create_task(self.async_request_refresh())
+
         entry.async_on_unload(
             async_track_state_change_event(
                 hass,
@@ -154,6 +166,20 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 request_refresh,
             )
         )
+        try:
+            day_start = day_start_time_from_options(entry.options)
+        except ValueError:
+            pass
+        else:
+            entry.async_on_unload(
+                async_track_time_change(
+                    hass,
+                    request_day_start,
+                    hour=day_start.hour,
+                    minute=day_start.minute,
+                    second=day_start.second,
+                )
+            )
         entry.async_on_unload(self._cancel_notification_batch)
 
     @callback
@@ -240,6 +266,7 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
         arriving_person_ids = tuple(sorted(self._pending_arrivals))
         self._pending_arrivals.difference_update(arriving_person_ids)
         now = dt_util.utcnow()
+        state_before_update = self._state
         if has_duplicate_entity_links(
             self.config_entry.data,
             *(
@@ -253,6 +280,11 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
         profiles = None
         source_max_age: timedelta | None = None
         room_temperature_max_age: timedelta | None = None
+        day_start = None
+        try:
+            day_start = day_start_time_from_options(self.config_entry.options)
+        except ValueError:
+            day_start = None
         try:
             profiles = profiles_from_options(dict(self.config_entry.options))
             (
@@ -266,6 +298,32 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
             room_temperature_max_age = timedelta(minutes=room_age_minutes)
         except KeyError, ValueError:
             pass
+        if day_start is None:
+            settings = None
+            profiles = None
+
+        if day_start is not None:
+            try:
+                opening_has_blind: dict[str, bool] = {}
+                for (
+                    opening_id,
+                    opening_subentry,
+                ) in self.config_entry.subentries.items():
+                    if opening_subentry.subentry_type != SUBENTRY_TYPE_OPENING:
+                        continue
+                    has_blind = opening_subentry.data.get(CONF_HAS_BLIND)
+                    if not isinstance(has_blind, bool):
+                        raise ValueError("opening blind capability must be boolean")
+                    opening_has_blind[opening_id] = has_blind
+                self._state, day_started = start_day(
+                    self._state,
+                    logical_day_started_on(dt_util.as_local(now), day_start),
+                    opening_has_blind,
+                )
+            except ValueError as error:
+                raise UpdateFailed("Invalid stored advisor configuration") from error
+            if day_started:
+                self._cancel_notification_batch()
 
         try:
             built = build_snapshot(
@@ -317,7 +375,7 @@ class WindowClimateAdvisorCoordinator(DataUpdateCoordinator[CoordinatorData]):
             now,
             settings,
         )
-        state_changed = evaluation.state != self._state
+        state_changed = evaluation.state != state_before_update
         self._state = evaluation.state
         if state_changed:
             await self._store.async_save(state_to_dict(self._state))

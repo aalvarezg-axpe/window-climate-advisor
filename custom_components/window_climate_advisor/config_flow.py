@@ -1,6 +1,7 @@
 """Config flow for the Window Climate Advisor integration."""
 
 from collections.abc import Mapping
+from datetime import time
 from math import isfinite
 from typing import Any, override
 
@@ -32,6 +33,7 @@ from .const import (
     CONF_CO2_ENTITY_ID,
     CONF_CONTACT_ENTITY_ID,
     CONF_COVER_ENTITY_ID,
+    CONF_DAY_START_TIME,
     CONF_FACADE_AZIMUTH_DEG,
     CONF_HAS_BLIND,
     CONF_HEIGHT_M,
@@ -71,6 +73,7 @@ from .const import (
     CONF_WINTER_LOWER_C,
     CONF_WINTER_PRECONDITIONING_TARGET_C,
     CONF_WINTER_UPPER_C,
+    DEFAULT_DAY_START_TIME,
     DOMAIN,
     SUBENTRY_TYPE_OPENING,
     SUBENTRY_TYPE_RECIPIENT,
@@ -239,6 +242,9 @@ OPTIONS_SCHEMA = vol.Schema(
                 translation_key="selection_mode",
             )
         ),
+        vol.Required(
+            CONF_DAY_START_TIME, default=DEFAULT_DAY_START_TIME
+        ): selector.TimeSelector(),
         vol.Required(CONF_SUMMER_LOWER_C): PROFILE_TEMPERATURE_SELECTOR,
         vol.Required(CONF_SUMMER_UPPER_C): PROFILE_TEMPERATURE_SELECTOR,
         vol.Required(
@@ -283,6 +289,20 @@ OPTIONS_SCHEMA = vol.Schema(
         ),
     }
 )
+
+
+def day_start_time_from_options(user_input: Mapping[str, Any]) -> time:
+    """Decode the local daily reset time with a backward-compatible default."""
+    raw = user_input.get(CONF_DAY_START_TIME, DEFAULT_DAY_START_TIME)
+    if not isinstance(raw, str):
+        raise ValueError("day start time must be a string")
+    try:
+        value = time.fromisoformat(raw)
+    except ValueError as error:
+        raise ValueError("day start time must be ISO 8601") from error
+    if value.tzinfo is not None or value.microsecond:
+        raise ValueError("day start time must be a whole local second")
+    return value
 
 
 def profiles_from_options(user_input: dict[str, Any]) -> ComfortProfiles:
@@ -457,6 +477,7 @@ class WindowClimateAdvisorOptionsFlow(OptionsFlow):
             try:
                 profiles_from_options(user_input)
                 settings_from_options(user_input)
+                day_start_time_from_options(user_input)
             except ValueError:
                 errors["base"] = "invalid_options"
             else:

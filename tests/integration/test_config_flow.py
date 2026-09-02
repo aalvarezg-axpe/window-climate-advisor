@@ -31,6 +31,7 @@ from custom_components.window_climate_advisor.config_flow import (
     OPTIONS_SCHEMA,
     RECIPIENT_SCHEMA,
     ROOM_SCHEMA,
+    day_start_time_from_options,
     settings_from_options,
 )
 from custom_components.window_climate_advisor.const import (
@@ -40,6 +41,7 @@ from custom_components.window_climate_advisor.const import (
     CONF_CO2_ENTITY_ID,
     CONF_CONTACT_ENTITY_ID,
     CONF_COVER_ENTITY_ID,
+    CONF_DAY_START_TIME,
     CONF_FACADE_AZIMUTH_DEG,
     CONF_HAS_BLIND,
     CONF_HEIGHT_M,
@@ -78,6 +80,7 @@ from custom_components.window_climate_advisor.const import (
     CONF_WINTER_LOWER_C,
     CONF_WINTER_PRECONDITIONING_TARGET_C,
     CONF_WINTER_UPPER_C,
+    DEFAULT_DAY_START_TIME,
     DOMAIN,
     SUBENTRY_TYPE_OPENING,
     SUBENTRY_TYPE_RECIPIENT,
@@ -105,6 +108,7 @@ RECIPIENT_INPUT = {
 }
 VALID_OPTIONS = {
     CONF_SELECTION_MODE: "auto",
+    CONF_DAY_START_TIME: DEFAULT_DAY_START_TIME,
     CONF_SUMMER_LOWER_C: 22,
     CONF_SUMMER_UPPER_C: 25,
     CONF_SUMMER_PRECONDITIONING_TARGET_C: 23,
@@ -410,6 +414,15 @@ def test_options_schema_rejects_invalid_mode_and_numeric_bounds() -> None:
         OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_SOURCE_STALE_MINUTES: 0})
     with pytest.raises(vol.Invalid):
         OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_ROOM_TEMPERATURE_STALE_MINUTES: 0})
+    with pytest.raises(vol.Invalid):
+        OPTIONS_SCHEMA({**VALID_OPTIONS, CONF_DAY_START_TIME: "25:00:00"})
+
+    assert day_start_time_from_options({}).isoformat() == DEFAULT_DAY_START_TIME
+    for invalid_time in (8, "08:00:00+02:00", "08:00:00.500000"):
+        with pytest.raises(ValueError):
+            day_start_time_from_options(
+                {**VALID_OPTIONS, CONF_DAY_START_TIME: invalid_time}
+            )
 
     for blind_step in (True, "10", 10.5):
         with pytest.raises(ValueError):

@@ -267,7 +267,8 @@ def evaluate_snapshot(
             opening_id: state
             for opening_id, state in previous_state.openings.items()
             if opening_id in configured_ids
-        }
+        },
+        previous_state.day_started_on,
     )
     if settings is None:
         state = retained_state

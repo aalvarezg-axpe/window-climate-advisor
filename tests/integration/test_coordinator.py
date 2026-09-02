@@ -1,7 +1,8 @@
 """Tests for coordinator scheduling, degradation, and persistence."""
 
-from datetime import timedelta
+from datetime import UTC, date, datetime, timedelta
 from unittest.mock import AsyncMock, Mock, patch
+from zoneinfo import ZoneInfo
 
 import pytest
 from homeassistant.components.weather import SERVICE_GET_FORECASTS
@@ -30,6 +31,7 @@ from custom_components.window_climate_advisor.const import (
     CONF_PERSON_ENTITY_ID,
     CONF_WIND_GUST_ENTITY_ID,
     CONF_WIND_SPEED_ENTITY_ID,
+    SUBENTRY_TYPE_OPENING,
     SUBENTRY_TYPE_RECIPIENT,
 )
 from custom_components.window_climate_advisor.coordinator import (
@@ -50,9 +52,42 @@ from custom_components.window_climate_advisor.domain.state_machine import (
     BlindDirection,
     OpeningStabilityState,
     PendingBlind,
+    PendingWindow,
 )
 from tests.integration.test_adapters import entry, set_ready_states
 from tests.integration.test_config_flow import VALID_OPTIONS
+
+
+@pytest.fixture
+def expected_lingering_timers() -> bool:
+    """Allow native day-start listeners owned by config-entry unload."""
+    return True
+
+
+async def test_coordinator_tracks_the_configured_local_day_start(
+    hass: HomeAssistant,
+) -> None:
+    """Request one refresh at the native local-time boundary."""
+    config_entry = entry()
+    object.__setattr__(
+        config_entry, "options", type(config_entry.options)(VALID_OPTIONS)
+    )
+    config_entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.window_climate_advisor.coordinator.async_track_time_change",
+        return_value=Mock(),
+    ) as track:
+        coordinator = WindowClimateAdvisorCoordinator(hass, config_entry)
+
+    assert track.call_args.kwargs == {"hour": 8, "minute": 0, "second": 0}
+    callback = track.call_args.args[1]
+    with patch.object(
+        coordinator, "async_request_refresh", new_callable=AsyncMock
+    ) as refresh:
+        callback(datetime(2026, 9, 2, 8, tzinfo=ZoneInfo("Europe/Madrid")))
+        await hass.async_block_till_done()
+    refresh.assert_awaited_once()
 
 
 async def test_incomplete_options_load_as_explicit_degradation(
@@ -149,6 +184,81 @@ async def test_configured_coordinator_uses_forecast_persists_and_refreshes(
     restored = WindowClimateAdvisorCoordinator(hass, config_entry)
     await restored.async_config_entry_first_refresh()
     assert restored.data.evaluation.state == coordinator.data.evaluation.state
+
+
+async def test_first_refresh_after_day_start_resets_and_persists_assumptions(
+    hass: HomeAssistant,
+) -> None:
+    """Catch up a missed boundary and discard the preceding ordinary batch."""
+    config_entry = entry()
+    object.__setattr__(
+        config_entry, "options", type(config_entry.options)(VALID_OPTIONS)
+    )
+    config_entry.add_to_hass(hass)
+    config_entry.mock_state(hass, ConfigEntryState.SETUP_IN_PROGRESS)
+    set_ready_states(hass)
+    coordinator = WindowClimateAdvisorCoordinator(hass, config_entry)
+    opening_id = next(
+        subentry_id
+        for subentry_id, subentry in config_entry.subentries.items()
+        if subentry.subentry_type == SUBENTRY_TYPE_OPENING
+    )
+    old = datetime(2026, 9, 1, 6, tzinfo=UTC)
+    coordinator._state = AdvisorState(
+        {
+            opening_id: OpeningStabilityState(
+                WindowState.TILT,
+                BlindOpening(50),
+                blind_direction=BlindDirection.LOWER,
+                pending_window=PendingWindow(WindowState.OPEN, old),
+                pending_blind=PendingBlind(
+                    BlindDirection.LOWER,
+                    BlindOpening(20),
+                    old,
+                ),
+            )
+        },
+        date(2026, 9, 1),
+    )
+    coordinator._pending_notification = NotificationCandidate(
+        (
+            OpeningChange(
+                opening_id,
+                coordinator._state.openings[opening_id],
+                ReasonCode.OPTIMIZER,
+                True,
+                True,
+            ),
+        )
+    )
+    cancel = Mock()
+    coordinator._cancel_notification_timer = cancel
+    now = datetime(2026, 9, 2, 6, tzinfo=UTC)
+    local_now = datetime(2026, 9, 2, 8, tzinfo=ZoneInfo("Europe/Madrid"))
+
+    with (
+        patch(
+            "custom_components.window_climate_advisor.coordinator.dt_util.utcnow",
+            return_value=now,
+        ),
+        patch(
+            "custom_components.window_climate_advisor.coordinator.dt_util.as_local",
+            return_value=local_now,
+        ),
+    ):
+        await coordinator.async_config_entry_first_refresh()
+
+    stable = coordinator._state.openings[opening_id]
+    assert coordinator._state.day_started_on == date(2026, 9, 2)
+    assert stable.window is WindowState.CLOSED
+    assert stable.blind == BlindOpening(0)
+    assert stable.pending_window is None or stable.pending_window.since == now
+    assert stable.pending_blind is None or stable.pending_blind.since == now
+    cancel.assert_called_once()
+    assert coordinator._pending_notification is None
+    stored = await coordinator._store.async_load()
+    assert stored is not None
+    assert stored["day_started_on"] == "2026-09-02"
 
 
 def test_dwelling_occupancy_requires_every_selected_person_known_away(

@@ -6,7 +6,7 @@ outdoor weather, forecasts, façade orientation, opening geometry, and thermal
 comfort policy.
 
 The project is in **Phase 02 contextual-notification validation**. Candidate
-`v0.2.0rc5` stores only recipient persons, discovers their associated Home
+`v0.2.0rc6` stores only recipient persons, discovers their associated Home
 Assistant Mobile App devices through native registries, sends stable-change
 summaries only to those devices currently home, and gives fresh advice when a
 configured occupant arrives. Live-verified `v0.1.0b5` remains the integration
@@ -32,6 +32,12 @@ Mobile summaries use compact causes such as `Radiación` and
 stable recommended blind percentage is included as context even if that blind
 target was already stable. Detailed reason text remains available on the
 Recorder-visible recommendation entity.
+
+The advisor day starts at 08:00 local time by default and that time is
+configurable in the integration options. At each boundary the assumed state
+for manual openings returns to closed windows and 0% blind opening before a
+fresh evaluation. Real contact and cover feedback still overrides the assumed
+current position, and the reset never controls a device.
 
 The product source of truth is [`docs/GOAL.md`](docs/GOAL.md). Active work is
 tracked in
@@ -112,7 +118,7 @@ Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
 1. In HACS, open the menu and select **Custom repositories**.
 2. Add `https://github.com/aalvarezg-axpe/window-climate-advisor` as type
    **Integration**.
-3. Download the explicit prerelease `v0.2.0rc5`; enable prerelease tracking for
+3. Download the explicit prerelease `v0.2.0rc6`; enable prerelease tracking for
    this repository if HACS does not initially show it.
 4. Restart Home Assistant.
 5. Go to **Settings → Devices & services → Add integration**, search for
@@ -122,6 +128,8 @@ Prerequisites: Home Assistant 2026.8.0 or newer and HACS already configured.
 6. Reconfigure the dwelling and select the people whose presence defines the
    thermal occupancy policy. This selection is independent of notification
    recipients.
+7. In the integration options, keep or change the 08:00 local start of the
+   advisor day.
 
 This installs a recommendation and contextual-notification advisor without
 restoring the retired `v4.17_pre` automation or performing physical actions.

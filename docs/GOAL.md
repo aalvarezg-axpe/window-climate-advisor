@@ -234,7 +234,8 @@ not use Core's build-time `strings.json` pipeline.
   several Home Assistant persons does not implicitly authorize every one of
   those persons.
 - Reconfigure flow: structural changes and entity replacements.
-- Options flow: infrequent tuning of accepted user-visible settings.
+- Options flow: infrequent tuning of accepted user-visible settings, including
+  the local start of the advisor day (08:00 by default).
 - Native `select`, `number`, or `switch` entities: only controls that users
   reasonably change from dashboards or automations.
 - Supported Home Assistant storage API: compact runtime state and hysteresis;
@@ -265,6 +266,18 @@ a heat-risk context value; it still does not enter `OptimizationRequest` as
 invented thermal conditions. A later real horizon requires a demonstrated,
 time-aligned future irradiance source and an explicit indoor reference
 contract.
+
+Each advisor day starts at one configurable Home Assistant local time, 08:00
+by default. At that boundary—or on the first evaluation after Home Assistant
+missed it—the restart-safe assumed state is reset to closed windows and 0%
+blind opening for every blind-capable opening. Pending stability from the
+previous day and any non-persistent ordinary notification batch are discarded
+before a fresh evaluation. Configured contact and cover observations still
+reach the optimizer as the current physical input; the reset supplies the
+fallback assumption for manual or newly configured openings and never calls an
+actuator. One persisted local logical-day marker prevents duplicate resets
+across ordinary reloads and handles both Europe/Madrid DST offsets by calendar
+date rather than a fixed UTC instant.
 
 The owner froze one-sided seasonal intent on 2026-08-30 and corrected its
 Summer stop boundary after a live false-tilt reproduction. Summer may actively
@@ -422,7 +435,9 @@ window/blind components are combined. A recipient is
 eligible only if a usable linked device is `home` when a retained change occurs
 and remains `home` at delivery; a person with several home devices may receive
 the same consolidated advice on each of them. Unload cancels and discards the
-batch rather than persisting a notification queue.
+batch rather than persisting a notification queue. The configured start of a
+new advisor day discards it for the same reason: advice retained before the
+closed/down daily assumption is stale.
 If every linked device is away, the integration sends nothing and stores no
 backlog. When a configured person later enters `home`, the integration performs
 a fresh evaluation and sends only to that arriving person's linked devices that

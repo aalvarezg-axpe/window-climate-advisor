@@ -5,6 +5,28 @@ Semantic Versioning after the first distributable integration release.
 
 ## Unreleased
 
+## 0.2.0rc6 - 2026-09-02
+
+### Added
+
+- The options flow now exposes one local start-of-day time, defaulting to
+  08:00. Existing entries use that default until the complete form stores it.
+
+### Changed
+
+- At the local boundary, or the first evaluation after a missed boundary, the
+  restart-safe assumed state starts from closed windows and 0% blind opening.
+  Prior pending hysteresis and the in-memory ordinary notification batch are
+  discarded before normal evaluation resumes.
+- A versioned local calendar-date marker prevents duplicate resets on reload
+  and remains correct across Europe/Madrid daylight-saving transitions.
+
+### Safety and privacy
+
+- Configured contact and cover observations still reach the optimizer as the
+  current physical input. The daily boundary creates no direct delivery or
+  actuator call and adds no helper, entity, dependency, queue or service.
+
 ## 0.2.0rc5 - 2026-08-31
 
 ### Changed
