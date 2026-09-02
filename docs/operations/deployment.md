@@ -121,3 +121,17 @@ captured normal source settling; the next read recovered all 14 source classes,
 redacted structure, availability, recommendation, Repairs, log, service,
 notification-backlog and legacy-automation gates passed. No synthetic message,
 configuration change or physical action was used.
+
+## Recorded rc6 result
+
+`v0.2.0rc6` was installed through the existing HACS update entity after a
+completed supported full backup including the database. The supported
+configuration check passed and one observed down/up restart returned Home
+Assistant 2026.8.3 with the schema-v4 entry loaded. The complete supported
+options form stored 08:00 and preserved the other 21 values. The final redacted
+gate reports 6 rooms, 7 openings, 3 recipients, 8 devices, 23/23 available
+enabled unique entities, 14/14 ready sources and seven valid `close`/0% daily
+baseline results. There are zero duplicate identities, integration Repairs,
+current domain log matches, services or owned persistent notifications; the
+legacy automation remains off. The reset produced no direct notification or
+physical action, and the options reload did not repeat it for the same date.

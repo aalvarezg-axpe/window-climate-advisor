@@ -725,3 +725,37 @@ mypy, artifact/secret, replay, privacy and zero-actuator checks green.
 Consolidated Ponytail review inlined one single-use validator for a net eight
 lines removed, then found the result lean. Publication and protected deployment
 remain.
+
+## Live rc6 advisor-day deployment
+
+Commit `0cb4d39`, both remote release branches, the annotated tag and the public
+prerelease identify the same `v0.2.0rc6` candidate. A repository-scoped HACS
+refresh exposed exactly rc6. A supported full backup containing Home Assistant
+and its database completed before the native update entity installed rc6, and
+the supported configuration check passed. The single restart request lost its
+HTTP response during the expected shutdown and was not repeated; read-only
+polling observed the down/up recovery on Home Assistant 2026.8.3.
+
+The complete supported options form stored `08:00:00` and preserved all 21
+prior values. Its fresh read-back exposes all 22 fields with that exact time.
+The post-reload redacted gate reports one loaded schema-v4 entry, 6 rooms, 7
+openings, 3 recipients, 8 devices, 23/23 available enabled unique entities,
+14/14 ready source classes and seven valid results. All seven results start at
+the requested `close`/0% daily baseline. Duplicate identities, integration
+Repairs, current domain log matches, services and owned persistent
+notifications are zero; the retained legacy automation remains off. No helper,
+entity, recipient, registry identity, synthetic notification or physical action
+was created or changed. The post-live canonical verifier again passes 242/242
+at 95.05% branch coverage.
+
+The initial notification audit was explicitly bounded at 10:26 CEST. Extending
+Recorder and route-state evidence to the deployment time found one later
+natural `open`/100% to `close`/0% stable change at 10:35. Exactly one Mobile App
+route was eligible both then and at the fixed ten-minute flush, and there was no
+arrival, unload or cancellation in between, so the component called one
+ordinary `notify.send_message` around 10:45. The component deliberately stores
+no delivery ledger, so handset receipt is not claimed. Natural changes at
+10:55 and 10:58 remained inside their batch when the deployment restart
+canceled it. The rc6 missed-boundary reset then established the seven
+`close`/0% results without creating a direct notification, and the subsequent
+options reload did not repeat that reset. P02-T21 terminates.
